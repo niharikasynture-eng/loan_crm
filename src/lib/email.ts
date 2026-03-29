@@ -114,3 +114,68 @@ export async function sendLeadAssignedEmail(
     `,
   });
 }
+
+export async function sendPublicLeadWelcomeEmail(
+  email: string,
+  leadName: string,
+  orgName: string
+): Promise<boolean> {
+  const firstName = leadName.split(' ')[0];
+  try {
+    await sendEmail({
+      to: email,
+      subject: `Thank you for showing interest in our ${orgName}!`,
+      html: `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #1e293b; font-size: 24px; font-weight: 800; margin-bottom: 10px;">Interest Received!</h1>
+            <div style="height: 4px; width: 60px; background: linear-gradient(to right, #6366f1, #0ea5e9); margin: 0 auto; border-radius: 2px;"></div>
+          </div>
+          
+          <p style="color: #334155; font-size: 16px; line-height: 1.6;">Hi <strong>${firstName}</strong>,</p>
+          
+          <p style="color: #334155; font-size: 16px; line-height: 1.6;">
+            Thank you for showing interest in our organization <strong>${orgName}</strong> through our Sales CRM portal. 
+            We’re excited to help you streamline your sales process and convert more leads into customers.
+          </p>
+          
+          <div style="margin-top: 40px; padding: 24px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;">
+            <h3 style="color: #1e293b; font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px;">What happens next?</h3>
+            <p style="color: #64748b; font-size: 14px; margin: 0;">Our sales representatives will reach out to you within the next 24 hours to discuss how we can best support your needs.</p>
+          </div>
+          
+          <p style="margin-top: 40px; color: #94a3b8; font-size: 13px; text-align: center;">© ${new Date().getFullYear()} ${orgName}. All rights reserved.</p>
+        </div>
+      `,
+    });
+    return true;
+  } catch (err) {
+    console.error('Welcome Email Error:', err);
+    return false;
+  }
+}
+
+export async function sendAdminNewLeadAlert(
+  adminEmail: string,
+  leadName: string,
+  leadEmail: string,
+  leadPhone: string,
+  orgName: string
+): Promise<void> {
+  await sendEmail({
+    to: adminEmail,
+    subject: `🔔 New Lead Received: ${leadName}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px;background:#0f172a;color:#e2e8f0;border-radius:12px;">
+        <h2 style="color:#818cf8;margin-bottom:16px;">New Lead Captured</h2>
+        <p>A new lead has just filled out the public form for <strong>${orgName}</strong>.</p>
+        <div style="background:#1e293b;padding:16px;border-radius:8px;border:1px solid #334155;margin:16px 0;">
+          <p style="margin:4px 0;"><strong>Name:</strong> ${leadName}</p>
+          <p style="margin:4px 0;"><strong>Email:</strong> ${leadEmail}</p>
+          <p style="margin:4px 0;"><strong>Phone:</strong> ${leadPhone || 'Not provided'}</p>
+        </div>
+        <p style="color:#64748b;font-size:12px;">Log in to the SalesCRM dashboard to manage this lead.</p>
+      </div>
+    `,
+  });
+}

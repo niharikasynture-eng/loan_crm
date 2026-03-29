@@ -11,6 +11,7 @@ interface User {
   name: string;
   email: string;
   role: string;
+  phone?: string;
   isActive: boolean;
   createdAt: string;
 }
@@ -36,6 +37,7 @@ export default function UsersPage() {
     email: '',
     password: '',
     role: 'sales_agent',
+    phone: '',
   });
 
   async function loadUsers() {
@@ -53,14 +55,14 @@ export default function UsersPage() {
   function openInvite() {
     setModalMode('invite');
     setEditingUser(null);
-    setForm({ name: '', email: '', password: '', role: 'sales_agent' });
+    setForm({ name: '', email: '', password: '', role: 'sales_agent', phone: '' });
     setIsModalOpen(true);
   }
 
   function openEdit(user: User) {
     setModalMode('edit');
     setEditingUser(user);
-    setForm({ name: user.name, email: user.email, password: '', role: user.role });
+    setForm({ name: user.name, email: user.email, password: '', role: user.role, phone: user.phone || '' });
     setIsModalOpen(true);
   }
 
@@ -74,6 +76,7 @@ export default function UsersPage() {
         await api.patch(`/users/${editingUser._id}`, {
           name: form.name,
           role: form.role,
+          phone: form.phone,
           ...(form.password && { password: form.password })
         });
       }
@@ -133,6 +136,7 @@ export default function UsersPage() {
                 <tr>
                   <th>User</th>
                   <th>Role</th>
+                  <th>Phone</th>
                   <th>Status</th>
                   <th>Joined</th>
                   <th>Actions</th>
@@ -140,7 +144,7 @@ export default function UsersPage() {
               </thead>
               <tbody>
                 {users.length === 0 ? (
-                  <tr><td colSpan={5} className="text-center py-8 text-[#64748b]">No users found</td></tr>
+                  <tr><td colSpan={6} className="text-center py-8 text-[#64748b]">No users found</td></tr>
                 ) : (
                   users.map((u) => (
                     <tr key={u._id}>
@@ -160,6 +164,9 @@ export default function UsersPage() {
                           {getRoleIcon(u.role)}
                           <span className="text-sm font-medium text-[#cbd5e1]">{getRoleLabel(u.role)}</span>
                         </div>
+                      </td>
+                      <td>
+                        <span className="text-sm text-[#94a3b8]">{u.phone || '-'}</span>
                       </td>
                       <td>
                         <span className={`badge ${u.isActive ? 'badge-qualified' : 'badge-lost'}`}>
@@ -252,6 +259,17 @@ export default function UsersPage() {
                   <option value="manager">Manager</option>
                   <option value="org_admin">Organization Admin</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#cbd5e1] mb-2">Phone Number</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  placeholder="+1234567890"
+                />
               </div>
 
               <div className="pt-4 flex gap-3">

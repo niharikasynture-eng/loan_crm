@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import mongoose from 'mongoose';
 import { connectDB } from '@/lib/db';
 import { getAuthUser, apiError, apiSuccess } from '@/lib/auth';
 import User from '@/models/User';
@@ -20,12 +21,13 @@ export async function GET(req: NextRequest) {
 
     return apiSuccess({
       user: {
-        id: (user as {_id: unknown})._id,
+        id: (user as { _id: mongoose.Types.ObjectId })._id.toString(),
         name: (user as {name: string}).name,
         email: (user as {email: string}).email,
         role: (user as {role: string}).role,
-        organizationId: (user as {organizationId: unknown}).organizationId,
-        avatar: (user as {avatar?: string}).avatar,
+        organizationId: (user as { organizationId: unknown }).organizationId,
+        avatar: (user as { avatar?: string }).avatar,
+        phone: (user as { phone?: string }).phone,
       },
       organization: org
         ? {

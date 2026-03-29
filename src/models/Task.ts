@@ -12,6 +12,7 @@ export interface ITask extends Document {
   description?: string;
   status: TaskStatus;
   priority: TaskPriority;
+  link?: string;
   dueDate: Date;
   assignedTo: mongoose.Types.ObjectId;
   createdBy: mongoose.Types.ObjectId;
@@ -43,6 +44,7 @@ const TaskSchema = new Schema<ITask>(
       enum: ['low', 'medium', 'high'],
       default: 'medium',
     },
+    link: { type: String },
     dueDate: { type: Date, required: true },
     assignedTo: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },

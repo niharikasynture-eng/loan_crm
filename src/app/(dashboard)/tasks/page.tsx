@@ -9,9 +9,10 @@ interface Task {
   title: string;
   status: string;
   priority: string;
+  link?: string;
   dueDate: string;
   assignedTo: { name: string; avatar?: string };
-  leadId?: { name: string };
+  leadId?: { name: string; _id: string };
 }
 
 export default function TasksPage() {
@@ -108,6 +109,17 @@ export default function TasksPage() {
                     </span>
                     {task.leadId && (
                       <span className="text-[#94a3b8]">Lead: {task.leadId.name}</span>
+                    )}
+                    {task.link && (
+                      <a 
+                        href={task.link.startsWith('http') ? task.link : `https://${task.link}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-semibold"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Join Meeting 🔗
+                      </a>
                     )}
                   </div>
                 </div>

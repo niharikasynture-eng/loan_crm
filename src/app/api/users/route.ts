@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { connectDB } from '@/lib/db';
-import { requireAuth, apiError, apiSuccess, ROLES } from '@/lib/auth';
+import { requireAuth, apiError, apiSuccess, ROLES, Role } from '@/lib/auth';
 import User from '@/models/User';
 
 // GET /api/users - List users in org
@@ -39,12 +39,13 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const auth = requireAuth(req);
-    if (![ROLES.ORG_ADMIN, ROLES.SUPER_ADMIN, ROLES.MANAGER].includes(auth.role as typeof ROLES[keyof typeof ROLES])) {
+    const allowedRoles: Role[] = [ROLES.ORG_ADMIN, ROLES.SUPER_ADMIN, ROLES.MANAGER];
+    if (!allowedRoles.includes(auth.role as Role)) {
       return apiError('Forbidden', 403);
     }
     await connectDB();
 
-    const { name, email, password, role, managerId } = await req.json();
+    const { name, email, password, role, managerId, phone } = await req.json();
     if (!name || !email || !password) return apiError('Name, email, and password are required');
 
     const existing = await User.findOne({ email: email.toLowerCase(), organizationId: auth.organizationId });
@@ -57,6 +58,7 @@ export async function POST(req: NextRequest) {
       password,
       role: role || ROLES.SALES_AGENT,
       managerId,
+      phone,
     });
 
     return apiSuccess(

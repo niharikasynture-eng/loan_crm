@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api-client';
 import { useAuth } from '@/context/AuthContext';
 import { Plus, Search, UserCheck } from 'lucide-react';
@@ -25,6 +26,7 @@ interface OrgUser {
 }
 
 export default function LeadsPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
@@ -159,14 +161,15 @@ export default function LeadsPage() {
                   </tr>
                 ) : (
                   leads.map((lead) => (
-                    <tr key={lead._id}>
+                    <tr 
+                      key={lead._id}
+                      onClick={() => router.push(`/leads/${lead._id}`)}
+                      className="cursor-pointer hover:bg-white/5 transition-colors group"
+                    >
                       <td>
-                        <Link
-                          href={`/leads/${lead._id}`}
-                          className="font-semibold text-indigo-400 hover:text-indigo-300"
-                        >
+                        <p className="font-semibold text-white group-hover:text-indigo-400 trasition-colors">
                           {lead.name}
-                        </Link>
+                        </p>
                         <p className="text-xs text-[#64748b] mt-0.5">
                           {lead.email || lead.phone || 'No contact info'}
                         </p>
@@ -187,20 +190,28 @@ export default function LeadsPage() {
                         )}
                       </td>
                       <td>{new Date(lead.createdAt).toLocaleDateString()}</td>
-                      {canAssign && (
-                        <td>
-                          <button
-                            onClick={() => {
-                              setAssignModal(lead);
-                              setAssignTo(lead.assignedTo?._id || '');
-                            }}
-                            className="px-2.5 py-1 text-xs font-medium text-indigo-400 bg-indigo-400/10 border border-indigo-400/30 hover:bg-indigo-400/20 rounded-lg transition-all flex items-center gap-1"
+                      <td>
+                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                          <Link 
+                            href={`/leads/${lead._id}`}
+                            className="px-2.5 py-1 text-xs font-medium text-[#cbd5e1] bg-[#1e293b] border border-[#334155] hover:text-white hover:border-[#475569] rounded-lg transition-all"
                           >
-                            <UserCheck className="w-3 h-3" />
-                            Assign
-                          </button>
-                        </td>
-                      )}
+                            View
+                          </Link>
+                          {canAssign && (
+                            <button
+                              onClick={() => {
+                                setAssignModal(lead);
+                                setAssignTo(lead.assignedTo?._id || '');
+                              }}
+                              className="px-2.5 py-1 text-xs font-medium text-indigo-400 bg-indigo-400/10 border border-indigo-400/30 hover:bg-indigo-400/20 rounded-lg transition-all flex items-center gap-1"
+                            >
+                              <UserCheck className="w-3 h-3" />
+                              Assign
+                            </button>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   ))
                 )}

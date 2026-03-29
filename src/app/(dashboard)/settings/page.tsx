@@ -1,13 +1,40 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { Settings, User as UserIcon, Building2, CreditCard, Bell, Copy, Check, ExternalLink } from 'lucide-react';
+import { api } from '@/lib/api-client';
+import { Settings, User as UserIcon, Building2, CreditCard, Bell, Copy, Check, ExternalLink, Loader2 } from 'lucide-react';
 
 export default function SettingsPage() {
-  const { user, organization } = useAuth();
+  const { user, organization, refreshUser } = useAuth();
   const [activeTab, setActiveTab] = useState('profile');
   const [copied, setCopied] = useState(false);
+  
+  // Profile state
+  const [name, setName] = useState(user?.name || '');
+  const [phone, setPhone] = useState(user?.phone || '');
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setName(user.name);
+      setPhone(user.phone || '');
+    }
+  }, [user]);
+
+  const handleSaveProfile = async () => {
+    if (!user) return;
+    setIsSaving(true);
+    try {
+      await api.patch(`/users/${user.id}`, { name, phone });
+      await refreshUser();
+      alert('Profile updated successfully!');
+    } catch (err: any) {
+      alert(err.message || 'Failed to update profile');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const publicLeadUrl = typeof window !== 'undefined' && organization?.slug
     ? `${window.location.origin}/form/${organization.slug}`
@@ -85,21 +112,44 @@ export default function SettingsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-[#cbd5e1] mb-1.5">Full Name</label>
-                    <input type="text" className="input-field" defaultValue={user.name} />
+                    <input 
+                      type="text" 
+                      className="input-field" 
+                      value={name} 
+                      onChange={(e) => setName(e.target.value)} 
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-[#cbd5e1] mb-1.5">Email Address</label>
                     <input type="email" className="input-field" defaultValue={user.email} disabled />
                     <p className="text-[10px] text-[#64748b] mt-1">Email cannot be changed</p>
                   </div>
-                  <div className="md:col-span-2">
+                  <div>
+                    <label className="block text-sm font-medium text-[#cbd5e1] mb-1.5">Phone Number</label>
+                    <input 
+                      type="text" 
+                      className="input-field" 
+                      placeholder="+1234567890" 
+                      value={phone} 
+                      onChange={(e) => setPhone(e.target.value)} 
+                    />
+                    <p className="text-[10px] text-[#64748b] mt-1">Required for 1-click calling feature</p>
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium text-[#cbd5e1] mb-1.5">Role</label>
                     <input type="text" className="input-field" defaultValue={user.role} disabled />
                   </div>
                 </div>
 
                 <div className="pt-4 flex justify-end">
-                  <button className="btn-primary">Save Changes</button>
+                  <button 
+                    className="btn-primary flex items-center gap-2" 
+                    onClick={handleSaveProfile}
+                    disabled={isSaving}
+                  >
+                    {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {isSaving ? 'Saving...' : 'Save Changes'}
+                  </button>
                 </div>
               </div>
             )}

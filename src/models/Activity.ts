@@ -11,6 +11,7 @@ export interface IActivity extends Document {
   outcome?: CallOutcome;
   duration?: number;
   notes: string;
+  link?: string;
   scheduledAt?: Date;
   completedAt?: Date;
   createdBy: mongoose.Types.ObjectId;
@@ -37,6 +38,7 @@ const ActivitySchema = new Schema<IActivity>(
     },
     duration: { type: Number },
     notes: { type: String, default: '' },
+    link: { type: String },
     scheduledAt: { type: Date },
     completedAt: { type: Date },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },

@@ -5,6 +5,8 @@ import { api } from '@/lib/api-client';
 import { Mail, Phone, Building, Briefcase, Calendar, CheckSquare, MessageSquare, X, Clock, ClipboardList, Send, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import CallButton from '@/components/CallButton';
+import CallHistory from '@/components/CallHistory';
 
 interface Lead {
   _id: string;
@@ -40,7 +42,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
   // Form states
   const [noteText, setNoteText] = useState('');
   const [callData, setCallData] = useState({ duration: '', outcome: 'connected', notes: '', followUpDate: '' });
-  const [meetingData, setMeetingData] = useState({ date: '', time: '', notes: '' });
+  const [meetingData, setMeetingData] = useState({ date: '', time: '', notes: '', link: '' });
   const [taskData, setTaskData] = useState({ title: '', dueDate: '', priority: 'medium' });
 
   async function loadData() {
@@ -68,7 +70,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
     // Reset forms
     setNoteText('');
     setCallData({ duration: '', outcome: 'connected', notes: '', followUpDate: '' });
-    setMeetingData({ date: '', time: '', notes: '' });
+    setMeetingData({ date: '', time: '', notes: '', link: '' });
     setTaskData({ title: '', dueDate: '', priority: 'medium' });
   };
 
@@ -159,13 +161,30 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
           <div className="card p-6">
             <h3 className="font-semibold text-white mb-4">Quick Actions</h3>
             <div className="grid grid-cols-2 gap-3">
-              <a 
-                href={`tel:${lead.phone}`}
-                className="col-span-2 flex items-center justify-center gap-3 p-4 rounded-xl border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 hover:border-indigo-500 transition-all text-indigo-400 font-bold shadow-lg shadow-indigo-500/10 mb-1"
+              {lead.phone && (
+                <div className="col-span-2">
+                  <CallButton lead={lead} />
+                </div>
+              )}
+              <button 
+                onClick={async () => {
+                  if (!confirm('Send automated promotional voice message to this lead?')) return;
+                  setSubmitting(true);
+                  try {
+                    await api.post('/calls/promo-ai', { leadId: lead._id });
+                    alert('AI Promotional Call triggered successfully!');
+                    loadData(); // Refresh timeline
+                  } catch (err: any) {
+                    alert(err.message || 'Failed to send promo call');
+                  } finally {
+                    setSubmitting(false);
+                  }
+                }}
+                className="flex flex-col items-center justify-center gap-2 p-3 rounded-lg border border-pink-500/30 bg-pink-500/10 hover:bg-pink-500/20 hover:border-pink-500 transition-all text-pink-400"
               >
-                <Phone className="w-5 h-5" />
-                <span>Call {lead.name.split(' ')[0]} Now</span>
-              </a>
+                <Send className="w-5 h-5" />
+                <span className="text-xs font-medium">Promo Call</span>
+              </button>
               <button 
                 onClick={() => setActiveModal('call')}
                 className="flex flex-col items-center justify-center gap-2 p-3 rounded-lg border border-[#334155] bg-[#0f172a] hover:bg-[#1e293b] hover:border-indigo-500/50 transition-all text-[#94a3b8] hover:text-indigo-400"
@@ -229,11 +248,26 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                           {act.notes}
                         </p>
                       )}
+                      {(act as any).link && (
+                        <div className="mt-3">
+                          <a 
+                            href={(act as any).link.startsWith('http') ? (act as any).link : `https://${(act as any).link}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold rounded-lg hover:bg-emerald-500/20 transition-all shadow-sm"
+                          >
+                            <Calendar className="w-3.5 h-3.5" />
+                            Join Meeting (Zoom/Meet)
+                          </a>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
             )}
+
+            <CallHistory leadId={lead._id} />
           </div>
         </div>
       </div>
@@ -340,6 +374,16 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                     </div>
                   </div>
                   <div>
+                    <label className="block text-xs font-medium text-[#64748b] uppercase mb-1.5 tracking-wider">Meeting Link (Zoom/Meet)</label>
+                    <input 
+                      type="text" 
+                      className="input-field" 
+                      placeholder="https://meet.google.com/xyz"
+                      value={meetingData.link}
+                      onChange={(e) => setMeetingData({...meetingData, link: e.target.value})}
+                    />
+                  </div>
+                  <div>
                     <label className="block text-xs font-medium text-[#64748b] uppercase mb-1.5 tracking-wider">Remarks</label>
                     <textarea 
                       className="input-field resize-none" 
@@ -350,14 +394,39 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                     />
                   </div>
                   <button 
-                    onClick={() => logActivity('meeting', { 
-                      notes: meetingData.notes,
-                      scheduledAt: meetingData.date ? new Date(meetingData.date).toISOString() : undefined
-                    })}
+                    onClick={async () => {
+                      setSubmitting(true);
+                      try {
+                        // 1. Create a high priority task for the meeting
+                        await api.post('/tasks', {
+                          leadId,
+                          title: `Meeting: ${lead.name}`,
+                          dueDate: meetingData.date,
+                          priority: 'high',
+                          link: meetingData.link
+                        });
+                        
+                        // 2. Log the activity
+                        await api.post('/activities', {
+                          leadId,
+                          type: 'meeting',
+                          notes: meetingData.notes,
+                          scheduledAt: meetingData.date,
+                          link: meetingData.link
+                        });
+                        
+                        handleLogged();
+                        alert('Meeting scheduled and task created!');
+                      } catch (err) {
+                        alert('Failed to schedule meeting');
+                      } finally {
+                        setSubmitting(false);
+                      }
+                    }}
                     disabled={submitting || !meetingData.date}
                     className="btn-primary w-full"
                   >
-                    {submitting ? 'Saving...' : 'Log Meeting'}
+                    {submitting ? 'Scheduling...' : 'Schedule Meeting'}
                   </button>
                 </div>
               )}

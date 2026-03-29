@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
     if (auth.role === ROLES.SUPER_ADMIN) return apiError('Access denied', 403);
 
     const body = await req.json();
-    const { leadId, type, outcome, duration, notes, scheduledAt, completedAt } = body;
+    const { leadId, type, outcome, duration, notes, link, scheduledAt, completedAt } = body;
 
     if (!leadId || !type) return apiError('leadId and type are required');
 
@@ -85,6 +85,7 @@ export async function POST(req: NextRequest) {
       outcome,
       duration,
       notes: notes || '',
+      link,
       scheduledAt,
       completedAt,
       createdBy: auth.userId,

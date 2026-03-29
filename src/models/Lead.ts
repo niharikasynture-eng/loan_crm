@@ -19,6 +19,9 @@ export interface ILead extends Document {
   customFields?: Record<string, string | number | boolean>;
   tags: string[];
   lastContactedAt?: Date;
+  lastCalledAt?: Date;
+  lastCallOutcome?: string;
+  totalCalls: number;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -52,6 +55,9 @@ const LeadSchema = new Schema<ILead>(
     customFields: { type: Schema.Types.Mixed, default: {} },
     tags: { type: [String], default: [] },
     lastContactedAt: { type: Date },
+    lastCalledAt: { type: Date, default: null },
+    lastCallOutcome: { type: String, default: null },
+    totalCalls: { type: Number, default: 0 },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
   },
   { timestamps: true }

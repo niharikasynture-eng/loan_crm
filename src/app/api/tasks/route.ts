@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     if (auth.role === ROLES.SUPER_ADMIN) return apiError('Access denied', 403);
 
     const body = await req.json();
-    const { title, description, leadId, dealId, dueDate, priority, assignedTo } = body;
+    const { title, description, leadId, dealId, dueDate, priority, assignedTo, link } = body;
 
     if (!title || !dueDate) return apiError('Title and dueDate are required');
 
@@ -87,6 +87,7 @@ export async function POST(req: NextRequest) {
       dealId,
       dueDate: new Date(dueDate),
       priority: priority || 'medium',
+      link,
       assignedTo: assignedTo || auth.userId,
       createdBy: auth.userId,
     });
