@@ -28,87 +28,129 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0f172a] p-4">
-      {/* Background gradient orbs */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-sky-500/20 rounded-full blur-3xl" />
+    <div className="min-h-screen relative flex items-center justify-center bg-[#070b14] overflow-hidden p-4">
+      {/* Dynamic Background Elements */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-600/20 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-sky-600/20 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-[30%] right-[10%] w-[20%] h-[20%] bg-purple-600/10 rounded-full blur-[100px]" />
       </div>
 
-      <div className="w-full max-w-md animate-fade-in">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="w-12 h-12 mx-auto rounded-xl bg-gradient-to-br from-indigo-500 to-sky-500 flex items-center justify-center mb-4 animate-pulse-glow">
-            <Activity className="w-6 h-6 text-white" />
+      {/* Grid Pattern Mesh */}
+      <div className="absolute inset-0 z-0 opacity-[0.03]" 
+           style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+
+      <div className="w-full max-w-[440px] relative z-10 animate-fade-in">
+        {/* Header Section */}
+        <div className="text-center" style={{ marginBottom: '42px' }}>
+          <div className="relative inline-block group">
+            <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-sky-500 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+            <div className="relative w-16 h-16 mx-auto rounded-2xl bg-[#1e293b] border border-white/10 flex items-center justify-center mb-6 shadow-2xl transition-transform duration-500 group-hover:scale-110">
+              <Activity className="w-8 h-8 text-indigo-400" />
+            </div>
           </div>
-          <h1 className="text-2xl font-bold text-white">Welcome back</h1>
-          <p className="text-[#94a3b8] mt-1 text-sm">Sign in to your SalesCRM account</p>
+          <h1 className="text-4xl font-extrabold tracking-tight text-white mb-3">
+            Welcome <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-sky-400">Back</span>
+          </h1>
+
         </div>
 
-        <div className="card p-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-[#cbd5e1] mb-1.5">Email</label>
-              <input
-                type="email"
-                className="input-field"
-                placeholder="you@company.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                id="login-email"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-[#cbd5e1] mb-1.5">Password</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  className="input-field pr-10"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  id="login-password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748b] hover:text-[#94a3b8]"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+        {/* Login Form Card */}
+        <div className="glass-card overflow-hidden">
+          <div style={{ padding: '36px 36px' }}>
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div className="space-y-3">
+                <label className="text-sm font-semibold text-slate-300 ml-1">Email address</label>
+                <div className="relative group">
+                  <input
+                    type="email"
+                    className="input-field pl-4"
+                    placeholder="name@company.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    id="login-email"
+                  />
+                </div>
               </div>
-            </div>
 
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 text-sm text-red-400">
-                {error}
+              <div className="space-y-3">
+                <div className="flex justify-between items-center ml-1">
+                  <label className="text-sm font-semibold text-slate-300">Password</label>
+                </div>
+                <div className="relative group">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    className="input-field pl-4 pr-12"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    id="login-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-indigo-400 transition-colors duration-200"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
               </div>
-            )}
 
-            <button
-              type="submit"
-              className="btn-primary w-full"
-              disabled={isLoading}
-              id="login-submit"
-            >
-              {isLoading ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : null}
-              {isLoading ? 'Signing in...' : 'Sign in'}
-            </button>
-          </form>
+              {error && (
+                <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400 flex items-center gap-2 animate-shake">
+                  <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="btn-primary w-full shadow-[0_0_20px_rgba(99,102,241,0.3)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)]"
+                disabled={isLoading}
+                id="login-submit"
+              >
+                {isLoading ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                    <span>Signing in...</span>
+                  </>
+                ) : (
+                  <span>Sign in to account</span>
+                )}
+              </button>
+            </form>
+          </div>
+          
+          <div style={{ background: 'rgba(255,255,255,0.02)', borderTop: '1px solid rgba(255,255,255,0.05)', padding: '22px 36px', textAlign: 'center' }}>
+            <p className="text-sm text-slate-500">
+              New to SalesCRM?{' '}
+              <Link href="/register" className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors duration-200">
+                Create an organization
+              </Link>
+            </p>
+          </div>
         </div>
 
-        <p className="text-center text-sm text-[#64748b] mt-6">
-          Don&apos;t have an account?{' '}
-          <Link href="/register" className="text-indigo-400 hover:text-indigo-300 font-medium">
-            Create organization
-          </Link>
-        </p>
+        {/* Footer links */}
+        <div className="mt-8 flex justify-center gap-6">
+          <a href="#" className="text-xs text-slate-500 hover:text-slate-400 transition-colors">Privacy Policy</a>
+          <div className="w-1 h-1 rounded-full bg-slate-700 self-center" />
+          <a href="#" className="text-xs text-slate-500 hover:text-slate-400 transition-colors">Terms of Service</a>
+        </div>
       </div>
+
+      <style jsx>{`
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-4px); }
+          75% { transform: translateX(4px); }
+        }
+        .animate-shake {
+          animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
+      `}</style>
     </div>
   );
 }

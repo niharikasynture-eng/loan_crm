@@ -57,9 +57,25 @@ html, body {
 
 /* Glassmorphism */
 .glass {
-  background: rgba(30, 41, 59, 0.8);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(71, 85, 105, 0.4);
+  background: rgba(30, 41, 59, 0.6);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-card {
+  background: rgba(30, 41, 59, 0.4);
+  backdrop-filter: blur(20px) saturate(200%);
+  -webkit-backdrop-filter: blur(20px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  transition: all 0.3s ease;
+}
+
+.glass-card:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 48px 0 rgba(0, 0, 0, 0.45);
 }
 
 /* Card styles */
@@ -104,18 +120,20 @@ html, body {
 /* Input styles */
 .input-field {
   width: 100%;
-  background: #0f172a;
-  border: 1px solid #334155;
-  border-radius: 8px;
-  padding: 10px 14px;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(51, 65, 85, 0.8);
+  border-radius: 12px;
+  padding: 14px 18px;
   color: #f1f5f9;
-  font-size: 14px;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  font-size: 15px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   outline: none;
 }
 .input-field:focus {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  border-color: #818cf8;
+  background: rgba(15, 23, 42, 0.8);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1), 0 4px 12px rgba(0, 0, 0, 0.2);
+  transform: translateY(-1px);
 }
 .input-field::placeholder { color: #475569; }
 
@@ -124,22 +142,27 @@ html, body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 10px 20px;
+  gap: 10px;
+  padding: 12px 24px;
   background: linear-gradient(135deg, #6366f1, #4f46e5);
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   text-decoration: none;
+  position: relative;
+  overflow: hidden;
 }
 .btn-primary:hover {
   background: linear-gradient(135deg, #818cf8, #6366f1);
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
-  transform: translateY(-1px);
+  box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.5), 0 8px 10px -6px rgba(99, 102, 241, 0.5);
+  transform: translateY(-2px);
+}
+.btn-primary:active {
+  transform: translateY(0);
 }
 .btn-primary:disabled {
   opacity: 0.6;
@@ -238,9 +261,9 @@ tbody tr:last-child { border-bottom: none; }
 
 /* Sidebar */
 .sidebar {
-  width: 256px;
-  background: #1e293b;
-  border-right: 1px solid #334155;
+  width: 272px;
+  background: linear-gradient(180deg, #1a2332 0%, #1e293b 100%);
+  border-right: 1px solid rgba(51, 65, 85, 0.6);
   height: 100vh;
   position: fixed;
   left: 0;
@@ -249,28 +272,39 @@ tbody tr:last-child { border-bottom: none; }
   flex-direction: column;
   z-index: 40;
   transition: transform 0.3s ease;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
 }
 
 .sidebar-link {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
-  border-radius: 8px;
+  gap: 12px;
+  padding: 11px 16px;
+  border-radius: 10px;
   font-size: 14px;
   font-weight: 500;
   color: #94a3b8;
   text-decoration: none;
-  transition: all 0.15s;
-  margin: 2px 8px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  margin: 3px 12px;
+  position: relative;
 }
-.sidebar-link:hover { background: #0f172a; color: #f1f5f9; }
-.sidebar-link.active { background: rgba(99, 102, 241, 0.15); color: #a5b4fc; }
-.sidebar-link.active svg { color: #6366f1; }
+.sidebar-link:hover {
+  background: rgba(15, 23, 42, 0.6);
+  color: #f1f5f9;
+  transform: translateX(2px);
+}
+.sidebar-link.active {
+  background: rgba(99, 102, 241, 0.12);
+  color: #a5b4fc;
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 #6366f1;
+}
+.sidebar-link.active svg { color: #818cf8; }
 
 /* Main content */
 .main-content {
-  margin-left: 256px;
+  margin-left: 272px;
   min-height: 100vh;
   background: #0f172a;
 }
