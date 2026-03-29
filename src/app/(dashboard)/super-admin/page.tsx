@@ -150,55 +150,56 @@ export default function SuperAdminPage() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div style={{ padding: '32px 40px', maxWidth: '1400px', margin: '0 auto' }}>
       {/* Toast */}
       {toast && (
-        <div className="fixed top-4 right-4 z-50 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 px-4 py-3 rounded-lg text-sm animate-fade-in flex items-center gap-2">
-          <CheckCircle className="w-4 h-4" />
-          {toast}
+        <div className="fixed top-6 right-6 z-50 animate-fade-in" style={{ padding: '14px 20px', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <CheckCircle className="w-4 h-4 text-emerald-400" />
+          <span className="text-emerald-300 text-sm font-medium">{toast}</span>
         </div>
       )}
 
       {/* Reject Modal */}
       {rejectModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="card w-full max-w-md shadow-2xl">
-            <div className="flex justify-between items-center p-6 border-b border-[#334155]">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ padding: '24px', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }}>
+          <div className="glass-card w-full max-w-md" style={{ boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 28px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#fff', display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <XCircle className="w-5 h-5 text-red-400" />
                 Reject Organization
               </h2>
               <button
                 onClick={() => setRejectModal(null)}
-                className="p-1.5 text-[#64748b] hover:text-white rounded-lg hover:bg-[#0f172a] transition-colors"
+                style={{ padding: '8px', color: '#64748b', borderRadius: '8px', border: 'none', background: 'transparent', cursor: 'pointer' }}
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-6 space-y-4">
-              <p className="text-[#94a3b8] text-sm">
-                Rejecting <strong className="text-white">"{rejectModal.orgName}"</strong>. The
+            <div style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <p style={{ color: '#94a3b8', fontSize: '14px', lineHeight: '1.6' }}>
+                Rejecting <strong style={{ color: '#fff' }}>"{rejectModal.orgName}"</strong>. The
                 applicant will receive a rejection email.
               </p>
               <div>
-                <label className="block text-sm font-medium text-[#cbd5e1] mb-2">
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#cbd5e1', marginBottom: '10px' }}>
                   Rejection Reason (optional)
                 </label>
                 <textarea
-                  className="input-field resize-none"
+                  className="input-field"
+                  style={{ resize: 'none', minHeight: '80px' }}
                   rows={3}
                   placeholder="e.g. Incomplete information, not eligible..."
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
                 />
               </div>
-              <div className="flex gap-3">
-                <button onClick={() => setRejectModal(null)} className="btn-secondary flex-1">
+              <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
+                <button onClick={() => setRejectModal(null)} className="btn-secondary" style={{ flex: 1 }}>
                   Cancel
                 </button>
                 <button
                   onClick={handleReject}
-                  className="flex-1 px-4 py-2 bg-red-500/20 border border-red-500/40 text-red-400 hover:bg-red-500/30 rounded-lg font-medium text-sm transition-all"
+                  style={{ flex: 1, padding: '10px 16px', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', borderRadius: '12px', fontWeight: '600', fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s' }}
                 >
                   Confirm Reject
                 </button>
@@ -209,39 +210,96 @@ export default function SuperAdminPage() {
       )}
 
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '36px' }}>
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Building2 className="w-6 h-6 text-indigo-400" />
-            Platform Organizations
-          </h1>
-          <p className="text-[#94a3b8] mt-1 text-sm">Manage and approve tenant applications</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '8px' }}>
+            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'linear-gradient(135deg, #6366f1, #0ea5e9)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 20px -4px rgba(99, 102, 241, 0.4)' }}>
+              <Building2 className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 style={{ fontSize: '28px', fontWeight: '800', color: '#fff', letterSpacing: '-0.02em' }}>
+                Platform Organizations
+              </h1>
+            </div>
+          </div>
+          <p style={{ color: '#64748b', fontSize: '15px', marginLeft: '58px' }}>
+            Manage and approve tenant applications
+          </p>
         </div>
-        <button onClick={loadOrgs} className="btn-secondary text-xs">
+        <button onClick={loadOrgs} className="btn-secondary" style={{ marginTop: '8px' }}>
           Refresh
         </button>
       </div>
 
+      {/* Stats Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '32px' }}>
+        <div className="card" style={{ padding: '24px 28px', borderLeft: '3px solid #f59e0b' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <p style={{ fontSize: '13px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Pending</p>
+              <p style={{ fontSize: '32px', fontWeight: '800', color: '#fff' }}>{counts.pending}</p>
+            </div>
+            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(245, 158, 11, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Clock className="w-5 h-5 text-amber-400" />
+            </div>
+          </div>
+        </div>
+        <div className="card" style={{ padding: '24px 28px', borderLeft: '3px solid #10b981' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <p style={{ fontSize: '13px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Active</p>
+              <p style={{ fontSize: '32px', fontWeight: '800', color: '#fff' }}>{counts.active}</p>
+            </div>
+            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <CheckCircle className="w-5 h-5 text-emerald-400" />
+            </div>
+          </div>
+        </div>
+        <div className="card" style={{ padding: '24px 28px', borderLeft: '3px solid #6366f1' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <p style={{ fontSize: '13px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Total</p>
+              <p style={{ fontSize: '32px', fontWeight: '800', color: '#fff' }}>{counts.all}</p>
+            </div>
+            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(99, 102, 241, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Building2 className="w-5 h-5 text-indigo-400" />
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Tabs */}
-      <div className="flex gap-1 bg-[#1e293b] p-1 rounded-xl w-fit border border-[#334155]">
+      <div style={{ display: 'flex', gap: '4px', background: '#1e293b', padding: '5px', borderRadius: '14px', width: 'fit-content', border: '1px solid #334155', marginBottom: '28px' }}>
         {TABS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as Tab)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-              activeTab === tab.id
-                ? 'bg-indigo-600 text-white shadow'
-                : 'text-[#64748b] hover:text-[#94a3b8]'
-            }`}
+            style={{
+              padding: '10px 20px',
+              borderRadius: '10px',
+              fontSize: '14px',
+              fontWeight: '600',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              border: 'none',
+              cursor: 'pointer',
+              background: activeTab === tab.id ? '#6366f1' : 'transparent',
+              color: activeTab === tab.id ? '#fff' : '#64748b',
+              boxShadow: activeTab === tab.id ? '0 4px 12px rgba(99, 102, 241, 0.3)' : 'none',
+            }}
           >
-            <tab.icon className="w-3.5 h-3.5" />
+            <tab.icon style={{ width: '15px', height: '15px' }} />
             {tab.label}
             {counts[tab.id as Tab] > 0 && (
-              <span
-                className={`text-xs px-1.5 py-0.5 rounded-full ${
-                  activeTab === tab.id ? 'bg-white/20' : 'bg-[#334155]'
-                }`}
-              >
+              <span style={{
+                fontSize: '12px',
+                padding: '1px 8px',
+                borderRadius: '100px',
+                background: activeTab === tab.id ? 'rgba(255,255,255,0.2)' : '#334155',
+                fontWeight: '700',
+              }}>
                 {counts[tab.id as Tab]}
               </span>
             )}
@@ -250,14 +308,19 @@ export default function SuperAdminPage() {
       </div>
 
       {/* Table */}
-      <div className="card">
+      <div className="card" style={{ overflow: 'hidden' }}>
         <div className="table-container">
           {loading ? (
-            <div className="p-12 text-center text-[#64748b]">Loading organizations...</div>
+            <div style={{ padding: '80px 0', textAlign: 'center' }}>
+              <div style={{ width: '40px', height: '40px', border: '3px solid #334155', borderTopColor: '#6366f1', borderRadius: '50%', margin: '0 auto 16px', animation: 'spin 1s linear infinite' }} />
+              <p style={{ color: '#64748b', fontSize: '14px' }}>Loading organizations...</p>
+            </div>
           ) : filtered.length === 0 ? (
-            <div className="p-12 text-center">
-              <Building2 className="w-10 h-10 text-[#334155] mx-auto mb-3" />
-              <p className="text-[#64748b] text-sm">
+            <div style={{ padding: '80px 0', textAlign: 'center' }}>
+              <div style={{ width: '64px', height: '64px', borderRadius: '16px', background: 'rgba(51, 65, 85, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                <Building2 className="w-7 h-7" style={{ color: '#475569' }} />
+              </div>
+              <p style={{ color: '#64748b', fontSize: '15px', fontWeight: '500' }}>
                 No{' '}
                 {activeTab === 'pending'
                   ? 'pending'
@@ -266,74 +329,77 @@ export default function SuperAdminPage() {
                   : ''}{' '}
                 organizations
               </p>
+              <p style={{ color: '#475569', fontSize: '13px', marginTop: '6px' }}>
+                Organizations will appear here when they register
+              </p>
             </div>
           ) : (
             <table>
               <thead>
                 <tr>
-                  <th>Organization</th>
-                  <th>Admin</th>
-                  <th>Status</th>
-                  <th>Subscription</th>
-                  <th>Registered</th>
-                  <th>Actions</th>
+                  <th style={{ padding: '16px 24px' }}>Organization</th>
+                  <th style={{ padding: '16px 24px' }}>Admin</th>
+                  <th style={{ padding: '16px 24px' }}>Status</th>
+                  <th style={{ padding: '16px 24px' }}>Subscription</th>
+                  <th style={{ padding: '16px 24px' }}>Registered</th>
+                  <th style={{ padding: '16px 24px' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((o) => (
                   <tr key={o._id}>
-                    <td>
-                      <p className="font-semibold text-white">{o.name}</p>
-                      <p className="text-xs text-[#64748b]">{o.slug}</p>
+                    <td style={{ padding: '18px 24px' }}>
+                      <p style={{ fontWeight: '600', color: '#fff', fontSize: '14px' }}>{o.name}</p>
+                      <p style={{ fontSize: '12px', color: '#64748b', marginTop: '3px' }}>{o.slug}</p>
                       {o.rejectionReason && (
-                        <p className="text-xs text-red-400 mt-0.5">
+                        <p style={{ fontSize: '12px', color: '#f87171', marginTop: '4px' }}>
                           Reason: {o.rejectionReason}
                         </p>
                       )}
                     </td>
-                    <td>
+                    <td style={{ padding: '18px 24px' }}>
                       {o.adminInfo ? (
                         <div>
-                          <p className="text-sm text-white">{o.adminInfo.name}</p>
-                          <p className="text-xs text-[#64748b]">{o.adminInfo.email}</p>
+                          <p style={{ fontSize: '14px', color: '#f1f5f9' }}>{o.adminInfo.name}</p>
+                          <p style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>{o.adminInfo.email}</p>
                         </div>
                       ) : (
-                        <span className="text-[#64748b] text-sm italic">{o.email}</span>
+                        <span style={{ color: '#64748b', fontSize: '14px', fontStyle: 'italic' }}>{o.email}</span>
                       )}
                     </td>
-                    <td>{getStatusBadge(o.status)}</td>
-                    <td>
-                      <span className="text-xs font-bold uppercase tracking-wider text-indigo-400 bg-indigo-400/10 px-2 py-1 rounded">
+                    <td style={{ padding: '18px 24px' }}>{getStatusBadge(o.status)}</td>
+                    <td style={{ padding: '18px 24px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#a5b4fc', background: 'rgba(99, 102, 241, 0.1)', padding: '5px 12px', borderRadius: '6px' }}>
                         {o.subscription}
                       </span>
                     </td>
-                    <td>
-                      <p className="text-sm">{new Date(o.createdAt).toLocaleDateString()}</p>
+                    <td style={{ padding: '18px 24px' }}>
+                      <p style={{ fontSize: '14px', color: '#cbd5e1' }}>{new Date(o.createdAt).toLocaleDateString()}</p>
                       {o.approvedAt && (
-                        <p className="text-xs text-emerald-400">
+                        <p style={{ fontSize: '12px', color: '#34d399', marginTop: '3px' }}>
                           ✓ {new Date(o.approvedAt).toLocaleDateString()}
                         </p>
                       )}
                     </td>
-                    <td>
-                      <div className="flex items-center gap-2 flex-wrap">
+                    <td style={{ padding: '18px 24px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                         {o.status === 'pending' && (
                           <>
                             <button
                               onClick={() => performAction(o._id, 'approve')}
                               disabled={actionLoading === o._id + 'approve'}
-                              className="px-2.5 py-1 text-xs font-medium text-emerald-400 bg-emerald-400/10 border border-emerald-400/30 hover:bg-emerald-400/20 rounded-lg transition-all flex items-center gap-1"
+                              style={{ padding: '6px 14px', fontSize: '12px', fontWeight: '600', color: '#34d399', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '5px' }}
                             >
-                              <CheckCircle className="w-3 h-3" />
+                              <CheckCircle className="w-3.5 h-3.5" />
                               Approve
                             </button>
                             <button
                               onClick={() =>
                                 setRejectModal({ orgId: o._id, orgName: o.name })
                               }
-                              className="px-2.5 py-1 text-xs font-medium text-red-400 bg-red-400/10 border border-red-400/30 hover:bg-red-400/20 rounded-lg transition-all flex items-center gap-1"
+                              style={{ padding: '6px 14px', fontSize: '12px', fontWeight: '600', color: '#f87171', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '5px' }}
                             >
-                              <XCircle className="w-3 h-3" />
+                              <XCircle className="w-3.5 h-3.5" />
                               Reject
                             </button>
                           </>
@@ -344,17 +410,17 @@ export default function SuperAdminPage() {
                             <button
                               onClick={() => copyFormUrl(o.leadFormToken!)}
                               title="Copy lead form URL"
-                              className="px-2.5 py-1 text-xs font-medium text-sky-400 bg-sky-400/10 border border-sky-400/30 hover:bg-sky-400/20 rounded-lg transition-all flex items-center gap-1"
+                              style={{ padding: '6px 14px', fontSize: '12px', fontWeight: '600', color: '#38bdf8', background: 'rgba(14, 165, 233, 0.1)', border: '1px solid rgba(14, 165, 233, 0.25)', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '5px' }}
                             >
-                              <ExternalLink className="w-3 h-3" />
-                              View Info
+                              <Copy className="w-3.5 h-3.5" />
+                              Copy URL
                             </button>
                             <button
                               onClick={() => performAction(o._id, 'deactivate')}
                               disabled={actionLoading === o._id + 'deactivate'}
-                              className="px-2.5 py-1 text-xs font-medium text-amber-400 bg-amber-400/10 border border-amber-400/30 hover:bg-amber-400/20 rounded-lg transition-all flex items-center gap-1"
+                              style={{ padding: '6px 14px', fontSize: '12px', fontWeight: '600', color: '#fbbf24', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.25)', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '5px' }}
                             >
-                              <Power className="w-3 h-3" />
+                              <Power className="w-3.5 h-3.5" />
                               Deactivate
                             </button>
                           </>
@@ -364,9 +430,9 @@ export default function SuperAdminPage() {
                           <button
                             onClick={() => performAction(o._id, 'activate')}
                             disabled={actionLoading === o._id + 'activate'}
-                            className="px-2.5 py-1 text-xs font-medium text-emerald-400 bg-emerald-400/10 border border-emerald-400/30 hover:bg-emerald-400/20 rounded-lg transition-all flex items-center gap-1"
+                            style={{ padding: '6px 14px', fontSize: '12px', fontWeight: '600', color: '#34d399', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '5px' }}
                           >
-                            <Power className="w-3 h-3" />
+                            <Power className="w-3.5 h-3.5" />
                             Activate
                           </button>
                         )}
@@ -381,9 +447,9 @@ export default function SuperAdminPage() {
                               )
                                 performAction(o._id, 'delete');
                             }}
-                            className="px-2.5 py-1 text-xs font-medium text-[#64748b] bg-[#0f172a] border border-[#334155] hover:text-red-400 hover:border-red-400/30 rounded-lg transition-all flex items-center gap-1"
+                            style={{ padding: '6px 14px', fontSize: '12px', fontWeight: '600', color: '#64748b', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '5px' }}
                           >
-                            <Trash2 className="w-3 h-3" />
+                            <Trash2 className="w-3.5 h-3.5" />
                             Delete
                           </button>
                         )}
@@ -394,9 +460,9 @@ export default function SuperAdminPage() {
                             target="_blank"
                             rel="noopener noreferrer"
                             title="Preview lead form"
-                            className="px-2 py-1 text-xs font-medium text-[#64748b] hover:text-[#94a3b8] rounded-lg transition-all"
+                            style={{ padding: '6px 10px', fontSize: '12px', fontWeight: '600', color: '#64748b', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center' }}
                           >
-                            <ExternalLink className="w-3 h-3" />
+                            <ExternalLink className="w-3.5 h-3.5" />
                           </a>
                         )}
                       </div>
