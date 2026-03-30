@@ -26,7 +26,7 @@ interface AuthContextType {
   organization: Organization | null;
   token: string | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, selectedRole?: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -75,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function login(email: string, password: string) {
+  async function login(email: string, password: string, selectedRole?: string) {
     const res = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -85,11 +85,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!res.ok) throw new Error(data.message || 'Login failed');
 
     const { token: t, user: u, organization: o } = data.data;
+
+    // Role enforcement: if a role was selected on the login form,
+    // make sure the user's actual role matches it.
+    if (selectedRole && u.role !== selectedRole) {
+      const ROLE_LABELS: Record<string, string> = {
+        super_admin: 'Super Admin',
+        org_admin: 'Org Admin',
+        manager: 'Manager',
+        sales_agent: 'Sales Person',
+      };
+      throw new Error(
+        `Access denied. You selected "${ROLE_LABELS[selectedRole] || selectedRole}" but your account role is "${ROLE_LABELS[u.role] || u.role}". Please select the correct role.`
+      );
+    }
+
     localStorage.setItem('crm_token', t);
     setToken(t);
     setUser(u);
     setOrganization(o);
-    router.push('/dashboard');
+    // Route based on actual role
+    if (u.role === 'super_admin') {
+      router.push('/super-admin');
+    } else {
+      router.push('/dashboard');
+    }
   }
 
   function logout() {

@@ -12,6 +12,8 @@ export interface IActivity extends Document {
   duration?: number;
   notes: string;
   link?: string;
+  subject?: string;
+  status?: 'pending' | 'completed' | 'failed';
   scheduledAt?: Date;
   completedAt?: Date;
   createdBy: mongoose.Types.ObjectId;
@@ -39,6 +41,12 @@ const ActivitySchema = new Schema<IActivity>(
     duration: { type: Number },
     notes: { type: String, default: '' },
     link: { type: String },
+    subject: { type: String },
+    status: {
+      type: String,
+      enum: ['pending', 'completed', 'failed'],
+      default: 'completed',
+    },
     scheduledAt: { type: Date },
     completedAt: { type: Date },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },

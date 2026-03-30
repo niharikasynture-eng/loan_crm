@@ -39,8 +39,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const auth = requireAuth(req);
-    const allowedRoles: Role[] = [ROLES.ORG_ADMIN, ROLES.SUPER_ADMIN, ROLES.MANAGER];
-    if (!allowedRoles.includes(auth.role as Role)) {
+    const allowedRoles = [ROLES.ORG_ADMIN, ROLES.SUPER_ADMIN, ROLES.MANAGER] as string[];
+    if (!allowedRoles.includes(auth.role)) {
       return apiError('Forbidden', 403);
     }
     await connectDB();

@@ -2,16 +2,23 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { Activity, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, BarChart2, Users, TrendingUp, CheckSquare } from 'lucide-react';
+
+const ROLE_OPTIONS = [
+  { value: 'super_admin',  label: 'Super Admin',  desc: 'Full platform control', color: '#7c3aed' },
+  { value: 'org_admin',   label: 'Org Admin',     desc: 'Manage your organization', color: '#1a73e8' },
+  { value: 'manager',     label: 'Manager',        desc: 'Team & pipeline oversight', color: '#0f9d58' },
+  { value: 'sales_agent', label: 'Sales Person',   desc: 'Leads & deals access', color: '#f29900' },
+];
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail]               = useState('');
+  const [password, setPassword]         = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [selectedRole, setSelectedRole] = useState('org_admin');
+  const [error, setError]               = useState('');
+  const [isLoading, setIsLoading]       = useState(false);
   const { login } = useAuth();
 
   async function handleSubmit(e: React.FormEvent) {
@@ -19,137 +26,288 @@ export default function LoginPage() {
     setError('');
     setIsLoading(true);
     try {
-      await login(email, password);
+      await login(email, password, selectedRole);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(err instanceof Error ? err.message : 'Login failed. Please check your credentials.');
     } finally {
       setIsLoading(false);
     }
   }
 
+  const activeRole = ROLE_OPTIONS.find(r => r.value === selectedRole)!;
+
   return (
-    <div className="min-h-screen relative flex items-center justify-center bg-[#070b14] overflow-hidden p-4">
-      {/* Dynamic Background Elements */}
-      <div className="absolute inset-0 z-0">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-600/20 rounded-full blur-[120px] animate-pulse" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-sky-600/20 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-[30%] right-[10%] w-[20%] h-[20%] bg-purple-600/10 rounded-full blur-[100px]" />
-      </div>
+    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: "'Inter', sans-serif", background: '#f0f4f9' }}>
 
-      {/* Grid Pattern Mesh */}
-      <div className="absolute inset-0 z-0 opacity-[0.03]" 
-           style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+      {/* ── LEFT PANEL — Login Form ── */}
+      <div style={{
+        flex: '0 0 440px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'flex-start',
+        padding: '36px 44px 24px',
+        background: '#ffffff',
+        boxShadow: '4px 0 24px rgba(0,0,0,0.06)',
+        position: 'relative',
+        zIndex: 1,
+        overflowY: 'auto',
+      }}>
+        {/* Logo */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+          <div style={{
+            width: 30, height: 30,
+            background: 'linear-gradient(135deg, #1a73e8, #4285f4)',
+            borderRadius: 8,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <BarChart2 size={15} color="#fff" />
+          </div>
+          <span style={{ fontSize: 17, fontWeight: 800, color: '#1a202c', letterSpacing: '-0.5px' }}>
+            DealByte CRM
+          </span>
+        </div>
 
-      <div className="w-full max-w-[440px] relative z-10 animate-fade-in">
-        {/* Header Section */}
-        <div className="text-center" style={{ marginBottom: '42px' }}>
-          <div className="relative inline-block group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-sky-500 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
-            <div className="relative w-16 h-16 mx-auto rounded-2xl bg-[#1e293b] border border-white/10 flex items-center justify-center mb-6 shadow-2xl transition-transform duration-500 group-hover:scale-110">
-              <Activity className="w-8 h-8 text-indigo-400" />
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: '#1a202c', marginBottom: 4 }}>
+          Welcome Back
+        </h1>
+        <p style={{ fontSize: 13, color: '#718096', marginBottom: 16 }}>
+          Enter your email and password to access your account.
+        </p>
+
+        {/* Role Selector */}
+        <div style={{ marginBottom: 16 }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: '#718096', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+            Login As
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+            {ROLE_OPTIONS.map(role => (
+              <button
+                key={role.value}
+                type="button"
+                onClick={() => setSelectedRole(role.value)}
+                style={{
+                  padding: '7px 10px',
+                  borderRadius: 7,
+                  border: selectedRole === role.value
+                    ? `2px solid ${role.color}`
+                    : '2px solid #e2e8f0',
+                  background: selectedRole === role.value
+                    ? `${role.color}12`
+                    : '#fafafa',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'all 0.15s',
+                }}
+              >
+                <span style={{
+                  display: 'block',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: selectedRole === role.value ? role.color : '#4a5568',
+                }}>
+                  {role.label}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {/* Email */}
+          <div>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#4a5568', marginBottom: 6 }}>
+              Email Address
+            </label>
+            <div style={{ position: 'relative' }}>
+              <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#a0aec0' }}>
+                <Users size={15} />
+              </span>
+              <input
+                id="login-email"
+                type="email"
+                className="input-field"
+                style={{ paddingLeft: 36 }}
+                placeholder="name@company.com"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+              />
             </div>
           </div>
-          <h1 className="text-4xl font-extrabold tracking-tight text-white mb-3">
-            Welcome <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-sky-400">Back</span>
-          </h1>
 
-        </div>
-
-        {/* Login Form Card */}
-        <div className="glass-card overflow-hidden">
-          <div style={{ padding: '36px 36px' }}>
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              <div className="space-y-3">
-                <label className="text-sm font-semibold text-slate-300 ml-1">Email address</label>
-                <div className="relative group">
-                  <input
-                    type="email"
-                    className="input-field pl-4"
-                    placeholder="name@company.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    id="login-email"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex justify-between items-center ml-1">
-                  <label className="text-sm font-semibold text-slate-300">Password</label>
-                </div>
-                <div className="relative group">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    className="input-field pl-4 pr-12"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    id="login-password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-indigo-400 transition-colors duration-200"
-                  >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
-                </div>
-              </div>
-
-              {error && (
-                <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400 flex items-center gap-2 animate-shake">
-                  <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                  {error}
-                </div>
-              )}
-
+          {/* Password */}
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: '#4a5568' }}>Password</label>
+              <a href="#" style={{ fontSize: 12, color: '#1a73e8', fontWeight: 500, textDecoration: 'none' }}>
+                Forgot Password?
+              </a>
+            </div>
+            <div style={{ position: 'relative' }}>
+              <input
+                id="login-password"
+                type={showPassword ? 'text' : 'password'}
+                className="input-field"
+                style={{ paddingRight: 40 }}
+                placeholder="Enter your password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+              />
               <button
-                type="submit"
-                className="btn-primary w-full shadow-[0_0_20px_rgba(99,102,241,0.3)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)]"
-                disabled={isLoading}
-                id="login-submit"
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', cursor: 'pointer', color: '#a0aec0', padding: 0,
+                }}
               >
-                {isLoading ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                    <span>Signing in...</span>
-                  </>
-                ) : (
-                  <span>Sign in to account</span>
-                )}
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
-            </form>
+            </div>
           </div>
-          
-          <div style={{ background: 'rgba(255,255,255,0.02)', borderTop: '1px solid rgba(255,255,255,0.05)', padding: '22px 36px', textAlign: 'center' }}>
-            <p className="text-sm text-slate-500">
-              New to SalesCRM?{' '}
-              <Link href="/register" className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors duration-200">
-                Create an organization
-              </Link>
-            </p>
-          </div>
-        </div>
 
-        {/* Footer links */}
-        <div className="mt-8 flex justify-center gap-6">
-          <a href="#" className="text-xs text-slate-500 hover:text-slate-400 transition-colors">Privacy Policy</a>
-          <div className="w-1 h-1 rounded-full bg-slate-700 self-center" />
-          <a href="#" className="text-xs text-slate-500 hover:text-slate-400 transition-colors">Terms of Service</a>
+          {/* Remember me row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input type="checkbox" id="remember" style={{ accentColor: '#1a73e8', cursor: 'pointer' }} />
+            <label htmlFor="remember" style={{ fontSize: 13, color: '#718096', cursor: 'pointer' }}>Remember me</label>
+          </div>
+
+          {/* Error */}
+          {error && (
+            <div style={{
+              background: '#fce8e6', border: '1px solid rgba(217,48,37,0.3)',
+              borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#d93025',
+              display: 'flex', alignItems: 'center', gap: 8,
+            }} className="animate-shake">
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#d93025', flexShrink: 0 }} />
+              {error}
+            </div>
+          )}
+
+          {/* Submit */}
+          <button
+            id="login-submit"
+            type="submit"
+            className="btn-primary"
+            disabled={isLoading}
+            style={{ marginTop: 4, padding: '12px', fontSize: 15, borderRadius: 8, justifyContent: 'center' }}
+          >
+            {isLoading ? (
+              <>
+                <div style={{
+                  width: 18, height: 18, border: '2px solid rgba(255,255,255,0.3)',
+                  borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite',
+                }} />
+                Signing in...
+              </>
+            ) : 'Log In'}
+          </button>
+        </form>
+
+        <p style={{ marginTop: 16, fontSize: 13, color: '#718096', textAlign: 'center' }}>
+          New to DealByte CRM?{' '}
+          <Link href="/register" style={{ color: '#1a73e8', fontWeight: 600, textDecoration: 'none' }}>
+            Create an organization
+          </Link>
+        </p>
+
+        <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center', gap: 20 }}>
+          <a href="#" style={{ fontSize: 12, color: '#a0aec0', textDecoration: 'none' }}>Privacy Policy</a>
+          <span style={{ color: '#e2e8f0' }}>•</span>
+          <a href="#" style={{ fontSize: 12, color: '#a0aec0', textDecoration: 'none' }}>Terms of Service</a>
         </div>
       </div>
 
-      <style jsx>{`
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-4px); }
-          75% { transform: translateX(4px); }
-        }
-        .animate-shake {
-          animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
-        }
+      {/* ── RIGHT PANEL — Branding ── */}
+      <div style={{
+        flex: 1,
+        background: 'linear-gradient(135deg, #1a73e8 0%, #1557b0 50%, #0d3f8f 100%)',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        padding: '52px 60px',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        {/* Decorative circles */}
+        <div style={{
+          position: 'absolute', top: -80, right: -80,
+          width: 320, height: 320, borderRadius: '50%',
+          background: 'rgba(255,255,255,0.06)',
+        }} />
+        <div style={{
+          position: 'absolute', bottom: -120, left: -60,
+          width: 400, height: 400, borderRadius: '50%',
+          background: 'rgba(255,255,255,0.04)',
+        }} />
+
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <h2 style={{ fontSize: 38, fontWeight: 800, color: '#fff', lineHeight: 1.2, marginBottom: 18 }}>
+            Effortlessly manage<br />your team and<br />operations.
+          </h2>
+          <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.75)', lineHeight: 1.7, maxWidth: 380, marginBottom: 48 }}>
+            Log in to access your CRM dashboard and manage your team from one central platform.
+          </p>
+
+          {/* Feature Highlights */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {[
+              { icon: <Users size={18} />,       text: 'Manage leads and customers in one place' },
+              { icon: <TrendingUp size={18} />,  text: 'Track your pipeline and close more deals' },
+              { icon: <CheckSquare size={18} />, text: 'Assign tasks and monitor team performance' },
+              { icon: <BarChart2 size={18} />,   text: 'Get real-time reports and analytics' },
+            ].map((item, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: 10,
+                  background: 'rgba(255,255,255,0.15)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#fff', flexShrink: 0,
+                }}>
+                  {item.icon}
+                </div>
+                <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', fontWeight: 500 }}>
+                  {item.text}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Mock Dashboard Preview */}
+          <div style={{
+            marginTop: 48,
+            background: 'rgba(255,255,255,0.1)',
+            borderRadius: 16,
+            padding: '20px 24px',
+            border: '1px solid rgba(255,255,255,0.15)',
+          }}>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+              {['Total Leads', 'Active Deals', 'Revenue'].map((label, i) => (
+                <div key={i} style={{
+                  flex: 1, background: 'rgba(255,255,255,0.1)',
+                  borderRadius: 8, padding: '10px 12px',
+                }}>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginBottom: 4 }}>{label}</div>
+                  <div style={{ height: 8, background: 'rgba(255,255,255,0.25)', borderRadius: 4, width: ['80%','60%','45%'][i] }} />
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {[60, 85, 45, 70, 90, 55, 75].map((h, i) => (
+                <div key={i} style={{
+                  flex: 1, background: 'rgba(255,255,255,0.2)', borderRadius: 4,
+                  height: h * 0.6, alignSelf: 'flex-end',
+                }} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
     </div>
   );

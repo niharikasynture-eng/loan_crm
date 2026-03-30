@@ -239,7 +239,7 @@ export default function PublicLeadFormPage() {
         </div>
 
         <p className="text-center text-xs text-[#475569] mt-6">
-          Powered by SalesCRM · Your information is kept private and secure
+          Powered by DealByte CRM · Your information is kept private and secure
         </p>
       </div>
     </div>

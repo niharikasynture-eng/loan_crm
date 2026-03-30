@@ -3,7 +3,7 @@ import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 
 export const metadata: Metadata = {
-  title: 'SalesCRM - Sales Management Platform',
+  title: 'DealByte CRM - Sales Management Platform',
   description: 'A powerful multi-tenant SaaS CRM for modern sales teams',
 };
 

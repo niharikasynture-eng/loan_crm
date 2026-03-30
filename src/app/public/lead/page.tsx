@@ -169,7 +169,7 @@ function LeadFormContent() {
           </form>
           
           <div className="mt-8 pt-6 border-t border-[#334155] text-center">
-            <p className="text-xs text-[#64748b]">Powered by SalesCRM SaaS • Secure & Isolated</p>
+            <p className="text-xs text-[#64748b]">Powered by DealByte CRM SaaS • Secure & Isolated</p>
           </div>
         </div>
       </div>

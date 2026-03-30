@@ -231,7 +231,7 @@ export default function PublicLeadFormBySlugPage({ params }: { params: Promise<{
         </div>
 
         <p className="text-center text-xs text-[#475569] mt-6">
-          Powered by SalesCRM · Secure Lead Capture
+          Powered by DealByte CRM · Secure Lead Capture
         </p>
       </div>
     </div>

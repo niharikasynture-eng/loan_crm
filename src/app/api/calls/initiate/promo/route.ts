@@ -29,6 +29,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Organization not found' }, { status: 404 });
     }
 
+    if (!lead.phone) return NextResponse.json({ message: 'Lead phone number is required for AI call' }, { status: 400 });
+
     console.log('Triggering Bland AI Call...');
     // Trigger AI Call
     const result = await triggerPromoCall(lead.phone, lead.name, organization.name);
@@ -48,11 +50,11 @@ export async function POST(req: NextRequest) {
     const activity = await Activity.create({
       leadId: lead._id,
       organizationId: lead.organizationId,
-      createdBy: user.userId,
+      createdBy: user.userId as any,
       type: 'call',
       outcome: 'connected',
       notes: `Triggered automated AI promo call to ${lead.phone}. (Call ID: ${result.call_id || result.id || 'initiated'})`,
-      timestamp: new Date()
+      completedAt: new Date()
     });
     console.log('Activity Created:', activity._id);
 

@@ -242,7 +242,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                         <span className="font-semibold text-white capitalize">{act.type}</span>
                         <time className="text-xs text-[#64748b]">{new Date(act.createdAt).toLocaleDateString()}</time>
                       </div>
-                      <p className="text-sm text-[#94a3b8] mb-2">Logged by <span className="text-[#cbd5e1]">{act.createdBy.name}</span></p>
+                      <p className="text-sm text-[#94a3b8] mb-2">Logged by <span className="text-[#cbd5e1]">{act.createdBy?.name ?? 'System'}</span></p>
                       {act.notes && (
                         <p className="text-sm text-[#e2e8f0] bg-[#1e293b] p-3 rounded-lg border border-[#334155]/50">
                           {act.notes}
