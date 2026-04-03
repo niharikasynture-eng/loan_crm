@@ -345,18 +345,12 @@ tbody tr:last-child { border-bottom: none; }
    SIDEBAR — BIZMATE STYLE
    ============================================================ */
 .sidebar {
-  width: var(--sidebar-width);
+  width: 100%;
+  height: 100%;
   background: var(--bg-sidebar);
-  border-right: 1px solid var(--border);
-  height: 100vh;
-  position: fixed;
-  left: 0;
-  top: 0;
   display: flex;
   flex-direction: column;
-  z-index: 40;
-  transition: transform 0.3s ease;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
 }
 
 .sidebar-link {
@@ -388,9 +382,10 @@ tbody tr:last-child { border-bottom: none; }
    MAIN CONTENT
    ============================================================ */
 .main-content {
-  margin-left: var(--sidebar-width);
   min-height: 100vh;
   background: var(--bg-page);
+  display: flex;
+  flex-direction: column;
 }
 
 /* Top header bar inside main content */

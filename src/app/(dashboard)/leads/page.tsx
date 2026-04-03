@@ -153,39 +153,49 @@ export default function LeadsPage() {
   }
 
   return (
-    <div style={{ maxWidth: 1280 }}>
+    <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-20">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#1a202c' }}>{isSalesAgent ? 'My Leads' : 'Leads'}</h1>
-          <p style={{ fontSize: 13, color: '#718096', marginTop: 4 }}>{isSalesAgent ? 'Leads assigned to you' : "Manage and track your organization's leads"}</p>
+          <h1 className="text-2xl font-black text-gray-900 tracking-tighter uppercase whitespace-nowrap">
+            {isSalesAgent ? 'My Opportunity Hub' : 'Lead Central'}
+          </h1>
+          <p className="text-sm text-gray-500 font-medium">
+            {isSalesAgent ? 'Active leads currently assigned to your pipeline' : "Global view of all inbound and qualified opportunities"}
+          </p>
         </div>
-        {/* Buttons row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+
+        {/* Action Buttons */}
+        <div className="flex flex-wrap items-center gap-3">
           {canImportExport && (
             <>
-              <button onClick={() => { setImportModal(true); setImportResult(null); }}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff', color: '#4a5568', fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = '#1a73e8'; e.currentTarget.style.color = '#1a73e8'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.color = '#4a5568'; }}>
-                <Upload size={14} /> Import
+              <button
+                onClick={() => { setImportModal(true); setImportResult(null); }}
+                className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+              >
+                <Upload size={15} className="text-indigo-500" /> Import
               </button>
-              <button onClick={handleExport}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff', color: '#4a5568', fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = '#0f9d58'; e.currentTarget.style.color = '#0f9d58'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.color = '#4a5568'; }}>
-                <Download size={14} /> Export
+              <button
+                onClick={handleExport}
+                className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+              >
+                <Download size={15} className="text-emerald-500" /> Export
               </button>
             </>
           )}
           {canAddLead && (
-            <Link href="/leads/new" className="btn-primary"><Plus size={15} /> Add Lead</Link>
+            <Link
+              href="/leads/new"
+              className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all shadow-md shadow-indigo-100 active:scale-95"
+            >
+              <Plus size={15} /> Add Lead
+            </Link>
           )}
         </div>
       </div>
 
       {/* Table Card */}
-      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, overflow: 'hidden' }}>
+      <div className="bg-white border border-gray-100 rounded-3xl shadow-sm overflow-hidden animate-slide-in">
         {/* Search */}
         <div style={{ padding: '16px 20px', borderBottom: '1px solid #f0f4f9' }}>
           <form onSubmit={handleSearch} style={{ position: 'relative', maxWidth: 360 }}>
@@ -293,23 +303,29 @@ export default function LeadsPage() {
 
       {/* ── Import Modal ── */}
       {importModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}>
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, width: '100%', maxWidth: 520, boxShadow: '0 20px 40px rgba(0,0,0,0.15)' }}>
-            {/* Modal Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 24px', borderBottom: '1px solid #f0f4f9' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 9, background: '#e8f0fe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <FileSpreadsheet size={18} style={{ color: '#1a73e8' }} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl border border-gray-100 overflow-hidden">
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-7 py-5 border-b border-gray-100">
+              <div className="flex items-center gap-4">
+                <div className="w-11 h-11 rounded-2xl bg-indigo-50 flex items-center justify-center">
+                  <FileSpreadsheet size={22} className="text-indigo-600" />
                 </div>
                 <div>
-                  <h2 style={{ fontSize: 16, fontWeight: 700, color: '#1a202c', margin: 0 }}>Import Leads</h2>
-                  <p style={{ fontSize: 12, color: '#718096', margin: 0 }}>Upload Excel (.xlsx) or CSV file</p>
+                  <h2 className="text-base font-bold text-gray-900">Import Leads</h2>
+                  <p className="text-xs text-gray-400 mt-0.5">Upload an Excel (.xlsx) or CSV file</p>
                 </div>
               </div>
-              <button onClick={() => { setImportModal(false); setImportResult(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a0aec0', padding: 4 }}><X size={18} /></button>
+              <button
+                onClick={() => { setImportModal(false); setImportResult(null); }}
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                <X size={16} />
+              </button>
             </div>
 
-            <div style={{ padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div className="p-7 space-y-5">
               {/* Drop Zone */}
               {!importResult && (
                 <div
@@ -317,72 +333,86 @@ export default function LeadsPage() {
                   onDragLeave={() => setDragOver(false)}
                   onDrop={handleFileDrop}
                   onClick={() => fileInputRef.current?.click()}
-                  style={{
-                    border: `2px dashed ${dragOver ? '#1a73e8' : '#e2e8f0'}`,
-                    borderRadius: 12, padding: '32px 20px', textAlign: 'center',
-                    cursor: 'pointer', background: dragOver ? '#f0f7ff' : '#f7f8fc',
-                    transition: 'all 0.2s',
-                  }}>
+                  className={`relative rounded-2xl border-2 border-dashed p-10 text-center cursor-pointer transition-all ${
+                    dragOver ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 bg-gray-50 hover:border-indigo-300 hover:bg-indigo-50/30'
+                  }`}
+                >
                   {importing ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-                      <div style={{ width: 36, height: 36, border: '3px solid #e2e8f0', borderTopColor: '#1a73e8', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-                      <p style={{ fontSize: 14, color: '#1a73e8', fontWeight: 600 }}>Importing leads...</p>
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-10 h-10 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+                      <p className="text-sm font-semibold text-indigo-600">Importing leads, please wait...</p>
                     </div>
                   ) : (
-                    <>
-                      <Upload size={28} style={{ color: dragOver ? '#1a73e8' : '#a0aec0', marginBottom: 10 }} />
-                      <p style={{ fontSize: 14, fontWeight: 600, color: '#1a202c', margin: '0 0 4px' }}>
-                        Drag & drop your file here
-                      </p>
-                      <p style={{ fontSize: 12, color: '#a0aec0', margin: 0 }}>or click to browse — .xlsx, .xls, .csv supported</p>
-                    </>
+                    <div className="flex flex-col items-center gap-3">
+                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${dragOver ? 'bg-indigo-100' : 'bg-white border border-gray-200'}`}>
+                        <Upload size={24} className={dragOver ? 'text-indigo-600' : 'text-gray-400'} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-gray-900">Drag & drop your file here</p>
+                        <p className="text-xs text-gray-400 mt-1">or <span className="text-indigo-600 font-semibold">click to browse</span> — .xlsx, .xls, .csv supported</p>
+                      </div>
+                    </div>
                   )}
-                  <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: 'none' }}
+                  <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden"
                     onChange={e => { const f = e.target.files?.[0]; if (f) handleImportFile(f); }} />
                 </div>
               )}
 
               {/* Result */}
               {importResult && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <div style={{ display: 'flex', gap: 12 }}>
-                    <div style={{ flex: 1, background: '#e6f4ea', border: '1px solid rgba(15,157,88,0.2)', borderRadius: 10, padding: '14px 18px', textAlign: 'center' }}>
-                      <CheckCircle size={20} style={{ color: '#0f9d58', marginBottom: 4 }} />
-                      <p style={{ fontSize: 24, fontWeight: 800, color: '#0f9d58', margin: 0 }}>{importResult.success}</p>
-                      <p style={{ fontSize: 12, color: '#0f9d58', fontWeight: 600, margin: 0 }}>Imported</p>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-5 text-center">
+                      <CheckCircle size={22} className="text-emerald-500 mx-auto mb-2" />
+                      <p className="text-3xl font-black text-emerald-600">{importResult.success}</p>
+                      <p className="text-xs font-semibold text-emerald-500 mt-1 uppercase tracking-wide">Imported</p>
                     </div>
                     {importResult.failed > 0 && (
-                      <div style={{ flex: 1, background: '#fce8e6', border: '1px solid rgba(217,48,37,0.2)', borderRadius: 10, padding: '14px 18px', textAlign: 'center' }}>
-                        <AlertCircle size={20} style={{ color: '#d93025', marginBottom: 4 }} />
-                        <p style={{ fontSize: 24, fontWeight: 800, color: '#d93025', margin: 0 }}>{importResult.failed}</p>
-                        <p style={{ fontSize: 12, color: '#d93025', fontWeight: 600, margin: 0 }}>Failed</p>
+                      <div className="bg-red-50 border border-red-100 rounded-2xl p-5 text-center">
+                        <AlertCircle size={22} className="text-red-500 mx-auto mb-2" />
+                        <p className="text-3xl font-black text-red-500">{importResult.failed}</p>
+                        <p className="text-xs font-semibold text-red-400 mt-1 uppercase tracking-wide">Failed</p>
                       </div>
                     )}
                   </div>
                   {importResult.errors.length > 0 && (
-                    <div style={{ background: '#fef7e0', border: '1px solid rgba(242,153,0,0.2)', borderRadius: 8, padding: '12px 14px' }}>
-                      <p style={{ fontSize: 12, fontWeight: 700, color: '#f29900', marginBottom: 6 }}>Issues:</p>
-                      {importResult.errors.map((e, i) => <p key={i} style={{ fontSize: 12, color: '#4a5568', margin: '2px 0' }}>• {e}</p>)}
+                    <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 space-y-1">
+                      <p className="text-xs font-bold text-amber-700 mb-2">Issues encountered:</p>
+                      {importResult.errors.map((e, i) => (
+                        <p key={i} className="text-xs text-amber-700">• {e}</p>
+                      ))}
                     </div>
                   )}
-                  <button onClick={() => setImportResult(null)} style={{ fontSize: 13, color: '#1a73e8', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>← Import another file</button>
+                  <button
+                    onClick={() => setImportResult(null)}
+                    className="text-sm font-semibold text-indigo-600 hover:underline"
+                  >
+                    ← Import another file
+                  </button>
                 </div>
               )}
 
-              {/* Column Format Guide */}
-              <div style={{ background: '#f7f8fc', border: '1px solid #f0f4f9', borderRadius: 10, padding: '14px 16px' }}>
-                <p style={{ fontSize: 12, fontWeight: 700, color: '#4a5568', marginBottom: 8 }}>📋 Required column format:</p>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {/* Column Guide */}
+              <div className="bg-gray-50 border border-gray-100 rounded-xl px-5 py-4">
+                <p className="text-xs font-bold text-gray-700 mb-3">📋 Required column format:</p>
+                <div className="flex gap-2 flex-wrap">
                   {['Name *', 'Email', 'Phone', 'Company', 'Source'].map(col => (
-                    <code key={col} style={{ fontSize: 11, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 4, padding: '2px 8px', color: col.includes('*') ? '#d93025' : '#1a73e8', fontFamily: 'monospace' }}>{col}</code>
+                    <code key={col} className={`text-xs px-2.5 py-1 rounded-lg font-mono border ${
+                      col.includes('*') ? 'bg-red-50 border-red-200 text-red-600' : 'bg-white border-gray-200 text-indigo-600'
+                    }`}>{col}</code>
                   ))}
                 </div>
-                <p style={{ fontSize: 11, color: '#a0aec0', marginTop: 6 }}>* Name is required. All other fields are optional.</p>
+                <p className="text-[11px] text-gray-400 mt-3">* Name is required. All other fields are optional.</p>
               </div>
             </div>
 
-            <div style={{ padding: '14px 24px', borderTop: '1px solid #f0f4f9', display: 'flex', justifyContent: 'flex-end' }}>
-              <button onClick={() => { setImportModal(false); setImportResult(null); }} className="btn-secondary">Close</button>
+            <div className="px-7 py-4 border-t border-gray-100 flex justify-end">
+              <button
+                onClick={() => { setImportModal(false); setImportResult(null); }}
+                className="px-5 py-2.5 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

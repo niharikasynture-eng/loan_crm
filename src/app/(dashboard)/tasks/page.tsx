@@ -91,7 +91,7 @@ export default function TasksPage() {
                 >
                   {isCompleted ? <CheckCircle2 className="w-6 h-6 text-emerald-500" /> : <Circle className="w-6 h-6" />}
                 </button>
-                
+
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <p className={`font-medium ${isCompleted ? 'text-[#94a3b8] line-through' : 'text-white'} truncate`}>
@@ -101,7 +101,7 @@ export default function TasksPage() {
                       {task.priority}
                     </span>
                   </div>
-                  
+
                   <div className="flex items-center gap-4 text-xs">
                     <span className={`flex items-center gap-1 ${isOverdue ? 'text-red-400' : 'text-[#64748b]'}`}>
                       {isOverdue && <AlertCircle className="w-3 h-3" />}
@@ -111,7 +111,7 @@ export default function TasksPage() {
                       <span className="text-[#94a3b8]">Lead: {task.leadId.name}</span>
                     )}
                     {task.link && (
-                      <a 
+                      <a
                         href={task.link.startsWith('http') ? task.link : `https://${task.link}`}
                         target="_blank"
                         rel="noopener noreferrer"

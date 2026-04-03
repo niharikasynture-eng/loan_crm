@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api-client';
 import { useAuth } from '@/context/AuthContext';
-import { Users, TrendingUp, PhoneCall, CheckSquare, Link2, Copy, CheckCircle } from 'lucide-react';
+import { Users, TrendingUp, PhoneCall, CheckSquare, Link2, Copy, CheckCircle, ArrowUpRight } from 'lucide-react';
 
 interface DashboardMetrics {
   totalLeads: number; newLeads: number; wonLeads: number; lostLeads: number;
@@ -18,6 +18,14 @@ interface Task {
   _id: string; title: string; dueDate: string; priority: string;
   assignedTo: { name: string; avatar?: string }; leadId?: { name: string };
 }
+
+const TYPE_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
+  email:    { bg: 'bg-blue-50',   text: 'text-blue-600',   dot: 'bg-blue-500' },
+  call:     { bg: 'bg-emerald-50',text: 'text-emerald-600',dot: 'bg-emerald-500' },
+  whatsapp: { bg: 'bg-green-50',  text: 'text-green-600',  dot: 'bg-green-500' },
+  note:     { bg: 'bg-amber-50',  text: 'text-amber-600',  dot: 'bg-amber-500' },
+  meeting:  { bg: 'bg-purple-50', text: 'text-purple-600', dot: 'bg-purple-500' },
+};
 
 export default function DashboardPage() {
   const { user, organization } = useAuth();
@@ -51,118 +59,166 @@ export default function DashboardPage() {
   }, []);
 
   if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200 }}>
-      <div style={{ width: 32, height: 32, border: '3px solid #e2e8f0', borderTopColor: '#1a73e8', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    <div className="flex items-center justify-center h-64">
+      <div className="w-8 h-8 border-2 border-gray-200 border-t-indigo-600 rounded-full animate-spin" />
     </div>
   );
 
-  // Metric cards data
   const metricCards = [
-    { label: 'Total Leads',    value: metrics?.totalLeads,       sub: `${metrics?.newLeads} new`,              subColor: '#0f9d58', icon: Users,       iconBg: '#e8f0fe', iconColor: '#1a73e8' },
-    { label: 'Won Deals',      value: metrics?.wonDeals,          sub: `$${metrics?.wonDealValue?.toLocaleString()} value`, subColor: '#0f9d58', icon: TrendingUp,  iconBg: '#e6f4ea', iconColor: '#0f9d58' },
-    { label: 'Calls (30d)',    value: metrics?.callsThisMonth,    sub: `${metrics?.totalActivities} total activities`, subColor: '#a0aec0', icon: PhoneCall,   iconBg: '#e3f6fd', iconColor: '#0277bd' },
-    { label: 'Pending Tasks',  value: metrics?.pendingTasks,      sub: 'Requires attention',                    subColor: '#a0aec0', icon: CheckSquare, iconBg: '#fef7e0', iconColor: '#f29900' },
+    { label: 'Total Leads',   value: metrics?.totalLeads,    sub: `${metrics?.newLeads ?? 0} new this period`,        subColor: 'text-emerald-600', icon: Users,       iconBg: 'bg-blue-50',   iconColor: 'text-blue-600' },
+    { label: 'Won Deals',     value: metrics?.wonDeals,       sub: `$${(metrics?.wonDealValue ?? 0).toLocaleString()} total value`, subColor: 'text-emerald-600', icon: TrendingUp,  iconBg: 'bg-emerald-50', iconColor: 'text-emerald-600' },
+    { label: 'Calls (30d)',   value: metrics?.callsThisMonth, sub: `${metrics?.totalActivities ?? 0} total activities`, subColor: 'text-gray-400',   icon: PhoneCall,   iconBg: 'bg-sky-50',    iconColor: 'text-sky-600' },
+    { label: 'Pending Tasks', value: metrics?.pendingTasks,   sub: 'Requires your attention',                           subColor: 'text-amber-500',  icon: CheckSquare, iconBg: 'bg-amber-50',  iconColor: 'text-amber-600' },
   ];
 
   return (
-    <div style={{ maxWidth: 1280 }}>
-      {/* Public Lead Form Banner — for Admin/Manager */}
+    <div className="max-w-screen-xl mx-auto space-y-8 pb-12">
+
+      {/* Public Lead Form Banner */}
       {(user?.role === 'org_admin' || user?.role === 'manager') && (
-        <div style={{ background: 'linear-gradient(135deg, #e8f0fe, #e3f6fd)', border: '1px solid rgba(26,115,232,0.2)', borderRadius: 12, padding: '16px 20px', marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ width: 42, height: 42, borderRadius: 10, background: '#e8f0fe', border: '1px solid rgba(26,115,232,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Link2 size={18} style={{ color: '#1a73e8' }} />
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100 rounded-2xl px-6 py-4">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0">
+              <Link2 size={18} className="text-indigo-600" />
             </div>
             <div>
-              <p style={{ fontWeight: 700, color: '#1a202c', fontSize: 14 }}>Public Lead Form</p>
-              <p style={{ fontSize: 12, color: '#718096', marginTop: 2 }}>Share this link to capture leads automatically</p>
+              <p className="text-sm font-bold text-gray-900">Public Lead Capture Form</p>
+              <p className="text-xs text-gray-500 mt-0.5">Share this link to capture leads automatically into your CRM</p>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <code style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, padding: '6px 12px', fontSize: 12, color: '#1a73e8', fontFamily: 'monospace', maxWidth: 320, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <code className="flex-1 sm:flex-none bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs text-indigo-600 font-mono truncate max-w-xs">
               {publicLeadUrl}
             </code>
-            <button onClick={copyToClipboard} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: 'none', cursor: 'pointer', background: copied ? '#0f9d58' : '#1a73e8', color: '#fff', fontSize: 13, fontWeight: 600, transition: 'background 0.2s' }}>
+            <button
+              onClick={copyToClipboard}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all flex-shrink-0 ${copied ? 'bg-emerald-500' : 'bg-indigo-600 hover:bg-indigo-700'}`}
+            >
               {copied ? <CheckCircle size={14} /> : <Copy size={14} />}
-              {copied ? 'Copied!' : 'Copy Link'}
+              {copied ? 'Copied!' : 'Copy'}
             </button>
           </div>
         </div>
       )}
 
-      {/* Metric Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20, marginBottom: 24 }}>
+      {/* ── Metric Cards ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {metricCards.map(({ label, value, sub, subColor, icon: Icon, iconBg, iconColor }) => (
-          <div key={label} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '20px 22px', transition: 'box-shadow 0.2s' }}
-            onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 4px 16px rgba(26,115,232,0.08)')}
-            onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <p style={{ fontSize: 12, fontWeight: 600, color: '#718096', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>{label}</p>
-                <p style={{ fontSize: 32, fontWeight: 800, color: '#1a202c', lineHeight: 1 }}>{value ?? 0}</p>
-              </div>
-              <div style={{ width: 44, height: 44, borderRadius: 10, background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon size={20} style={{ color: iconColor }} />
+          <div key={label} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group">
+            {/* Top row: label + icon */}
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{label}</p>
+              <div className={`w-9 h-9 rounded-xl ${iconBg} flex items-center justify-center transition-transform group-hover:scale-110`}>
+                <Icon size={18} className={iconColor} />
               </div>
             </div>
-            <p style={{ fontSize: 12, marginTop: 12, color: subColor, fontWeight: 500 }}>{sub}</p>
+            {/* Number */}
+            <p className="text-4xl font-black text-gray-900 leading-none mb-2">{value ?? 0}</p>
+            {/* Sub */}
+            <p className={`text-xs font-semibold ${subColor}`}>{sub}</p>
           </div>
         ))}
       </div>
 
-      {/* Bottom Panels */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+      {/* ── Bottom Panels ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
         {/* Recent Activity */}
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '20px 24px' }}>
-          <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1a202c', marginBottom: 16 }}>Recent Activity</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          {/* Panel header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <h2 className="text-sm font-bold text-gray-900">Recent Activity</h2>
+            {activities.length > 0 && (
+              <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">
+                {activities.length} events
+              </span>
+            )}
+          </div>
+
+          {/* List */}
+          <div className="divide-y divide-gray-100">
             {activities.length === 0 ? (
-              <p style={{ fontSize: 13, color: '#a0aec0' }}>No recent activities.</p>
-            ) : activities.map((act) => (
-              <div key={act._id} style={{ display: 'flex', gap: 12, padding: '10px 12px', borderRadius: 8, border: '1px solid #f0f4f9', transition: 'background 0.12s' }}
-                onMouseEnter={e => (e.currentTarget.style.background = '#f7f8fc')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#e8f0fe', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#1a73e8' }}>
-                  {act.createdBy?.name?.charAt(0)}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 13, color: '#4a5568' }}>
-                    <strong style={{ color: '#1a202c' }}>{act.createdBy?.name}</strong> logged a {act.type} for <strong style={{ color: '#1a202c' }}>{act.leadId?.name}</strong>
-                  </p>
-                  <p style={{ fontSize: 11, color: '#a0aec0', marginTop: 3 }}>{new Date(act.createdAt).toLocaleString()}</p>
-                  {act.notes && <p style={{ fontSize: 12, color: '#718096', marginTop: 4, fontStyle: 'italic' }}>"{act.notes}"</p>}
-                </div>
+              <div className="py-16 text-center">
+                <p className="text-sm text-gray-400">No recent activity yet.</p>
               </div>
-            ))}
+            ) : activities.map((act) => {
+              const t = TYPE_COLORS[act.type?.toLowerCase()] ?? { bg: 'bg-gray-50', text: 'text-gray-500', dot: 'bg-gray-400' };
+              return (
+                <div key={act._id} className="flex items-start gap-5 px-6 py-5 hover:bg-gray-50 transition-colors">
+                  {/* Avatar */}
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-500 flex items-center justify-center text-white text-sm font-black flex-shrink-0 shadow-sm">
+                    {act.createdBy?.name?.charAt(0).toUpperCase()}
+                  </div>
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    {/* Row 1: Name + badge + lead */}
+                    <div className="flex items-center gap-2 flex-wrap mb-2">
+                      <span className="text-sm font-bold text-gray-900">{act.createdBy?.name}</span>
+                      <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-lg ${t.bg} ${t.text}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${t.dot} flex-shrink-0`} />
+                        {act.type?.toUpperCase()}
+                      </span>
+                      <span className="text-xs text-gray-400">to</span>
+                      <span className="text-sm font-semibold text-gray-800">{act.leadId?.name}</span>
+                    </div>
+                    {/* Notes */}
+                    {act.notes && (
+                      <p className="text-sm text-gray-500 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 italic leading-relaxed mb-2">
+                        &ldquo;{act.notes}&rdquo;
+                      </p>
+                    )}
+                    {/* Timestamp */}
+                    <p className="text-xs text-gray-400">{new Date(act.createdAt).toLocaleString()}</p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
         {/* Upcoming Tasks */}
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '20px 24px' }}>
-          <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1a202c', marginBottom: 16 }}>Upcoming Tasks</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          {/* Panel header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <h2 className="text-sm font-bold text-gray-900">Upcoming Tasks</h2>
+            {tasks.length > 0 && (
+              <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">
+                {tasks.length} pending
+              </span>
+            )}
+          </div>
+
+          {/* List */}
+          <div className="divide-y divide-gray-50">
             {tasks.length === 0 ? (
-              <p style={{ fontSize: 13, color: '#a0aec0' }}>No pending tasks.</p>
-            ) : tasks.map((task) => (
-              <div key={task._id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 8, background: '#f7f8fc', border: '1px solid #f0f4f9' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: task.priority === 'high' ? '#d93025' : task.priority === 'medium' ? '#f29900' : '#1a73e8' }} />
-                  <div>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: '#1a202c' }}>{task.title}</p>
-                    <p style={{ fontSize: 11, color: '#a0aec0', marginTop: 2 }}>
-                      Due: {new Date(task.dueDate).toLocaleDateString()}
-                      {task.leadId && ` • ${task.leadId.name}`}
-                    </p>
+              <div className="py-16 text-center">
+                <p className="text-sm text-gray-400">No upcoming tasks. All clear!</p>
+              </div>
+            ) : tasks.map((task) => {
+              const priorityDot = task.priority === 'high' ? 'bg-red-500' : task.priority === 'medium' ? 'bg-amber-500' : 'bg-gray-300';
+              const priorityLabel = task.priority === 'high' ? 'text-red-600 bg-red-50' : task.priority === 'medium' ? 'text-amber-600 bg-amber-50' : 'text-gray-500 bg-gray-100';
+              return (
+                <div key={task._id} className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50/60 transition-colors">
+                  <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${priorityDot}`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 truncate">{task.title}</p>
+                    <div className="flex items-center gap-3 mt-1">
+                      <span className="text-xs text-gray-400">Due {new Date(task.dueDate).toLocaleDateString()}</span>
+                      {task.leadId && <span className="text-xs font-medium text-indigo-500 truncate">{task.leadId.name}</span>}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md capitalize ${priorityLabel}`}>{task.priority}</span>
+                    <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-xs font-bold text-white" title={task.assignedTo?.name}>
+                      {task.assignedTo?.name?.charAt(0).toUpperCase()}
+                    </div>
                   </div>
                 </div>
-                <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#1a73e8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff' }} title={task.assignedTo?.name}>
-                  {task.assignedTo?.name?.charAt(0)}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
+
       </div>
     </div>
   );

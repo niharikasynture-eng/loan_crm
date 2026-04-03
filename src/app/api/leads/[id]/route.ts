@@ -48,8 +48,8 @@ export async function PATCH(
 
     const body = await req.json();
 
-    // Sales agent can only update their own leads' status, notes, lastContactedAt
-    const saleAgentAllowed = ['status', 'pipelineStage', 'notes', 'lastContactedAt', 'customFields'];
+    // Sales agent can now update basic contact info for their leads
+    const saleAgentAllowed = ['name', 'phone', 'email', 'company', 'status', 'pipelineStage', 'notes', 'lastContactedAt', 'customFields', 'tags'];
     const allAllowed = ['name', 'phone', 'email', 'company', 'source', 'status', 'pipelineStage', 'assignedTo', 'value', 'notes', 'tags', 'lastContactedAt', 'customFields'];
 
     const allowedFields = auth.role === ROLES.SALES_AGENT ? saleAgentAllowed : allAllowed;

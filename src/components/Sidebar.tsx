@@ -36,14 +36,16 @@ const ROLE_META: Record<string, { label: string; icon: React.ElementType; color:
   sales_agent:  { label: 'Sales Person', icon: UserCircle,  color: '#f29900', bg: '#fef7e0' },
 };
 
-export default function Sidebar() {
+interface SidebarProps {
+  isCollapsed: boolean;
+  onToggle: () => void;
+}
+
+export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const pathname    = usePathname();
   const searchParams = useSearchParams();
   const { user, organization, logout, token } = useAuth();
 
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount]     = useState(0);
-  const [showNotifs, setShowNotifs]       = useState(false);
   const [counts, setCounts]               = useState({ pending: 0, active: 0, all: 0 });
   const [isOrgsOpen, setIsOrgsOpen]       = useState(pathname.startsWith('/super-admin'));
 
@@ -60,16 +62,6 @@ export default function Sidebar() {
   const roleMeta = ROLE_META[role] ?? ROLE_META['sales_agent'];
   const RoleIcon = roleMeta.icon;
 
-  const loadNotifications = useCallback(async () => {
-    if (!token) return;
-    try {
-      const res  = await fetch('/api/notifications?limit=10', { headers: { Authorization: `Bearer ${token}` } });
-      if (!res.ok) return;
-      const data = await res.json();
-      setNotifications(data.data.notifications || []);
-      setUnreadCount(data.data.unreadCount || 0);
-    } catch {}
-  }, [token]);
 
   const loadCounts = useCallback(async () => {
     if (!token || !isSuperAdmin) return;
@@ -87,22 +79,11 @@ export default function Sidebar() {
   }, [token, isSuperAdmin]);
 
   useEffect(() => {
-    loadNotifications();
     if (isSuperAdmin) loadCounts();
-    const interval = setInterval(() => { loadNotifications(); if (isSuperAdmin) loadCounts(); }, 60000);
+    const interval = setInterval(() => { if (isSuperAdmin) loadCounts(); }, 60000);
     return () => clearInterval(interval);
-  }, [loadNotifications, loadCounts, isSuperAdmin]);
+  }, [loadCounts, isSuperAdmin]);
 
-  async function markAllRead() {
-    if (!token) return;
-    await fetch('/api/notifications', {
-      method: 'PATCH',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ markAllRead: true }),
-    });
-    setUnreadCount(0);
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-  }
 
   const currentTab = searchParams.get('tab');
   const isActive   = (href: string, tab?: string) => {
@@ -111,273 +92,177 @@ export default function Sidebar() {
   };
 
   const showCrmNav      = !isSuperAdmin;
-  const showAdminSection = isOrgAdmin;
+  const showAdminSection = (isOrgAdmin || isManager || isSuperAdmin);
 
   // Sidebar section label style
   const sectionLabel: React.CSSProperties = {
     padding: '0 16px',
-    marginBottom: 6,
-    marginTop: 4,
+    marginBottom: 8,
+    marginTop: 8,
     fontSize: 11,
-    fontWeight: 700,
+    fontWeight: 900,
     textTransform: 'uppercase',
-    letterSpacing: '0.1em',
+    letterSpacing: '0.14em',
     color: '#a0aec0',
   };
 
   return (
-    <aside className="sidebar">
+    <aside className="sidebar select-none">
       {/* ── Brand Header ── */}
-      <div style={{ padding: '18px 16px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
-            width: 34, height: 34, borderRadius: 9,
-            background: 'linear-gradient(135deg, #1a73e8, #4285f4)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-          }}>
-            <Activity size={16} color="#fff" />
+      <div className="flex items-center justify-between p-5 border-b border-gray-100">
+        <div 
+          className="flex items-center gap-3 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+          onClick={onToggle}
+          title={isCollapsed ? "Expand Sidebar" : ""}
+        >
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-500 shadow-md shadow-indigo-100 flex items-center justify-center flex-shrink-0 animate-slide-in">
+            <Activity size={16} color="#fff" strokeWidth={3} />
           </div>
-          <div style={{ minWidth: 0 }}>
-            <p style={{ fontSize: 15, fontWeight: 800, color: '#1a202c', letterSpacing: '-0.3px' }}>DealByte CRM</p>
-            <p style={{ fontSize: 10, color: '#a0aec0', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }}>
-              {isSuperAdmin ? 'Platform Admin' : (organization?.name || 'CRM System')}
-            </p>
-          </div>
+          {!isCollapsed && (
+            <div className="min-w-0 animate-fade-in">
+              <p className="text-sm font-black text-gray-900 tracking-tighter uppercase whitespace-nowrap">DealByte CRM</p>
+              <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mt-0.5 truncate max-w-[120px]">
+                {isSuperAdmin ? 'Platform Admin' : (organization?.name || 'Unified Workspace')}
+              </p>
+            </div>
+          )}
         </div>
 
-        {/* Bell */}
-        {!isSuperAdmin && (
-          <div style={{ position: 'relative' }}>
-            <button
-              onClick={() => setShowNotifs(!showNotifs)}
-              style={{ position: 'relative', padding: 6, background: 'none', border: 'none', cursor: 'pointer', color: '#718096', borderRadius: 8, transition: 'background 0.15s' }}
-              onMouseEnter={e => (e.currentTarget.style.background = '#f7f8fc')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-            >
-              <Bell size={18} />
-              {unreadCount > 0 && (
-                <span style={{
-                  position: 'absolute', top: 4, right: 4,
-                  width: 14, height: 14,
-                  background: '#d93025', color: '#fff',
-                  fontSize: 9, fontWeight: 700,
-                  borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  border: '2px solid #fff',
-                }}>
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
-              )}
-            </button>
-
-            {showNotifs && (
-              <div style={{
-                position: 'absolute', left: '50%', transform: 'translateX(-50%)', top: 44,
-                width: 300, background: '#fff', border: '1px solid #e2e8f0',
-                borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-                zIndex: 50, overflow: 'hidden',
-              }} className="animate-fade-in">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid #e2e8f0' }}>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: '#1a202c' }}>Notifications</p>
-                  {unreadCount > 0 && (
-                    <button onClick={markAllRead} style={{ fontSize: 12, color: '#1a73e8', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>
-                      Mark all read
-                    </button>
-                  )}
-                </div>
-                <div style={{ maxHeight: 320, overflowY: 'auto' }}>
-                  {notifications.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '32px 16px', color: '#a0aec0' }}>
-                      <Bell size={28} style={{ margin: '0 auto 8px', opacity: 0.3 }} />
-                      <p style={{ fontSize: 13 }}>No new notifications</p>
-                    </div>
-                  ) : notifications.map(n => (
-                    <div
-                      key={n._id}
-                      style={{
-                        padding: '12px 16px', borderBottom: '1px solid #f0f4f9',
-                        cursor: 'pointer', background: !n.read ? '#f0f7ff' : 'transparent',
-                        transition: 'background 0.12s',
-                      }}
-                      onClick={() => { if (n.link) window.location.href = n.link; setShowNotifs(false); }}
-                    >
-                      <div style={{ display: 'flex', gap: 10 }}>
-                        {!n.read && <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#1a73e8', flexShrink: 0, marginTop: 5 }} />}
-                        <div>
-                          <p style={{ fontSize: 13, fontWeight: 600, color: '#1a202c' }}>{n.title}</p>
-                          <p style={{ fontSize: 12, color: '#718096', marginTop: 2, lineHeight: 1.5 }}>{n.message}</p>
-                          <p style={{ fontSize: 11, color: '#a0aec0', marginTop: 4 }}>
-                            {new Date(n.createdAt).toLocaleDateString()} · {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+        {/* Global Sidebar Toggle Button (Only on larger screens or specifically requested) */}
+        {!isCollapsed && (
+           <button 
+             onClick={onToggle}
+             className="p-1.5 hover:bg-gray-50 rounded-lg text-gray-400 transition-colors hidden lg:block"
+           >
+             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+             </svg>
+           </button>
         )}
       </div>
 
-      {/* ── Navigation ── */}
-      <nav style={{ flex: 1, overflowY: 'auto', padding: '12px 0' }}>
 
+      {/* ── Navigation ── */}
+      <nav className="flex-1 pt-6 space-y-8">
         {/* CRM Navigation */}
         {showCrmNav && (
-          <div style={{ marginBottom: 8 }}>
-            <p style={sectionLabel}>Main Menu</p>
-            {CRM_NAV.filter(item => {
-              if (isSalesAgent && item.href === '/reports') return false;
-              return true;
-            }).map(({ href, label, icon: Icon }) => (
-              <Link
-                key={href}
-                href={href}
-                className={`sidebar-link ${isActive(href) ? 'active' : ''}`}
-              >
-                <Icon size={17} style={{ flexShrink: 0 }} />
-                <span style={{ flex: 1 }}>
-                  {isSalesAgent && href === '/leads' ? 'My Leads' : label}
-                </span>
-              </Link>
-            ))}
+          <div>
+            {!isCollapsed && <p style={sectionLabel}>Control Center</p>}
+            <div className={`px-3 space-y-1.5 ${isCollapsed ? 'flex flex-col items-center px-0' : ''}`}>
+              {CRM_NAV.filter(item => !(isSalesAgent && item.href === '/reports')).map(({ href, label, icon: Icon }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  title={isCollapsed ? label : ''}
+                  className={`flex items-center gap-3.5 rounded-xl font-bold transition-all duration-300 ${isCollapsed ? 'w-11 h-11 justify-center p-0' : 'px-4 py-3.5 text-[15px]'} ${isActive(href) ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 scale-105' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 group'}`}
+                >
+                  <Icon size={isCollapsed ? 20 : 19} className={isActive(href) ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600 transition-colors'} />
+                  {!isCollapsed && <span className="animate-fade-in">{label}</span>}
+                </Link>
+              ))}
+            </div>
           </div>
         )}
 
         {/* Administration */}
         {showAdminSection && (
-          <div style={{ marginBottom: 8, marginTop: 12 }}>
-            <p style={sectionLabel}>Administration</p>
-            {ADMIN_NAV.map(({ href, label, icon: Icon }) => (
-              <Link key={href} href={href} className={`sidebar-link ${isActive(href) ? 'active' : ''}`}>
-                <Icon size={17} style={{ flexShrink: 0 }} />
-                <span style={{ flex: 1 }}>{label}</span>
-              </Link>
-            ))}
-          </div>
-        )}
+          <div>
+            {!isCollapsed && <p style={sectionLabel}>Platform</p>}
+            <div className={`px-3 space-y-2 ${isCollapsed ? 'flex flex-col items-center px-0' : ''}`}>
+              
+              {isOrgAdmin && (
+                 <Link href="/users" title={isCollapsed ? 'Team Members' : ''} className={`flex items-center gap-3 rounded-xl text-sm font-bold transition-all duration-300 ${isCollapsed ? 'w-10 h-10 justify-center p-0' : 'px-4 py-3'} ${isActive('/users') ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 scale-105' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-900 group'}`}>
+                   <UserCog size={isCollapsed ? 20 : 18} className={isActive('/users') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600 transition-colors'} />
+                   {!isCollapsed && <span>Team</span>}
+                 </Link>
+              )}
 
-        {/* Tools */}
-        {isOrgAdmin && (
-          <div style={{ marginBottom: 8 }}>
-            <p style={sectionLabel}>Tools</p>
-            <Link href="/settings#lead-form" className={`sidebar-link ${isActive('/settings') ? 'active' : ''}`}>
-              <Link2 size={17} style={{ flexShrink: 0 }} />
-              <span style={{ flex: 1 }}>Public Lead Form</span>
-            </Link>
-          </div>
-        )}
-
-        {/* Super Admin */}
-        {isSuperAdmin && (
-          <div style={{ marginBottom: 8 }}>
-            <p style={sectionLabel}>Platform</p>
-            <div>
-              <button
-                onClick={() => setIsOrgsOpen(!isOrgsOpen)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  width: 'calc(100% - 16px)', margin: '1px 8px',
-                  padding: '9px 12px', borderRadius: 8,
-                  background: isOrgsOpen ? '#e8f0fe' : 'none',
-                  border: 'none', cursor: 'pointer',
-                  transition: 'background 0.15s',
-                }}
-                onMouseEnter={e => { if (!isOrgsOpen) e.currentTarget.style.background = '#f7f8fc'; }}
-                onMouseLeave={e => { if (!isOrgsOpen) e.currentTarget.style.background = 'none'; }}
-              >
-                <Building2 size={17} style={{ color: isOrgsOpen ? '#1a73e8' : '#718096', flexShrink: 0 }} />
-                <span style={{ flex: 1, fontSize: 14, fontWeight: isOrgsOpen ? 600 : 500, color: isOrgsOpen ? '#1a73e8' : '#4a5568', textAlign: 'left' }}>
-                  Organizations
-                </span>
-                {counts.pending > 0 && (
-                  <span style={{ background: '#fef7e0', color: '#f29900', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 100, marginRight: 4 }}>
-                    {counts.pending}
-                  </span>
-                )}
-                <ChevronDown size={15} style={{ color: '#a0aec0', transform: isOrgsOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
-              </button>
-
-              {isOrgsOpen && (
-                <div style={{ marginLeft: 16, paddingLeft: 20, borderLeft: '2px solid #e2e8f0', marginRight: 8 }} className="animate-slide-down">
-                  {[
-                    { tab: 'pending', label: 'Pending Requests', icon: Clock,         badge: counts.pending },
-                    { tab: 'active',  label: 'Active Orgs',      icon: CheckCircle,   badge: 0 },
-                    { tab: 'all',     label: 'Global View',      icon: AlertCircle,   badge: 0 },
-                  ].map(({ tab, label, icon: Icon, badge }) => (
-                    <Link
-                      key={tab}
-                      href={`/super-admin?tab=${tab}`}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 8,
-                        padding: '8px 10px', borderRadius: 6, margin: '2px 0',
-                        fontSize: 13, fontWeight: isActive('/super-admin', tab) ? 600 : 400,
-                        color: isActive('/super-admin', tab) ? '#1a73e8' : '#718096',
-                        background: isActive('/super-admin', tab) ? '#e8f0fe' : 'none',
-                        textDecoration: 'none', transition: 'all 0.12s',
-                      }}
-                    >
-                      <Icon size={14} />
-                      <span style={{ flex: 1 }}>{label}</span>
-                      {badge > 0 && (
-                        <span style={{ background: '#fef7e0', color: '#f29900', fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 100 }}>
-                          {badge}
-                        </span>
-                      )}
-                    </Link>
-                  ))}
+              {/* Organizations (Super Admin only expansion) */}
+              {isSuperAdmin && !isCollapsed && (
+                <div>
+                   <button 
+                     onClick={() => setIsOrgsOpen(!isOrgsOpen)}
+                     className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-bold transition-all ${isOrgsOpen ? 'bg-indigo-50 text-indigo-700' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-900 group'}`}
+                   >
+                      <div className="flex items-center gap-3">
+                        <Building2 size={18} className={isOrgsOpen ? 'text-indigo-600' : 'text-gray-400 group-hover:text-indigo-600 transition-colors'} />
+                        <span>Organizations</span>
+                      </div>
+                      <ChevronDown size={16} className={`transition-transform duration-300 ${isOrgsOpen ? 'rotate-180 text-indigo-600' : 'text-gray-400 group-hover:text-indigo-600'}`} />
+                   </button>
+                   {isOrgsOpen && (
+                     <div className="mt-1.5 ml-6 space-y-1.5 border-l-2 border-indigo-100 pl-3 animate-slide-down">
+                       <Link href="/super-admin?tab=all" className={`flex items-center justify-between py-2 px-3 rounded-lg text-xs font-bold transition-colors ${currentTab === 'all' || (!currentTab && pathname === '/super-admin') ? 'text-indigo-700 bg-indigo-50/50' : 'text-gray-500 hover:text-indigo-600 hover:bg-gray-50'}`}>
+                         <span>All</span>
+                         <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[10px] select-none">{counts.all}</span>
+                       </Link>
+                       <Link href="/super-admin?tab=active" className={`flex items-center justify-between py-2 px-3 rounded-lg text-xs font-bold transition-colors ${currentTab === 'active' ? 'text-emerald-700 bg-emerald-50/50' : 'text-gray-500 hover:text-emerald-600 hover:bg-gray-50'}`}>
+                         <span>Active</span>
+                         <span className="bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded text-[10px] select-none">{counts.active}</span>
+                       </Link>
+                       <Link href="/super-admin?tab=pending" className={`flex items-center justify-between py-2 px-3 rounded-lg text-xs font-bold transition-colors ${currentTab === 'pending' ? 'text-amber-700 bg-amber-50/50' : 'text-gray-500 hover:text-amber-600 hover:bg-gray-50'}`}>
+                         <span>Pending</span>
+                         <span className="bg-amber-50 text-amber-600 px-2 py-0.5 rounded text-[10px] select-none">{counts.pending}</span>
+                       </Link>
+                     </div>
+                   )}
                 </div>
               )}
+              {isSuperAdmin && isCollapsed && (
+                 <Link href="/super-admin" title="Organizations" className={`flex items-center gap-3 rounded-xl text-sm font-bold transition-all duration-300 w-10 h-10 justify-center p-0 ${isActive('/super-admin') ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 scale-105' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-900 group'}`}>
+                   <Building2 size={20} className={isActive('/super-admin') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600 transition-colors'} />
+                 </Link>
+              )}
+
+              {/* Settings */}
+              <Link href="/settings" title={isCollapsed ? 'Settings' : ''} className={`flex items-center gap-3 rounded-xl text-sm font-bold transition-all duration-300 ${isCollapsed ? 'w-10 h-10 justify-center p-0' : 'px-4 py-3'} ${isActive('/settings') ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 scale-105' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-900 group'}`}>
+                <Settings size={isCollapsed ? 20 : 18} className={isActive('/settings') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600 transition-colors'} />
+                {!isCollapsed && <span>Settings</span>}
+              </Link>
             </div>
           </div>
         )}
+
+        {/* Global Action: Logout */}
+        <div className={`px-3 pt-4 ${isCollapsed ? 'flex flex-col items-center px-0' : ''}`}>
+          <button
+            onClick={logout}
+            title={isCollapsed ? "Sign Out" : ""}
+            className={`flex items-center gap-3.5 rounded-xl font-bold transition-all duration-300 bg-red-50/60 text-red-500 hover:bg-red-500 hover:text-white group ${isCollapsed ? 'w-10 h-10 justify-center p-0' : 'px-4 py-3.5 text-[14px] w-full'}`}
+          >
+            <LogOut size={isCollapsed ? 20 : 18} className="group-hover:rotate-12 transition-transform" />
+            {!isCollapsed && <span className="uppercase tracking-wider font-black">Sign Out</span>}
+          </button>
+        </div>
       </nav>
 
       {/* ── User Footer ── */}
-      <div style={{ padding: '12px 12px', borderTop: '1px solid #e2e8f0' }}>
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          padding: '10px 10px', borderRadius: 10,
-          background: roleMeta.bg, marginBottom: 8,
-        }}>
-          <div style={{
-            width: 34, height: 34, borderRadius: 9, flexShrink: 0,
-            background: roleMeta.color,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#fff', fontSize: 14, fontWeight: 700,
-          }}>
-            {user?.name?.charAt(0).toUpperCase()}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: 13, fontWeight: 700, color: '#1a202c', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {user?.name}
-            </p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
-              <RoleIcon size={10} style={{ color: roleMeta.color, flexShrink: 0 }} />
-              <p style={{ fontSize: 11, fontWeight: 600, color: roleMeta.color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                {roleMeta.label}
-              </p>
+      <div className="p-4 border-t border-gray-100 bg-gray-50/30">
+        {!isCollapsed ? (
+          <div className="flex items-center gap-3 p-2 bg-white rounded-2xl border border-gray-100 shadow-sm mb-3">
+            <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black text-sm shadow-inner overflow-hidden">
+               {user?.avatar ? <img src={user.avatar} alt="" className="w-full h-full object-cover" /> : user?.name?.charAt(0).toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+               <p className="text-xs font-black text-gray-900 truncate uppercase mt-0.5">{user?.name}</p>
+               <div className="flex items-center gap-1">
+                 <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+                 <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{roleMeta.label}</span>
+               </div>
             </div>
           </div>
-        </div>
-        <button
-          onClick={logout}
-          style={{
-            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            gap: 8, padding: '9px 12px',
-            background: '#fff', color: '#718096',
-            border: '1px solid #e2e8f0', borderRadius: 8,
-            fontSize: 13, fontWeight: 600, cursor: 'pointer',
-            transition: 'all 0.15s',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = '#fce8e6'; e.currentTarget.style.color = '#d93025'; e.currentTarget.style.borderColor = 'rgba(217,48,37,0.3)'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#718096'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
-        >
-          <LogOut size={15} />
-          Sign Out
-        </button>
+        ) : (
+          <div className="flex justify-center">
+            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black text-sm shadow-lg ring-2 ring-white">
+               {user?.name?.charAt(0).toUpperCase()}
+            </div>
+          </div>
+        )}
       </div>
+
+      <style jsx>{`
+        .sidebar { height: 100vh; overflow: hidden; display: flex; flexDirection: column; }
+      `}</style>
     </aside>
   );
 }

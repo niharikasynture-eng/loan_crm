@@ -15,6 +15,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = req.nextUrl;
     const leadId = searchParams.get('leadId');
     const type = searchParams.get('type');
+    const createdBy = searchParams.get('createdBy');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
 
@@ -39,6 +40,11 @@ export async function GET(req: NextRequest) {
     }
 
     if (type) query.type = type;
+    
+    // Admin/Manager can filter by salesperson
+    if (createdBy && auth.role !== ROLES.SALES_AGENT) {
+      query.createdBy = createdBy;
+    }
 
     const [activities, total] = await Promise.all([
       Activity.find(query)

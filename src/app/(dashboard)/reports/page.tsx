@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import {
   TrendingUp, Users, PhoneCall, CheckSquare,
   Target, Award, BarChart2, ArrowUpRight, ArrowDownRight,
+  Mail, Calendar
 } from 'lucide-react';
 
 interface ReportData {
@@ -25,22 +26,28 @@ interface ReportData {
 export default function ReportsPage() {
   const { user } = useAuth();
   const [data, setData]       = useState<ReportData | null>(null);
+  const [performance, setPerformance] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod]   = useState<'7d' | '30d' | '90d' | 'all'>('30d');
+
+  const isAdminOrManager = user?.role === 'org_admin' || user?.role === 'manager';
 
   useEffect(() => {
     async function load() {
       setLoading(true);
       try {
-        // Pull from existing dashboard endpoint + leads count
-        const dash = await api.get<any>('/dashboard');
+        const [dash, perf] = await Promise.all([
+          api.get<any>('/dashboard'),
+          isAdminOrManager ? api.get<any>('/reports/salespeople') : Promise.resolve({ performance: [] })
+        ]);
+        
         const m = dash.metrics;
         setData({
           leads: {
             total: m.totalLeads,
             new: m.newLeads,
-            contacted: 0,
-            qualified: 0,
+            contacted: m.contactedLeads || 0,
+            qualified: m.qualifiedLeads || 0,
             won: m.wonLeads,
             lost: m.lostLeads,
           },
@@ -65,6 +72,7 @@ export default function ReportsPage() {
           },
           conversionRate: m.conversionRate,
         });
+        setPerformance(perf.performance || []);
       } catch (err) {
         console.error(err);
       } finally {
@@ -72,161 +80,216 @@ export default function ReportsPage() {
       }
     }
     load();
-  }, [period]);
-
-  const PERIOD_LABELS = { '7d': 'Last 7 days', '30d': 'Last 30 days', '90d': 'Last 90 days', all: 'All time' };
+  }, [period, isAdminOrManager]);
 
   if (loading) return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 300 }}>
-      <div style={{ width: 32, height: 32, border: '3px solid #e2e8f0', borderTopColor: '#1a73e8', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    <div className="flex flex-col items-center justify-center h-[400px] gap-4">
+      <div className="w-10 h-10 border-4 border-gray-100 border-t-indigo-600 rounded-full animate-spin" />
+      <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Generating Reports...</p>
     </div>
   );
 
-  function StatCard({ label, value, sub, subUp, icon: Icon, iconBg, iconColor }: {
-    label: string; value: string | number; sub?: string; subUp?: boolean;
-    icon: any; iconBg: string; iconColor: string;
-  }) {
-    return (
-      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '20px 22px', transition: 'box-shadow 0.2s' }}
-        onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 4px 16px rgba(26,115,232,0.08)')}
-        onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-          <p style={{ fontSize: 12, fontWeight: 700, color: '#718096', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
-          <div style={{ width: 38, height: 38, borderRadius: 10, background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Icon size={18} style={{ color: iconColor }} />
-          </div>
-        </div>
-        <p style={{ fontSize: 30, fontWeight: 800, color: '#1a202c', lineHeight: 1 }}>{value}</p>
-        {sub && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 10 }}>
-            {subUp !== undefined && (subUp
-              ? <ArrowUpRight size={13} style={{ color: '#0f9d58' }} />
-              : <ArrowDownRight size={13} style={{ color: '#d93025' }} />)}
-            <span style={{ fontSize: 12, color: subUp === undefined ? '#a0aec0' : subUp ? '#0f9d58' : '#d93025', fontWeight: 500 }}>{sub}</span>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  function ProgressRow({ label, value, total, color }: { label: string; value: number; total: number; color: string }) {
-    const pct = total > 0 ? Math.round((value / total) * 100) : 0;
-    return (
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-          <span style={{ fontSize: 13, color: '#4a5568', fontWeight: 500 }}>{label}</span>
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#1a202c' }}>{value} <span style={{ color: '#a0aec0', fontWeight: 400 }}>({pct}%)</span></span>
-        </div>
-        <div style={{ height: 8, background: '#f0f4f9', borderRadius: 100, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 100, transition: 'width 0.6s ease' }} />
-        </div>
-      </div>
-    );
-  }
-
   const d = data!;
-  const convRate = d.conversionRate ?? (d.leads.total > 0 ? Math.round((d.leads.won / d.leads.total) * 100) : 0);
 
   return (
-    <div style={{ maxWidth: 1280 }}>
+    <div className="max-w-6xl mx-auto space-y-8 animate-fade-in">
       {/* Header + Period Filter */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#1a202c' }}>Reports & Analytics</h1>
-          <p style={{ fontSize: 13, color: '#718096', marginTop: 4 }}>Track performance and key sales metrics</p>
+          <h1 className="text-2xl font-black text-gray-900 tracking-tighter uppercase whitespace-nowrap">Intelligence Center</h1>
+          <p className="text-sm text-gray-500 font-medium">Performance analytics and team productivity tracking.</p>
         </div>
-        <div style={{ display: 'flex', gap: 6, background: '#f0f4f9', padding: 4, borderRadius: 8 }}>
+        
+        <div className="flex bg-white p-1 rounded-2xl shadow-sm border border-gray-100 self-start">
           {(['7d', '30d', '90d', 'all'] as const).map(p => (
-            <button key={p} onClick={() => setPeriod(p)} style={{
-              padding: '6px 14px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
-              background: period === p ? '#fff' : 'transparent',
-              color: period === p ? '#1a73e8' : '#718096',
-              boxShadow: period === p ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
-              transition: 'all 0.15s',
-            }}>
-              {PERIOD_LABELS[p]}
+            <button 
+              key={p} 
+              onClick={() => setPeriod(p)} 
+              className={`px-5 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${period === p ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              {p === 'all' ? 'All Time' : p}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Top KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
-        <StatCard label="Total Leads"     value={d.leads.total}     sub={`${d.leads.new} new`}           subUp={d.leads.new > 0} icon={Users}      iconBg="#e8f0fe" iconColor="#1a73e8" />
-        <StatCard label="Won Deals"       value={d.deals.won}        sub={`₹${d.deals.wonValue?.toLocaleString()}`} subUp={d.deals.won > 0} icon={Award} iconBg="#e6f4ea" iconColor="#0f9d58" />
-        <StatCard label="Activities"      value={d.activities.total} sub={`${d.activities.calls} calls`}  icon={PhoneCall}  iconBg="#e3f6fd" iconColor="#0277bd" />
-        <StatCard label="Conversion Rate" value={`${convRate}%`}     sub="Leads to Won"                   icon={Target}     iconBg="#fef7e0" iconColor="#f29900" />
+      {/* KPI Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+         <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex justify-between items-start mb-4">
+               <div>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Leads</p>
+                  <h3 className="text-3xl font-black text-gray-900 leading-none">{d.leads.total}</h3>
+               </div>
+               <div className="w-10 h-10 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
+                  <Users size={20} />
+               </div>
+            </div>
+            <p className="text-[10px] font-bold text-emerald-600 uppercase bg-emerald-50 px-2 py-1 rounded-md inline-block">+{d.leads.new} Recently</p>
+         </div>
+
+         <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex justify-between items-start mb-4">
+               <div>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Won Deals</p>
+                  <h3 className="text-3xl font-black text-gray-900 leading-none">{d.deals.won}</h3>
+               </div>
+               <div className="w-10 h-10 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600">
+                  <Award size={20} />
+               </div>
+            </div>
+            <p className="text-[10px] font-black text-gray-400 uppercase">₹{d.deals.wonValue?.toLocaleString()}</p>
+         </div>
+
+         <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex justify-between items-start mb-4">
+               <div>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Sales Velocity</p>
+                  <h3 className="text-3xl font-black text-gray-900 leading-none">{d.activities.total}</h3>
+               </div>
+               <div className="w-10 h-10 bg-sky-50 rounded-2xl flex items-center justify-center text-sky-600">
+                  <TrendingUp size={20} />
+               </div>
+            </div>
+            <p className="text-[10px] font-black text-gray-400 uppercase">{d.activities.calls} Calls Logged</p>
+         </div>
+
+         <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex justify-between items-start mb-4">
+               <div>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Success Rate</p>
+                  <h3 className="text-3xl font-black text-gray-900 leading-none">{d.conversionRate}%</h3>
+               </div>
+               <div className="w-10 h-10 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600">
+                  <Target size={20} />
+               </div>
+            </div>
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-tight">Leads to Deals Conv.</p>
+         </div>
       </div>
 
-      {/* Charts Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
-
-        {/* Lead Status Breakdown */}
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '22px 26px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-            <BarChart2 size={16} style={{ color: '#1a73e8' }} />
-            <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1a202c' }}>Lead Status Breakdown</h3>
-          </div>
-          <ProgressRow label="New"       value={d.leads.new}       total={d.leads.total} color="#1a73e8" />
-          <ProgressRow label="Contacted" value={d.leads.contacted} total={d.leads.total} color="#0277bd" />
-          <ProgressRow label="Qualified" value={d.leads.qualified} total={d.leads.total} color="#f29900" />
-          <ProgressRow label="Won"       value={d.leads.won}       total={d.leads.total} color="#0f9d58" />
-          <ProgressRow label="Lost"      value={d.leads.lost}      total={d.leads.total} color="#d93025" />
-        </div>
-
-        {/* Activity Breakdown */}
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '22px 26px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-            <PhoneCall size={16} style={{ color: '#0f9d58' }} />
-            <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1a202c' }}>Activity Breakdown</h3>
-          </div>
-          <ProgressRow label="Calls"    value={d.activities.calls}    total={d.activities.total} color="#1a73e8" />
-          <ProgressRow label="Meetings" value={d.activities.meetings} total={d.activities.total} color="#0f9d58" />
-          <ProgressRow label="Emails"   value={d.activities.emails}   total={d.activities.total} color="#f29900" />
-
-          <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid #f0f4f9' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-              <CheckSquare size={15} style={{ color: '#7c3aed' }} />
-              <p style={{ fontSize: 14, fontWeight: 700, color: '#1a202c' }}>Task Summary</p>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+      {/* Main Stats Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+           <div className="flex items-center gap-2 mb-8">
+              <BarChart2 size={16} className="text-indigo-600" />
+              <h2 className="text-[11px] font-black text-gray-900 uppercase tracking-widest">Lead Journey Breakdown</h2>
+           </div>
+           <div className="space-y-6">
               {[
-                { label: 'Completed', value: d.tasks.completed, color: '#0f9d58', bg: '#e6f4ea' },
-                { label: 'Pending',   value: d.tasks.pending,   color: '#f29900', bg: '#fef7e0' },
-                { label: 'Overdue',   value: d.tasks.overdue,   color: '#d93025', bg: '#fce8e6' },
-                { label: 'Total',     value: d.tasks.total,     color: '#1a73e8', bg: '#e8f0fe' },
-              ].map(({ label, value, color, bg }) => (
-                <div key={label} style={{ background: bg, borderRadius: 8, padding: '10px 14px', textAlign: 'center' }}>
-                  <p style={{ fontSize: 20, fontWeight: 800, color, margin: 0 }}>{value}</p>
-                  <p style={{ fontSize: 11, color, fontWeight: 600, marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
+                { label: 'New Inbound', value: d.leads.new, color: 'bg-indigo-500' },
+                { label: 'Actively Contacted', value: d.leads.contacted, color: 'bg-blue-500' },
+                { label: 'Sales Qualified', value: d.leads.qualified, color: 'bg-amber-500' },
+                { label: 'Closed Won', value: d.leads.won, color: 'bg-emerald-500' },
+                { label: 'Closed Lost', value: d.leads.lost, color: 'bg-red-500' },
+              ].map(item => (
+                <div key={item.label}>
+                  <div className="flex justify-between items-end mb-2">
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-tight">{item.label}</span>
+                    <span className="text-sm font-black text-gray-900">{item.value}</span>
+                  </div>
+                  <div className="h-2 w-full bg-gray-50 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full ${item.color} rounded-full transition-all duration-1000`} 
+                      style={{ width: `${d.leads.total > 0 ? (item.value / d.leads.total) * 100 : 0}%` }}
+                    />
+                  </div>
                 </div>
               ))}
-            </div>
+           </div>
+        </div>
+
+        <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+          <div className="flex items-center gap-2 mb-8">
+            <PhoneCall size={16} className="text-emerald-600" />
+            <h2 className="text-[11px] font-black text-gray-900 uppercase tracking-widest">Activity Distribution</h2>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+             {[
+               { label: 'Calls', value: d.activities.calls, icon: PhoneCall, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+               { label: 'Emails', value: d.activities.emails, icon: Mail, color: 'text-sky-600', bg: 'bg-sky-50' },
+               { label: 'Meetings', value: d.activities.meetings, icon: Calendar, color: 'text-purple-600', bg: 'bg-purple-50' },
+               { label: 'Notes', value: d.activities.total - d.activities.calls, icon: CheckSquare, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+             ].map(item => (
+               <div key={item.label} className={`${item.bg} p-5 rounded-2xl border border-white/50`}>
+                 <item.icon size={16} className={`${item.color} mb-3`} />
+                 <p className="text-2xl font-black text-gray-900 mb-1">{item.value}</p>
+                 <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{item.label}</p>
+               </div>
+             ))}
+          </div>
+          
+          <div className="mt-8 pt-8 border-t border-gray-50">
+             <div className="flex items-center justify-between mb-4">
+               <h3 className="text-[10px] font-black text-gray-900 uppercase">Workload Capacity</h3>
+               <span className="text-[10px] font-black text-emerald-600 uppercase tracking-tighter">{d.tasks.completed}/{d.tasks.total} Tasks</span>
+             </div>
+             <div className="h-4 w-full bg-gray-50 rounded-xl p-1">
+               <div 
+                 className="h-full bg-emerald-500 rounded-lg shadow-sm transition-all duration-1000"
+                 style={{ width: `${d.tasks.total > 0 ? (d.tasks.completed / d.tasks.total) * 100 : 0}%` }}
+               />
+             </div>
           </div>
         </div>
       </div>
 
-      {/* Pipeline summary */}
-      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '22px 26px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-          <TrendingUp size={16} style={{ color: '#0f9d58' }} />
-          <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1a202c' }}>Pipeline Overview</h3>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
-          {[
-            { label: 'Total Deals',  value: d.deals.total,                         color: '#1a73e8', bg: '#e8f0fe' },
-            { label: 'Won',          value: d.deals.won,                            color: '#0f9d58', bg: '#e6f4ea' },
-            { label: 'Total Value',  value: `₹${d.deals.totalValue?.toLocaleString() || 0}`, color: '#7c3aed', bg: '#f3f0ff' },
-            { label: 'Won Value',    value: `₹${d.deals.wonValue?.toLocaleString()  || 0}`,  color: '#f29900', bg: '#fef7e0' },
-          ].map(({ label, value, color, bg }) => (
-            <div key={label} style={{ background: bg, border: `1px solid ${color}22`, borderRadius: 10, padding: '16px 18px', textAlign: 'center' }}>
-              <p style={{ fontSize: 22, fontWeight: 800, color, margin: '0 0 4px' }}>{value}</p>
-              <p style={{ fontSize: 12, color, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>{label}</p>
+      {/* TEAM PERFORMANCE - ADMIN ONLY */}
+      {isAdminOrManager && performance.length > 0 && (
+        <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-2">
+               <Award size={16} className="text-amber-600" />
+               <h2 className="text-[11px] font-black text-gray-900 uppercase tracking-widest">Team Performance Analytics</h2>
             </div>
-          ))}
+          </div>
+          
+          <div className="overflow-x-auto -mx-8">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-50/50 border-y border-gray-50">
+                  <th className="px-8 py-4 text-left text-[9px] font-black text-gray-400 uppercase tracking-widest">Salesperson</th>
+                  <th className="px-6 py-4 text-center text-[9px] font-black text-gray-400 uppercase tracking-widest">Calls</th>
+                  <th className="px-6 py-4 text-center text-[9px] font-black text-gray-400 uppercase tracking-widest">Emails</th>
+                  <th className="px-6 py-4 text-center text-[9px] font-black text-gray-400 uppercase tracking-widest">WhatsApp</th>
+                  <th className="px-6 py-4 text-center text-[9px] font-black text-gray-400 uppercase tracking-widest">Meetings</th>
+                  <th className="px-6 py-4 text-center text-[9px] font-black text-gray-400 uppercase tracking-widest">Deals Won</th>
+                  <th className="px-8 py-4 text-right text-[9px] font-black text-gray-400 uppercase tracking-widest">Win Value</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {performance.map((p) => (
+                  <tr key={p.id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-8 py-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-700 text-xs font-black">
+                          {p.avatar ? <img src={p.avatar} className="w-full h-full object-cover rounded-xl" alt="" /> : p.name.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="text-xs font-black text-gray-900 uppercase tracking-tight leading-none mb-1">{p.name}</p>
+                          <p className="text-[9px] text-gray-400 font-medium lowercase tracking-tight">{p.email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5 text-center text-xs font-black text-gray-600">{p.stats.calls}</td>
+                    <td className="px-6 py-5 text-center text-xs font-black text-gray-600">{p.stats.emails}</td>
+                    <td className="px-6 py-5 text-center text-xs font-black text-gray-600">{p.stats.whatsapp}</td>
+                    <td className="px-6 py-5 text-center text-xs font-black text-gray-600">{p.stats.meetings}</td>
+                    <td className="px-6 py-5 text-center">
+                       <span className="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-lg text-xs font-black">
+                         {p.stats.wonDeals}
+                       </span>
+                    </td>
+                    <td className="px-8 py-5 text-right text-xs font-black text-gray-900">
+                      ₹{p.stats.wonValue?.toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
