@@ -36,6 +36,16 @@ export async function PATCH(
     await connectDB();
 
     const body = await req.json();
+    
+    // FETCH THE TASK FIRST TO CHECK PRIVILEGES
+    const currentTask = await Task.findOne({ _id: id, organizationId: auth.organizationId });
+    if (!currentTask) return apiError('Task not found', 404);
+
+    // RESTRICTION: Only the assigned user can mark a task as completed
+    if (body.status === 'completed' && currentTask.assignedTo?.toString() !== auth.userId) {
+      return apiError('Only the assigned sales person can mark this task as completed.', 403);
+    }
+
     const updates: Record<string, unknown> = {};
     const allowed = ['title', 'description', 'status', 'priority', 'dueDate', 'assignedTo', 'completedAt'];
     for (const key of allowed) {

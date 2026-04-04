@@ -6,7 +6,7 @@ import { Mail, Phone, Building, Briefcase, Calendar, CheckSquare, MessageSquare,
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import CallButton from '@/components/CallButton';
-import CallHistory from '@/components/CallHistory';
+import { useAuth } from '@/context/AuthContext';
 
 const TYPE_META: Record<string, { icon: React.ReactNode; color: string; bg: string; border: string; text: string; label: string }> = {
   call:     { icon: <Phone size={14} />,        color: '#6366f1', bg: 'bg-indigo-50', border: 'border-indigo-100', text: 'text-indigo-600', label: 'Call' },
@@ -25,6 +25,7 @@ interface Lead {
   status: string;
   source: string;
   createdAt: string;
+  lostReason?: string;
   assignedTo?: { _id: string; name: string; avatar?: string };
 }
 
@@ -40,6 +41,7 @@ interface Activity {
 export default function LeadDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const unwrappedParams = use(params);
   const leadId = unwrappedParams.id;
+  const { user } = useAuth();
   
   const [lead, setLead] = useState<Lead | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -50,6 +52,9 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
   
   // Form states
   const [noteText, setNoteText] = useState('');
+  const [noteDateOnly, setNoteDateOnly] = useState('');
+  const [noteTime, setNoteTime] = useState('');
+  const [notePriority, setNotePriority] = useState('medium');
   const [callData, setCallData] = useState({ duration: '', outcome: 'connected', notes: '', followUpDate: '' });
   const [meetingData, setMeetingData] = useState({ date: '', time: '', notes: '', link: '' });
   const [taskData, setTaskData] = useState({ title: '', dueDate: '', priority: 'medium' });
@@ -125,6 +130,9 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
     loadData();
     // Reset forms
     setNoteText('');
+    setNoteDateOnly('');
+    setNoteTime('');
+    setNotePriority('medium');
     setCallData({ duration: '', outcome: 'connected', notes: '', followUpDate: '' });
     setMeetingData({ date: '', time: '', notes: '', link: '' });
     setTaskData({ title: '', dueDate: '', priority: 'medium' });
@@ -139,6 +147,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
         ...data
       });
       handleLogged();
+      alert(`${type.charAt(0).toUpperCase() + type.slice(1)} logged successfully!`);
     } catch (err) {
       alert('Failed to log activity');
     } finally {
@@ -294,6 +303,12 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                   <option value="won">WON / CLOSED</option>
                   <option value="lost">LOST / ARCHIVED</option>
                 </select>
+                {lead.status === 'lost' && (
+                  <div className="mt-4 p-4 bg-red-50/50 border border-red-100 rounded-xl animate-fade-in shadow-inner">
+                    <label className="block text-[9px] font-black text-red-500 uppercase tracking-widest mb-1">Archived Status Reason</label>
+                    <p className="text-xs font-bold text-red-800 italic leading-relaxed">&ldquo;{lead.lostReason || 'N/A'}&rdquo;</p>
+                  </div>
+                )}
               </div>
 
               {/* Source Selector */}
@@ -318,13 +333,17 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                 <select 
                   value={lead.assignedTo?._id || ''}
                   onChange={(e) => updateLeadField('assignedTo', e.target.value)}
-                  className="w-full bg-gray-50 border-none rounded-xl px-4 py-2.5 text-xs font-bold text-gray-700 outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all cursor-pointer"
+                  disabled={user?.role !== 'manager'}
+                  className={`w-full bg-gray-50 border-none rounded-xl px-4 py-2.5 text-xs font-bold text-gray-700 outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all cursor-pointer ${user?.role !== 'manager' ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   <option value="">Unassigned</option>
                   {users.map(u => (
                     <option key={u._id} value={u._id}>{u.name.toUpperCase()}</option>
                   ))}
                 </select>
+                {user?.role !== 'manager' && (
+                   <p className="text-[9px] text-orange-400 font-bold mt-1 uppercase tracking-tight italic">Only Managers can assign leads</p>
+                )}
               </div>
             </div>
           </div>
@@ -401,16 +420,28 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                 </button>
               </div>
 
-              {/* 4. Meeting — Full Width */}
-              <button 
-                onClick={() => setActiveModal('meeting')}
-                className="w-full flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-purple-100 bg-white shadow-sm hover:shadow-md hover:shadow-purple-100 hover:-translate-y-1 transition-all group"
-              >
-                <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-500 group-hover:scale-110 transition-transform">
-                  <Calendar className="w-5 h-5" />
-                </div>
-                <span className="text-[11px] font-bold uppercase tracking-tight text-purple-600">Schedule Meeting</span>
-              </button>
+              {/* 4. Meeting & Add Note */}
+              <div className="grid grid-cols-2 gap-3">
+                <button 
+                  onClick={() => setActiveModal('meeting')}
+                  className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-purple-100 bg-white shadow-sm hover:shadow-md hover:shadow-purple-100 hover:-translate-y-1 transition-all group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-500 group-hover:scale-110 transition-transform">
+                    <Calendar className="w-5 h-5" />
+                  </div>
+                  <span className="text-[11px] font-bold uppercase tracking-tight text-purple-600">Schedule Meeting</span>
+                </button>
+
+                <button 
+                  onClick={() => setActiveModal('note')}
+                  className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-amber-100 bg-white shadow-sm hover:shadow-md hover:shadow-amber-100 hover:-translate-y-1 transition-all group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <span className="text-[11px] font-bold uppercase tracking-tight text-amber-600">Add Note</span>
+                </button>
+              </div>
 
               {/* 5. New Task + Call Reminder (Joined) */}
               <div className="grid grid-cols-2 gap-3">
@@ -484,11 +515,16 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                     <div className="space-y-6">
                       {dateActivities.map((act: any) => {
                         const meta = (TYPE_META as any)[act.type] ?? (TYPE_META as any)['note'];
+                        const isManual = act.type === 'call' && act.notes?.toLowerCase().includes('manual call');
+                        const isPromo = act.type === 'call' && act.notes?.toLowerCase().includes('promo call');
+                        const displayType = isManual ? 'manual call' : isPromo ? 'promo call' : act.type;
+
                         return (
                           <div key={act._id} className="relative flex gap-4 group">
                             {/* Spine Icon - Slimmer */}
                             <div className={`relative flex items-center justify-center w-8 h-8 rounded-full border-2 border-white shadow-md z-20 shrink-0 transition-all group-hover:scale-110 
-                              ${act.type === 'call' ? 'bg-indigo-500 text-white' : 
+                              ${act.type === 'call' && isPromo ? 'bg-pink-500 text-white' : 
+                                act.type === 'call' ? 'bg-indigo-500 text-white' : 
                                 act.type === 'meeting' ? 'bg-purple-500 text-white' : 
                                 act.type === 'whatsapp' ? 'bg-emerald-500 text-white' : 
                                 act.type === 'email' ? 'bg-sky-500 text-white' : 
@@ -504,8 +540,8 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                             <div className="flex-1 bg-white p-4 rounded-2xl border border-gray-100 transition-all hover:shadow-md relative overflow-hidden group/card shadow-sm">
                               <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center gap-2 pt-1">
-                                  <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${meta.bg} ${meta.text} ring-1 ring-inset ${meta.border.replace('border-', 'ring-')}`}>
-                                    {act.type}
+                                  <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${isPromo ? 'bg-pink-50 text-pink-600 ring-pink-100' : isManual ? 'bg-indigo-50 text-indigo-600 ring-indigo-100' : meta.bg + ' ' + meta.text} ring-1 ring-inset ${!isPromo && !isManual ? meta.border.replace('border-', 'ring-') : ''}`}>
+                                    {displayType}
                                   </span>
                                   <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400">
                                     <Clock className="w-3.5 h-3.5 opacity-50" />
@@ -556,7 +592,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
             )}
 
             <div className="mt-auto pt-8">
-              <CallHistory leadId={lead._id} />
+              {/* CallHistory has been merged into Activity Timeline */}
             </div>
           </div>
         </div>
@@ -586,14 +622,83 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
             <div className="p-6">
               {activeModal === 'note' && (
                 <div className="space-y-4">
-                  <textarea 
-                    className="input-field min-h-[120px]" 
-                    placeholder="Enter your notes here..."
-                    value={noteText}
-                    onChange={(e) => setNoteText(e.target.value)}
-                  />
+                  <div>
+                    <label className="block text-xs font-medium text-[#64748b] uppercase mb-1.5 tracking-wider">Note Description</label>
+                    <textarea 
+                      className="input-field min-h-[120px]" 
+                      placeholder="Enter your notes here..."
+                      value={noteText}
+                      onChange={(e) => setNoteText(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-[#64748b] uppercase mb-1.5 tracking-wider">Due Date</label>
+                      <input 
+                        type="date" 
+                        className="input-field"
+                        value={noteDateOnly}
+                        onChange={(e) => setNoteDateOnly(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-[#64748b] uppercase mb-1.5 tracking-wider">Priority</label>
+                      <select 
+                        className="input-field"
+                        value={notePriority}
+                        onChange={(e) => setNotePriority(e.target.value)}
+                      >
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-[#64748b] uppercase mb-1.5 tracking-wider">Reminder Time</label>
+                    <input 
+                      type="time" 
+                      className="input-field"
+                      value={noteTime}
+                      onChange={(e) => setNoteTime(e.target.value)}
+                    />
+                  </div>
+
                   <button 
-                    onClick={() => logActivity('note', { notes: noteText })}
+                    onClick={async () => {
+                      if (noteDateOnly) {
+                        setSubmitting(true);
+                        try {
+                          // Combine date and time
+                          const scheduledAt = noteTime 
+                            ? new Date(`${noteDateOnly}T${noteTime}`)
+                            : new Date(noteDateOnly);
+
+                          await api.post('/tasks', {
+                            leadId,
+                            title: `Note Reminder: ${noteText.substring(0, 30)}${noteText.length > 30 ? '...' : ''}`,
+                            dueDate: scheduledAt,
+                            priority: notePriority
+                          });
+                          await api.post('/activities', {
+                            leadId,
+                            type: 'note',
+                            notes: noteText,
+                            scheduledAt: scheduledAt,
+                            priority: notePriority
+                          });
+                          handleLogged();
+                        } catch (err) {
+                           alert('Failed to save note reminder');
+                        } finally {
+                           setSubmitting(false);
+                        }
+                      } else {
+                        logActivity('note', { notes: noteText });
+                      }
+                    }}
                     disabled={submitting || !noteText}
                     className="btn-primary w-full"
                   >

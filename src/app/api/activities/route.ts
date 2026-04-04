@@ -16,10 +16,12 @@ export async function GET(req: NextRequest) {
     const leadId = searchParams.get('leadId');
     const type = searchParams.get('type');
     const createdBy = searchParams.get('createdBy');
+    const isScheduled = searchParams.get('isScheduled') === 'true';
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
 
     const query: Record<string, unknown> = { organizationId: auth.organizationId };
+    if (isScheduled) query.scheduledAt = { $exists: true, $ne: null };
     
     // Sales agent: only see activities for leads they own
     if (auth.role === ROLES.SALES_AGENT) {
@@ -73,7 +75,7 @@ export async function POST(req: NextRequest) {
     if (auth.role === ROLES.SUPER_ADMIN) return apiError('Access denied', 403);
 
     const body = await req.json();
-    const { leadId, type, outcome, duration, notes, link, scheduledAt, completedAt } = body;
+    const { leadId, type, outcome, duration, notes, link, scheduledAt, completedAt, priority } = body;
 
     if (!leadId || !type) return apiError('leadId and type are required');
 
@@ -94,6 +96,7 @@ export async function POST(req: NextRequest) {
       link,
       scheduledAt,
       completedAt,
+      priority,
       createdBy: auth.userId,
     });
 

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api-client';
-import { CheckCircle2, Circle, AlertCircle, Plus } from 'lucide-react';
+import { CheckCircle2, Circle, AlertCircle, Plus, Lock } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 interface Task {
   _id: string;
@@ -11,13 +12,14 @@ interface Task {
   priority: string;
   link?: string;
   dueDate: string;
-  assignedTo: { name: string; avatar?: string };
+  assignedTo: { _id: string; name: string; avatar?: string };
   leadId?: { name: string; _id: string };
 }
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   async function loadTasks() {
     setLoading(true);
@@ -86,10 +88,19 @@ export default function TasksPage() {
             return (
               <div key={task._id} className={`p-4 flex items-center gap-4 transition-colors hover:bg-[rgba(30,41,59,0.5)] ${isCompleted ? 'opacity-60' : ''}`}>
                 <button
-                  onClick={() => toggleComplete(task._id, task.status)}
-                  className="mt-1 flex-shrink-0 text-[#64748b] hover:text-indigo-400 transition-colors"
+                  onClick={() => {
+                    if (task.assignedTo._id !== user?.id) return;
+                    toggleComplete(task._id, task.status);
+                  }}
+                  disabled={task.assignedTo._id !== user?.id}
+                  className={`mt-1 flex-shrink-0 transition-colors ${task.assignedTo._id === user?.id ? 'text-[#64748b] hover:text-indigo-400' : 'text-[#334155] cursor-not-allowed'}`}
+                  title={task.assignedTo._id !== user?.id ? 'Only the assigned user can complete this' : ''}
                 >
-                  {isCompleted ? <CheckCircle2 className="w-6 h-6 text-emerald-500" /> : <Circle className="w-6 h-6" />}
+                  {isCompleted ? (
+                    <CheckCircle2 className={`w-6 h-6 ${task.assignedTo._id === user?.id ? 'text-emerald-500' : 'text-emerald-900'}`} />
+                  ) : (
+                    task.assignedTo._id === user?.id ? <Circle className="w-6 h-6" /> : <Lock className="w-4 h-4" />
+                  )}
                 </button>
 
                 <div className="flex-1 min-w-0">

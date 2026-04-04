@@ -48,11 +48,21 @@ export async function PATCH(
 
     const body = await req.json();
 
-    // Sales agent can now update basic contact info for their leads
-    const saleAgentAllowed = ['name', 'phone', 'email', 'company', 'status', 'pipelineStage', 'notes', 'lastContactedAt', 'customFields', 'tags'];
-    const allAllowed = ['name', 'phone', 'email', 'company', 'source', 'status', 'pipelineStage', 'assignedTo', 'value', 'notes', 'tags', 'lastContactedAt', 'customFields'];
+    // Field restrictions based on role
+    // NOTE: only 'manager' can assign leads as per new requirement
+    const saleAgentAllowed = ['name', 'phone', 'email', 'company', 'status', 'pipelineStage', 'notes', 'lastContactedAt', 'customFields', 'tags', 'lostReason'];
+    const managerAllowed = ['name', 'phone', 'email', 'company', 'source', 'status', 'pipelineStage', 'assignedTo', 'value', 'notes', 'tags', 'lastContactedAt', 'customFields', 'lostReason'];
+    const adminAllowed = ['name', 'phone', 'email', 'company', 'source', 'status', 'pipelineStage', 'value', 'notes', 'tags', 'lastContactedAt', 'customFields', 'lostReason', 'notes'];
 
-    const allowedFields = auth.role === ROLES.SALES_AGENT ? saleAgentAllowed : allAllowed;
+    let allowedFields: string[];
+    if (auth.role === ROLES.MANAGER) {
+      allowedFields = managerAllowed;
+    } else if (auth.role === ROLES.SALES_AGENT) {
+      allowedFields = saleAgentAllowed;
+    } else {
+      // org_admin (cannot assign leads)
+      allowedFields = adminAllowed;
+    }
 
     const updates: Record<string, unknown> = {};
     for (const key of allowedFields) {

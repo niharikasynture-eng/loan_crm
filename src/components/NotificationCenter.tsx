@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Bell, Clock, CheckCircle2, MessageSquare, UserPlus, Zap } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
+import { api } from '@/lib/api-client';
 import Link from 'next/link';
 
 interface Notification {
@@ -30,13 +31,9 @@ export default function NotificationCenter() {
   const loadNotifications = useCallback(async (isInitial = false) => {
     if (!token) return;
     try {
-      const res = await fetch('/api/notifications?limit=10', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      const newNotifs: Notification[] = data.data.notifications || [];
-      const newCount: number = data.data.unreadCount || 0;
+      const data = await api.get<{ notifications: Notification[], unreadCount: number }>('/notifications?limit=10');
+      const newNotifs = data.notifications || [];
+      const newCount = data.unreadCount || 0;
 
       // Trigger Toast for new notifications
       if (!isInitial && newCount > prevUnreadCount.current) {
@@ -55,7 +52,11 @@ export default function NotificationCenter() {
       setUnreadCount(newCount);
       prevUnreadCount.current = newCount;
     } catch (err) {
-      console.error('Failed to load notifications:', err);
+      if (api.isNetworkError(err)) {
+        console.warn('Notification sync skipped: Network unreachable');
+      } else {
+        console.error('Failed to load notifications:', err);
+      }
     }
   }, [token, showToast]);
 
@@ -80,14 +81,7 @@ export default function NotificationCenter() {
     if (!token || unreadCount === 0) return;
     try {
       setLoading(true);
-      await fetch('/api/notifications', {
-        method: 'PATCH',
-        headers: { 
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}` 
-        },
-        body: JSON.stringify({ markAllRead: true })
-      });
+      await api.patch('/notifications', { markAllRead: true });
       setUnreadCount(0);
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     } catch (err) {
@@ -100,14 +94,7 @@ export default function NotificationCenter() {
   const markAsRead = async (id: string) => {
     if (!token) return;
     try {
-      await fetch('/api/notifications', {
-        method: 'PATCH',
-        headers: { 
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}` 
-        },
-        body: JSON.stringify({ notificationId: id })
-      });
+      await api.patch('/notifications', { notificationId: id });
       setNotifications(prev => prev.map(n => n._id === id ? { ...n, read: true } : n));
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (err) {}

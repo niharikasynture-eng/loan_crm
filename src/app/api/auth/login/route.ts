@@ -49,40 +49,42 @@ export async function POST(req: NextRequest) {
     user.lastLogin = new Date();
     await user.save();
 
-    const org = user.role === 'super_admin'
-      ? await Organization.findById(user.organizationId)
-      : await Organization.findById(user.organizationId);
+    // Fetch organization if it exists
+    const org = user.organizationId ? await Organization.findById(user.organizationId) : null;
 
-    const token = signToken({
-      userId: user._id.toString(),
-      organizationId: user.organizationId.toString(),
+    const tokenPayload = {
+      userId: user._id?.toString() || '',
+      organizationId: user.organizationId?.toString() || '',
       role: user.role,
       email: user.email,
-    });
+    };
+
+    const token = signToken(tokenPayload);
 
     return apiSuccess({
       token,
       user: {
-        id: user._id.toString(),
+        id: tokenPayload.userId,
         name: user.name,
         email: user.email,
         role: user.role,
-        organizationId: user.organizationId.toString(),
+        organizationId: tokenPayload.organizationId,
         avatar: user.avatar,
         phone: user.phone,
       },
       organization: org
         ? {
-            id: org._id,
+            id: org._id?.toString(),
             name: org.name,
             slug: org.slug,
             status: org.status,
             leadFormToken: org.leadFormToken,
           }
-        : { id: user.organizationId, name: 'Platform', slug: 'platform', status: 'active' },
+        : { id: tokenPayload.organizationId, name: 'Platform', slug: 'platform', status: 'active' },
     });
   } catch (err: unknown) {
-    const logData = `ERROR: ${err instanceof Error ? err.message : String(err)}\nTIME: ${new Date().toISOString()}\n`;
+    console.error('[LOGIN_ERROR]', err); // Critical for debugging in terminal
+    const logData = `ERROR: ${err instanceof Error ? err.stack || err.message : String(err)}\nTIME: ${new Date().toISOString()}\n-------------------\n`;
     try { fs.appendFileSync('error_log.txt', logData); } catch {}
     return apiError('Login failed', 500);
   }

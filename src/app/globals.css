@@ -135,6 +135,26 @@ html, body {
 .animate-shake      { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
 .animate-spin       { animation: spin 0.7s linear infinite; }
 
+@keyframes toastIn {
+  0% { opacity: 0; transform: translateY(32px) scale(0.9); }
+  60% { opacity: 1; transform: translateY(-4px) scale(1.02); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes toastProgress {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+.animate-toast-in {
+  animation: toastIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes toastProgress10 {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+.animate-toast-progress-10 {
+  animation: toastProgress10 10s linear forwards;
+}
+
 /* ============================================================
    CARDS
    ============================================================ */

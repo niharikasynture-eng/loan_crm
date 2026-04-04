@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api-client';
-import { Plus, GripVertical, DollarSign } from 'lucide-react';
+import { Plus, GripVertical, IndianRupee } from 'lucide-react';
 
 interface Lead {
   _id: string;
@@ -27,6 +27,9 @@ const STAGES = [
 export default function LeadPipelinePage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lostLeadId, setLostLeadId] = useState<string | null>(null);
+  const [lostReason, setLostReason] = useState('');
+  const [submittingLost, setSubmittingLost] = useState(false);
 
   async function loadLeads() {
     try {
@@ -43,16 +46,19 @@ export default function LeadPipelinePage() {
     loadLeads();
   }, []);
 
-  async function updateLeadStage(leadId: string, newStage: string) {
+  async function updateLeadStage(leadId: string, newStage: string, reason?: string) {
     // Optimistic update
     const optimisticLeads = leads.map(l => l._id === leadId ? { ...l, status: newStage, pipelineStage: newStage } : l);
     setLeads(optimisticLeads);
     
     try {
-      await api.patch(`/leads/${leadId}`, { 
+      const payload: any = { 
         status: newStage,
         pipelineStage: newStage 
-      });
+      };
+      if (reason) payload.lostReason = reason;
+
+      await api.patch(`/leads/${leadId}`, payload);
     } catch {
       loadLeads(); // revert on fail
     }
@@ -70,9 +76,23 @@ export default function LeadPipelinePage() {
     e.preventDefault();
     const leadId = e.dataTransfer.getData('leadId');
     if (leadId) {
-      updateLeadStage(leadId, stageId);
+      if (stageId === 'lost') {
+        setLostLeadId(leadId);
+        setLostReason('');
+      } else {
+        updateLeadStage(leadId, stageId);
+      }
     }
   }
+
+  const submitLostReason = async () => {
+    if (!lostLeadId || !lostReason.trim()) return;
+    setSubmittingLost(true);
+    await updateLeadStage(lostLeadId, 'lost', lostReason);
+    setLostLeadId(null);
+    setLostReason('');
+    setSubmittingLost(false);
+  };
 
   if (loading) return <div className="p-8 text-[#94a3b8]">Loading pipeline...</div>;
 
@@ -107,7 +127,7 @@ export default function LeadPipelinePage() {
                   {stage.label} 
                   <span className="text-xs ml-1 text-[#94a3b8] py-0.5 px-2 bg-[#0f172a] rounded-full">{stageLeads.length}</span>
                 </h3>
-                <p className="text-xs text-[#10b981] font-mono">${stageValue.toLocaleString()}</p>
+                <p className="text-xs text-[#10b981] font-mono">₹{stageValue.toLocaleString()}</p>
               </div>
               
               <div className="p-2 flex-1 overflow-y-auto min-h-[300px] space-y-3">
@@ -126,7 +146,7 @@ export default function LeadPipelinePage() {
                     </div>
                     
                     <div className="flex items-center gap-1.5 text-emerald-400 font-bold text-sm mb-3">
-                      <DollarSign className="w-3.5 h-3.5" />
+                      <IndianRupee className="w-3.5 h-3.5" />
                       {(lead.value || 0).toLocaleString()}
                     </div>
                     
@@ -151,6 +171,40 @@ export default function LeadPipelinePage() {
           );
         })}
       </div>
+
+      {/* Lost Reason Modal */}
+      {lostLeadId && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-[#1e293b] border border-[#334155] rounded-3xl p-8 w-full max-w-md shadow-2xl">
+            <h2 className="text-xl font-bold text-white mb-2">Lead Lost</h2>
+            <p className="text-sm text-[#94a3b8] mb-6">Please provide a reason for losing this lead. This helps us improve our sales strategy.</p>
+            
+            <textarea
+              autoFocus
+              className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-4 text-white text-sm focus:ring-2 focus:ring-red-500/20 outline-none transition-all mb-6 min-h-[120px] resize-none"
+              placeholder="Example: Pricing too high, Competitor chosen, etc."
+              value={lostReason}
+              onChange={(e) => setLostReason(e.target.value)}
+            />
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => setLostLeadId(null)}
+                className="flex-1 px-6 py-3 rounded-xl border border-[#334155] text-white text-sm font-bold hover:bg-[#334155] transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitLostReason}
+                disabled={!lostReason.trim() || submittingLost}
+                className="flex-1 px-6 py-3 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 transition-all disabled:opacity-50 shadow-lg shadow-red-900/20"
+              >
+                {submittingLost ? 'Saving...' : 'Confirm Lost'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

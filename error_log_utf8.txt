@@ -1,0 +1,12 @@
+﻿src/app/api/calls/initiate/[leadId]/route.ts(34,7): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Object literal may only specify known properties, and 'orgId' does not exist in type '{ _id?: ObjectIdQueryTypeCasting | undefined; leadId?: ObjectIdQueryTypeCasting | undefined; organizationId?: ObjectIdQueryTypeCasting | undefined; ... 66 more ...; validateSync?: { ...; } | undefined; }'.
+src/app/api/calls/initiate/[leadId]/route.ts(41,26): error TS2339: Property '_id' does not exist on type 'never'.
+src/app/api/calls/promo/[leadId]/route.ts(61,7): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Object literal may only specify known properties, and 'orgId' does not exist in type '{ _id?: ObjectIdQueryTypeCasting | undefined; leadId?: ObjectIdQueryTypeCasting | undefined; organizationId?: ObjectIdQueryTypeCasting | undefined; ... 66 more ...; validateSync?: { ...; } | undefined; }'.
+src/app/api/calls/promo/[leadId]/route.ts(68,63): error TS2339: Property '_id' does not exist on type 'never'.
+src/app/api/calls/webhook/route.ts(39,15): error TS2339: Property 'recordingUrl' does not exist on type 'Document<unknown, {}, ICallLog, {}, DefaultSchemaOptions> & ICallLog & Required<{ _id: ObjectId; }> & { ...; } & { ...; }'.
+src/app/api/calls/webhook/route.ts(52,31): error TS2339: Property 'orgId' does not exist on type 'Document<unknown, {}, ICallLog, {}, DefaultSchemaOptions> & ICallLog & Required<{ _id: ObjectId; }> & { ...; } & { ...; }'.
+src/app/api/calls/webhook/route.ts(69,33): error TS2339: Property 'orgId' does not exist on type 'Document<unknown, {}, ICallLog, {}, DefaultSchemaOptions> & ICallLog & Required<{ _id: ObjectId; }> & { ...; } & { ...; }'.
+src/components/CallButton.tsx(58,29): error TS2554: Expected 2 arguments, but got 1.

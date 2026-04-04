@@ -24,44 +24,70 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const showToast = (message: string, type: ToastType = 'info', title?: string) => {
     const id = Math.random().toString(36).substring(2, 9);
     setToasts((prev) => [...prev, { id, message, type, title }]);
+    
+    // Reminders stay for 10 seconds as requested
+    const duration = type === 'reminder' ? 10000 : 5000;
+    
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 5000);
+    }, duration);
   };
 
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-3 max-w-md w-full">
+      <div className="fixed top-10 right-10 z-[9999] flex flex-col gap-3 max-w-sm w-full pointer-events-none">
         {toasts.map((toast) => (
           <div 
             key={toast.id}
             className={`
-              flex items-start gap-4 p-4 rounded-2xl shadow-2xl border backdrop-blur-md animate-slide-up
-              ${toast.type === 'reminder' ? 'bg-indigo-600/90 border-indigo-400 text-white' : ''}
-              ${toast.type === 'success' ? 'bg-emerald-600/90 border-emerald-400 text-white' : ''}
-              ${toast.type === 'error' ? 'bg-rose-600/90 border-rose-400 text-white' : ''}
-              ${toast.type === 'info' ? 'bg-slate-800/90 border-slate-600 text-white' : ''}
+              relative flex items-center gap-4 p-3 pr-4 rounded-xl shadow-xl border-2 animate-toast-in pointer-events-auto overflow-hidden
+              ${toast.type === 'reminder' || toast.type === 'warning' ? 'bg-[#fffbeb] border-[#fef3c7] text-[#92400e]' : ''}
+              ${toast.type === 'success' ? 'bg-[#f0fdf4] border-[#dcfce7] text-[#166534]' : ''}
+              ${toast.type === 'error' ? 'bg-[#fef2f2] border-[#fee2e2] text-[#991b1b]' : ''}
+              ${toast.type === 'info' ? 'bg-[#eff6ff] border-[#dbeafe] text-[#1e40af]' : ''}
             `}
           >
-            <div className="p-2 rounded-xl bg-white/20">
-              {toast.type === 'reminder' && <Bell className="w-5 h-5" />}
-              {toast.type === 'success' && <CheckCircle2 className="w-5 h-5" />}
-              {toast.type === 'error' && <AlertCircle className="w-5 h-5" />}
-              {toast.type === 'info' && <Info className="w-5 h-5" />}
+            {/* Boxed Icon Wrapper */}
+            <div className={`
+              flex items-center justify-center w-11 h-11 rounded-lg shrink-0 shadow-sm
+              ${toast.type === 'reminder' || toast.type === 'warning' ? 'bg-[#f59e0b] text-white' : ''}
+              ${toast.type === 'success' ? 'bg-[#22c55e] text-white' : ''}
+              ${toast.type === 'error' ? 'bg-[#ef4444] text-white' : ''}
+              ${toast.type === 'info' ? 'bg-[#3b82f6] text-white' : ''}
+            `}>
+              {toast.type === 'reminder' && <Bell className="w-6 h-6 animate-bounce" />}
+              {toast.type === 'warning' && <AlertCircle className="w-6 h-6" />}
+              {toast.type === 'success' && <CheckCircle2 className="w-6 h-6" />}
+              {toast.type === 'error' && <AlertCircle className="w-6 h-6" />}
+              {toast.type === 'info' && <Info className="w-6 h-6" />}
             </div>
-            
-            <div className="flex-1 pt-0.5">
-              {toast.title && <h4 className="font-black text-sm uppercase tracking-tighter mb-1">{toast.title}</h4>}
-              <p className="text-sm font-medium leading-relaxed opacity-90">{toast.message}</p>
+
+            <div className="flex-1 min-w-0">
+              {toast.title && (
+                <h4 className="text-[10px] font-black uppercase tracking-widest opacity-50 mb-0.5">
+                  {toast.title}
+                </h4>
+              )}
+              <p className="text-sm font-bold leading-tight">{toast.message}</p>
             </div>
+
+            {/* Vertical Separator */}
+            <div className="w-px h-8 bg-black/10 mx-2" />
 
             <button 
               onClick={() => setToasts((prev) => prev.filter((t) => t.id !== toast.id))}
-              className="p-1 hover:bg-black/20 rounded-lg transition-colors shrink-0"
+              className="p-1.5 hover:bg-black/5 rounded-lg transition-colors shrink-0"
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4 opacity-40 hover:opacity-100" />
             </button>
+
+            {/* Progress bar for reminders only (subtle line at the bottom) */}
+            {toast.type === 'reminder' && (
+              <div className="absolute bottom-0 left-0 h-1 bg-[#f59e0b]/30 w-full">
+                <div className="h-full bg-[#f59e0b] animate-toast-progress-10" />
+              </div>
+            )}
           </div>
         ))}
       </div>

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api-client';
-import { ChevronLeft, User, Phone, Mail, Building2, Tag, DollarSign, FileText, UserCheck, Loader2, CheckCircle } from 'lucide-react';
+import { ChevronLeft, User, Phone, Mail, Building2, Tag, IndianRupee, FileText, UserCheck, Loader2, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 
 interface OrgUser { _id: string; name: string; role: string; }
@@ -119,7 +119,7 @@ export default function NewLeadPage() {
               <input type="text" placeholder="Company name" value={form.company} onChange={e => set('company', e.target.value)} className={inputClass} />
             </div>
             <div>
-              <label className={labelClass}><DollarSign size={11} className="inline mr-1" />Deal Value (₹)</label>
+              <label className={labelClass}><IndianRupee size={11} className="inline mr-1" />Deal Value (₹)</label>
               <input type="number" placeholder="0" min="0" value={form.value} onChange={e => set('value', e.target.value)} className={inputClass} />
             </div>
           </div>

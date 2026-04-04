@@ -22,6 +22,7 @@ export interface ILead extends Document {
   lastCalledAt?: Date;
   lastCallOutcome?: string;
   totalCalls: number;
+  lostReason?: string;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -58,6 +59,7 @@ const LeadSchema = new Schema<ILead>(
     lastCalledAt: { type: Date, default: null },
     lastCallOutcome: { type: String, default: null },
     totalCalls: { type: Number, default: 0 },
+    lostReason: { type: String, default: null },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
   },
   { timestamps: true }
