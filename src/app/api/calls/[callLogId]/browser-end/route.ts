@@ -42,7 +42,8 @@ export async function POST(
       // Delete the placeholder initiated log and exit silently.
       await CallLog.findByIdAndDelete(callLogId);
       return apiSuccess({
-        duration: 0,
+        duration: hardwareVerifiedSync.duration || 0,
+        trustLabel: '✅ Auto-Synced by Device',
         syncStatus: 'already_verified'
       }, 'Call already verified via hardware sync. Cleanup successful.');
     }
