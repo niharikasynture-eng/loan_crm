@@ -39,42 +39,48 @@ export default function CallLogsPage() {
     loadLogs();
   }, []);
 
-  const filteredLogs = logs.filter(log => 
-    log.leadId?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    log.salesPersonId?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    log.leadId?.phone.includes(searchTerm)
-  );
+  const filteredLogs = logs.filter(log => {
+    if (!searchTerm) return true;
+    const search = searchTerm.toLowerCase();
+    
+    // Safely check lead name/phone and agent name
+    const leadName = log.leadId?.name?.toLowerCase() || '';
+    const leadPhone = log.leadId?.phone || '';
+    const agentName = log.salesPersonId?.name?.toLowerCase() || '';
+    
+    return leadName.includes(search) || 
+           leadPhone.includes(search) || 
+           agentName.includes(search);
+  });
 
   // ── FINAL DEDUPLICATION (Safety Net) ──
-  // Group identical calls and favor the "Verified" record.
   const uniqueLogs = Array.from(
     filteredLogs.reduce((acc, log) => {
-      // Create a unique key for grouping. 
-      // Fallback to the log's own ID if lead/salesperson data is missing/unpopulated.
-      const leadId = log.leadId?._id || (log.leadId as any)?.id || 'unknown-lead';
-      const agentId = log.salesPersonId?._id || (log.salesPersonId as any)?.id || 'unknown-agent';
+      // Robust key generation
+      const leadId = log.leadId?._id || (log.leadId as any)?.id || 'no-lead';
+      const agentId = log.salesPersonId?._id || (log.salesPersonId as any)?.id || 'no-agent';
       
       const timeDate = new Date(log.startedAt);
-      const timeKey = isNaN(timeDate.getTime()) ? 'unknown-time' : timeDate.setSeconds(0, 0);
+      const timeKey = isNaN(timeDate.getTime()) ? 'no-time' : timeDate.setSeconds(0, 0);
       
-      // If we have enough data to identify a duplicate, use a composite key.
-      // Otherwise, just use the log's own unique ID so it's always shown.
-      const groupKey = (leadId !== 'unknown-lead' && agentId !== 'unknown-agent' && timeKey !== 'unknown-time')
+      // Composite key for grouping true duplicates
+      const groupKey = (leadId !== 'no-lead' && agentId !== 'no-agent' && timeKey !== 'no-time')
         ? `${leadId}-${agentId}-${timeKey}`
-        : log._id;
+        : log._id || Math.random().toString();
       
       const existing = acc.get(groupKey);
       
-      // Merging Rule: 
-      // 1. If it's a new group, add it.
-      // 2. If we find a "Verified" record (syncId !== 'MANUAL'), 
-      //    it should replace any "MANUAL" placeholder in that group.
+      // Favor hardware-verified logs
       if (!existing || (existing.syncId === 'MANUAL' && log.syncId !== 'MANUAL')) {
         acc.set(groupKey, log);
       }
       return acc;
     }, new Map<string, CallLog>()).values()
-  ).sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
+  ).sort((a, b) => {
+    const timeA = new Date(a.startedAt).getTime() || 0;
+    const timeB = new Date(b.startedAt).getTime() || 0;
+    return timeB - timeA;
+  });
 
   const formatDuration = (s: number) => {
     if (s === 0) return '0s';
