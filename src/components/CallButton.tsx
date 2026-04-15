@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { Phone, Check } from 'lucide-react';
 import { api } from '@/lib/api-client';
-import { Phone, PhoneCall, PhoneForwarded, PhoneOff, Check, X } from 'lucide-react';
 
 interface CallButtonProps {
   lead: {
@@ -12,159 +12,61 @@ interface CallButtonProps {
   };
 }
 
-type Phase = 'idle' | 'calling';
-
 export default function CallButton({ lead }: CallButtonProps) {
-  const [phase, setPhase] = useState<Phase>('idle');
-  const [callLogId, setCallLogId] = useState<string | null>(null);
-  const [timer, setTimer] = useState(0);
-  const [isConnected, setIsConnected] = useState(false);
-  const [connectedTimer, setConnectedTimer] = useState(0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showToast, setShowToast] = useState(false);
+  const [isDialing, setIsDialing] = useState(false);
 
-
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (phase === 'calling') {
-      interval = setInterval(() => {
-        setTimer((t) => t + 1);
-        if (isConnected) setConnectedTimer((c) => c + 1);
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [phase, isConnected]);
-
-
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-    const s = (seconds % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
+  const handleClickCall = () => {
+    setIsDialing(true);
+    
+    // Clean phone number for the dialer
+    const cleanPhone = lead.phone.replace(/[^\d+]/g, '');
+    
+    // Notify server of call start for predictive matching (fix for Samsung phones)
+    api.post('/activities/call-start', { leadId: lead._id })
+      .catch(err => console.error('Call capture error:', err));
+    
+    // Direct navigation is more reliable for mobile dialers than window.open
+    window.location.href = `tel:${cleanPhone}`;
+    
+    // Reset the button state after a few seconds to provide feedback
+    setTimeout(() => {
+      setIsDialing(false);
+    }, 4000);
   };
 
-  const startCall = async () => {
-    setIsSubmitting(true);
-    try {
-      const res = await api.post<{ callLogId: string, phone: string, leadName: string }>(`/calls/start/${lead._id}`, {});
-      setCallLogId(res.callLogId);
-      window.open(`tel:${lead.phone}`, '_self');
-      setPhase('calling');
-      setTimer(0);
-      setIsConnected(false);
-      setConnectedTimer(0);
-    } catch (err: any) {
-      alert(err.message || 'Failed to start call');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const endCall = async () => {
-    setIsSubmitting(true);
-    if (callLogId) {
-      try {
-        await api.post(`/calls/${callLogId}/save`, {
-          duration: timer,
-          connectedDuration: connectedTimer
-        });
+  return (
+    <div className="w-full relative">
+      <button
+        onClick={handleClickCall}
+        className={`w-full flex items-center justify-center gap-3 p-5 rounded-[24px] transition-all text-white font-black shadow-lg group overflow-hidden relative ${
+          isDialing 
+            ? 'bg-emerald-600 shadow-emerald-200' 
+            : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200'
+        }`}
+      >
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
         
-        setShowToast(true);
-        setTimeout(() => setShowToast(false), 2000);
-        window.location.reload();
-      } catch (err) {
-        console.error('Auto-save failed:', err);
-      }
-    }
-    resetState();
-  };
-
-  const redial = () => {
-    window.open(`tel:${lead.phone}`, '_self');
-  };
-
-  const resetState = () => {
-    setPhase('idle');
-    setCallLogId(null);
-    setTimer(0);
-    setIsConnected(false);
-    setConnectedTimer(0);
-  };
-
-  if (phase === 'idle') {
-    return (
-      <div className="w-full relative">
-        <button
-          onClick={startCall}
-          disabled={isSubmitting}
-          className="w-full flex items-center justify-center gap-2 p-4 rounded-2xl bg-green-50 hover:bg-green-100 border border-green-200 transition-all text-green-700 font-bold shadow-sm group"
-        >
-          <div className="w-8 h-8 rounded-full bg-green-200 flex items-center justify-center text-green-700 group-hover:scale-110 transition-transform">
-            <Phone className="w-4 h-4 fill-green-700" />
-          </div>
-          Call {lead.name}
-        </button>
-        <p className="text-center text-xs font-semibold text-gray-400 mt-2 tracking-wide">{lead.phone}</p>
-        
-        {showToast && (
-          <div className="absolute top-0 left-0 right-0 -mt-12 bg-green-500 text-white text-xs font-bold px-4 py-2 rounded-lg text-center shadow-lg animate-fade-in flex items-center justify-center gap-2">
-            <Check className="w-4 h-4" /> Call logged successfully
-          </div>
+        {isDialing ? (
+          <>
+            <Check className="w-5 h-5 fill-white animate-bounce-in" />
+            <span className="uppercase tracking-tighter text-lg">DIALING...</span>
+          </>
+        ) : (
+          <>
+            <Phone className="w-5 h-5 fill-white" />
+            <span className="uppercase tracking-tighter text-lg">Call Lead Now</span>
+          </>
         )}
-      </div>
-    );
-  }
-
-  if (phase === 'calling') {
-    return (
-      <div className="w-full rounded-2xl border-2 border-green-500 bg-white p-5 animate-fade-in shadow-lg shadow-green-100">
-        <div className="flex items-center justify-center gap-2 mb-4">
-          <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
-          <span className="text-sm font-black text-green-600 uppercase tracking-widest">Call in progress</span>
+      </button>
+      <p className="text-center text-[10px] font-black text-gray-400 mt-3 uppercase tracking-widest">
+        {isDialing ? `Dialing ${lead.phone}...` : lead.phone}
+      </p>
+      
+      {isDialing && (
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-[11px] font-black px-6 py-3 rounded-2xl shadow-2xl animate-bounce-in flex items-center gap-3 z-50 uppercase tracking-widest">
+          <Phone className="w-4 h-4 animate-pulse" /> Mobile Dialer Initiated
         </div>
-        
-        <div className="bg-gray-50 rounded-xl p-4 text-center mb-4">
-          <p className="text-lg font-bold text-gray-900">{lead.name}</p>
-          <p className="text-sm font-medium text-gray-500">{lead.phone}</p>
-          <p className="text-3xl font-black text-gray-900 mt-3 font-mono">{formatTime(timer)}</p>
-        </div>
-        
-        <p className="text-xs text-center text-gray-500 mb-4 font-medium px-4">
-          Your dialer has opened. Click End Call when you are done.
-        </p>
-        
-        <div className="grid grid-cols-3 gap-3">
-          <button
-            onClick={redial}
-            className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold transition-colors text-xs"
-          >
-            <PhoneForwarded className="w-4 h-4" />
-            Redial
-          </button>
-          {!isConnected ? (
-            <button
-              onClick={() => setIsConnected(true)}
-              className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-700 font-bold transition-colors text-xs"
-            >
-              <PhoneCall className="w-4 h-4" />
-              Connected
-            </button>
-          ) : (
-            <div className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-600 font-bold text-xs pointer-events-none">
-              <span className="animate-pulse">Live:</span>
-              <span className="font-mono">{formatTime(connectedTimer)}</span>
-            </div>
-          )}
-          <button
-            onClick={endCall}
-            className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold transition-colors shadow-sm text-xs"
-          >
-            <PhoneOff className="w-4 h-4" />
-            End Call
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return null;
+      )}
+    </div>
+  );
 }

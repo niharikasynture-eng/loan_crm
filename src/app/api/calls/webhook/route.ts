@@ -1,4 +1,4 @@
-﻿// @ts-nocheck
+// @ts-nocheck
 
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
 
     // Create automatic Activity Feed entry
     await Activity.create({
-      organizationId: callLog.orgId,
+      organizationId: callLog.organizationId,
       leadId: callLog.leadId,
       type: 'call',
       outcome: callLog.status,
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
       tomorrowAtTen.setHours(10, 0, 0, 0);
 
       await Task.create({
-        organizationId: callLog.orgId,
+        organizationId: callLog.organizationId,
         leadId: callLog.leadId,
         title: `Follow-up call - ${lead?.name || 'Lead'}`,
         dueDate: tomorrowAtTen,

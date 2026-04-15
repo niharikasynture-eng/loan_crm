@@ -19,8 +19,8 @@ export async function GET(
     if (auth.role === ROLES.SUPER_ADMIN) return apiError('Access denied', 403);
 
     const query: Record<string, unknown> = { _id: id, organizationId: auth.organizationId };
-    // Sales agent can only view their assigned leads
-    if (auth.role === ROLES.SALES_AGENT) query.assignedTo = auth.userId;
+    // Sales agent and Onsite Visitor can only view their assigned leads
+    if (auth.role === ROLES.SALES_AGENT || auth.role === ROLES.ONSITE_VISITOR) query.assignedTo = auth.userId;
 
     const lead = await Lead.findOne(query)
       .populate('assignedTo', 'name email avatar')
@@ -49,16 +49,23 @@ export async function PATCH(
     const body = await req.json();
 
     // Field restrictions based on role
-    // NOTE: only 'manager' can assign leads as per new requirement
-    const saleAgentAllowed = ['name', 'phone', 'email', 'company', 'status', 'pipelineStage', 'notes', 'lastContactedAt', 'customFields', 'tags', 'lostReason'];
-    const managerAllowed = ['name', 'phone', 'email', 'company', 'source', 'status', 'pipelineStage', 'assignedTo', 'value', 'notes', 'tags', 'lastContactedAt', 'customFields', 'lostReason'];
-    const adminAllowed = ['name', 'phone', 'email', 'company', 'source', 'status', 'pipelineStage', 'value', 'notes', 'tags', 'lastContactedAt', 'customFields', 'lostReason', 'notes'];
+    const newFields = [
+      'secondaryPhone', 'address', 'flatNo', 'landmark', 'area', 'pincode', 'income', 'occupation', 'education',
+      'dateOfVisit', 'timeOfVisit', 'mapLink', 'hasMedeclaim', 'sumAssured', 'insuranceCompany', 'healthStatus',
+      'familyAges', 'tseName', 'tlName', 'visitDate'
+    ];
+
+    const saleAgentAllowed = ['name', 'phone', 'email', 'company', 'status', 'pipelineStage', 'notes', 'lastContactedAt', 'customFields', 'tags', 'lostReason', ...newFields];
+    const managerAllowed = ['name', 'phone', 'email', 'company', 'source', 'status', 'pipelineStage', 'assignedTo', 'value', 'notes', 'tags', 'lastContactedAt', 'customFields', 'lostReason', ...newFields];
+    const adminAllowed = ['name', 'phone', 'email', 'company', 'source', 'status', 'pipelineStage', 'value', 'notes', 'tags', 'lastContactedAt', 'customFields', 'lostReason', 'notes', ...newFields];
 
     let allowedFields: string[];
     if (auth.role === ROLES.MANAGER) {
       allowedFields = managerAllowed;
     } else if (auth.role === ROLES.SALES_AGENT) {
       allowedFields = saleAgentAllowed;
+    } else if (auth.role === ROLES.ONSITE_VISITOR) {
+      allowedFields = ['isReadByVisitor'];
     } else {
       // org_admin (cannot assign leads)
       allowedFields = adminAllowed;
@@ -69,9 +76,9 @@ export async function PATCH(
       if (body[key] !== undefined) updates[key] = body[key];
     }
 
-    // Sales agent can only update their own leads
+    // Restricted roles can only update their own leads
     const query: Record<string, unknown> = { _id: id, organizationId: auth.organizationId };
-    if (auth.role === ROLES.SALES_AGENT) query.assignedTo = auth.userId;
+    if (auth.role === ROLES.SALES_AGENT || auth.role === ROLES.ONSITE_VISITOR) query.assignedTo = auth.userId;
 
     const previousLead = await Lead.findOne(query).lean();
     if (!previousLead) return apiError('Lead not found', 404);
@@ -82,6 +89,22 @@ export async function PATCH(
       .lean();
 
     if (!lead) return apiError('Lead not found', 404);
+    
+    // Handle Mark as Read by Onsite Visitor
+    if (body.isReadByVisitor === true && !(previousLead as any).isReadByVisitor) {
+      const visitor = await User.findById(auth.userId).select('managerId name').lean();
+      if (visitor && visitor.managerId) {
+        await Lead.findByIdAndUpdate(id, { readAt: new Date() });
+        await Notification.create({
+          userId: visitor.managerId,
+          organizationId: auth.organizationId,
+          type: 'lead_assigned', 
+          title: 'Lead Receipt Acknowledged',
+          message: `${visitor.name} marked Lead "${(lead as any).name}" as read.`,
+          link: `/leads/${id}`,
+        });
+      }
+    }
 
     // Audit status change
     if (body.status && body.status !== (previousLead as {status: string}).status) {

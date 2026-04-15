@@ -20,11 +20,11 @@ interface Task {
 }
 
 const TYPE_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
-  email:    { bg: 'bg-indigo-50/50',  text: 'text-indigo-600',  dot: 'bg-indigo-500' },
-  call:     { bg: 'bg-emerald-50/50', text: 'text-emerald-600', dot: 'bg-emerald-500' },
-  whatsapp: { bg: 'bg-green-50/50',   text: 'text-green-600',   dot: 'bg-green-500' },
-  note:     { bg: 'bg-orange-50/50',  text: 'text-orange-600',  dot: 'bg-orange-500' },
-  meeting:  { bg: 'bg-purple-50/50',  text: 'text-purple-600',  dot: 'bg-purple-500' },
+  email: { bg: 'bg-indigo-50/50', text: 'text-indigo-600', dot: 'bg-indigo-500' },
+  call: { bg: 'bg-emerald-50/50', text: 'text-emerald-600', dot: 'bg-emerald-500' },
+  whatsapp: { bg: 'bg-green-50/50', text: 'text-green-600', dot: 'bg-green-500' },
+  note: { bg: 'bg-orange-50/50', text: 'text-orange-600', dot: 'bg-orange-500' },
+  meeting: { bg: 'bg-purple-50/50', text: 'text-purple-600', dot: 'bg-purple-500' },
 };
 
 export default function DashboardPage() {
@@ -65,10 +65,10 @@ export default function DashboardPage() {
   );
 
   const metricCards = [
-    { label: 'Total Leads',   value: metrics?.totalLeads,    sub: `${metrics?.newLeads ?? 0} new this period`,        subColor: 'text-blue-500', icon: Users,       iconBg: 'bg-blue-50/50',   iconColor: 'text-blue-600' },
-    { label: 'Won Deals',     value: metrics?.wonDeals,       sub: `₹${(metrics?.wonDealValue ?? 0).toLocaleString()} total value`, subColor: 'text-emerald-500', icon: TrendingUp,  iconBg: 'bg-emerald-50/50', iconColor: 'text-emerald-600' },
-    { label: 'Calls (30d)',   value: metrics?.callsThisMonth, sub: `${metrics?.totalActivities ?? 0} total activities`, subColor: 'text-gray-400',   icon: PhoneCall,   iconBg: 'bg-sky-50/50',    iconColor: 'text-sky-600' },
-    { label: 'Pending Tasks', value: metrics?.pendingTasks,   sub: 'Requires your attention',                           subColor: 'text-orange-500', icon: CheckSquare, iconBg: 'bg-orange-50/50', iconColor: 'text-orange-600' },
+    { label: 'Total Leads', value: metrics?.totalLeads, sub: `${metrics?.newLeads ?? 0} new this period`, subColor: 'text-blue-500', icon: Users, iconBg: 'bg-blue-50/50', iconColor: 'text-blue-600' },
+    { label: 'Won Deals', value: metrics?.wonDeals, sub: `₹${(metrics?.wonDealValue ?? 0).toLocaleString()} total value`, subColor: 'text-emerald-500', icon: TrendingUp, iconBg: 'bg-emerald-50/50', iconColor: 'text-emerald-600' },
+    { label: 'Calls (30d)', value: metrics?.callsThisMonth, sub: `${metrics?.totalActivities ?? 0} total activities`, subColor: 'text-gray-400', icon: PhoneCall, iconBg: 'bg-sky-50/50', iconColor: 'text-sky-600' },
+    { label: 'Pending Tasks', value: metrics?.pendingTasks, sub: 'Requires your attention', subColor: 'text-orange-500', icon: CheckSquare, iconBg: 'bg-orange-50/50', iconColor: 'text-orange-600' },
   ];
 
   return (
@@ -77,10 +77,10 @@ export default function DashboardPage() {
       {/* ── Dashboard Header ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-           <h1 className="text-xl font-bold text-gray-900 tracking-tight">Dashboard Overview</h1>
-           <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mt-1">
-             {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-           </p>
+          <h1 className="text-xl font-bold text-gray-900 tracking-tight">Dashboard Overview</h1>
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mt-1">
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          </p>
         </div>
       </div>
 
@@ -178,3 +178,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+

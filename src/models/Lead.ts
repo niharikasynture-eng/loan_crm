@@ -23,6 +23,42 @@ export interface ILead extends Document {
   lastCallOutcome?: string;
   totalCalls: number;
   lostReason?: string;
+  secondaryPhone?: string;
+  address?: string;
+  flatNo?: string;
+  landmark?: string;
+  area?: string;
+  pincode?: string;
+  income?: string;
+  occupation?: string;
+  education?: string;
+  dateOfVisit?: string;
+  timeOfVisit?: string;
+  mapLink?: string;
+  hasMedeclaim?: boolean;
+  sumAssured?: string;
+  insuranceCompany?: string;
+  healthStatus?: {
+    fit: boolean;
+    bp: boolean;
+    sugar: boolean;
+    heart: boolean;
+    kidney: boolean;
+    liver: boolean;
+  };
+  familyAges?: {
+    husband?: number;
+    wife?: number;
+    child1?: number;
+    child2?: number;
+    mother?: number;
+    father?: number;
+  };
+  tseName?: string;
+  tlName?: string;
+  visitDate?: string;
+  isReadByVisitor: boolean;
+  readAt?: Date;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -60,6 +96,42 @@ const LeadSchema = new Schema<ILead>(
     lastCallOutcome: { type: String, default: null },
     totalCalls: { type: Number, default: 0 },
     lostReason: { type: String, default: null },
+    secondaryPhone: { type: String, trim: true },
+    address: { type: String, trim: true },
+    flatNo: { type: String, trim: true },
+    landmark: { type: String, trim: true },
+    area: { type: String, trim: true },
+    pincode: { type: String, trim: true },
+    income: { type: String, trim: true },
+    occupation: { type: String, trim: true },
+    education: { type: String, trim: true },
+    dateOfVisit: { type: String },
+    timeOfVisit: { type: String },
+    mapLink: { type: String, trim: true },
+    hasMedeclaim: { type: Boolean, default: false },
+    sumAssured: { type: String, trim: true },
+    insuranceCompany: { type: String, trim: true },
+    healthStatus: {
+      fit: { type: Boolean, default: false },
+      bp: { type: Boolean, default: false },
+      sugar: { type: Boolean, default: false },
+      heart: { type: Boolean, default: false },
+      kidney: { type: Boolean, default: false },
+      liver: { type: Boolean, default: false },
+    },
+    familyAges: {
+      husband: { type: Number },
+      wife: { type: Number },
+      child1: { type: Number },
+      child2: { type: Number },
+      mother: { type: Number },
+      father: { type: Number },
+    },
+    tseName: { type: String, trim: true },
+    tlName: { type: String, trim: true },
+    visitDate: { type: String },
+    isReadByVisitor: { type: Boolean, default: false },
+    readAt: { type: Date },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
   },
   { timestamps: true }

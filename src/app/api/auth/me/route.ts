@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
         organizationId: (user as { organizationId: unknown }).organizationId,
         avatar: (user as { avatar?: string }).avatar,
         phone: (user as { phone?: string }).phone,
+        callSyncToken: (user as { callSyncToken?: string }).callSyncToken,
       },
       organization: org
         ? {

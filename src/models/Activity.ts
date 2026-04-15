@@ -17,6 +17,8 @@ export interface IActivity extends Document {
   priority?: 'low' | 'medium' | 'high';
   scheduledAt?: Date;
   completedAt?: Date;
+  syncId?: string;
+  callLogId?: mongoose.Types.ObjectId;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -54,6 +56,8 @@ const ActivitySchema = new Schema<IActivity>(
     },
     scheduledAt: { type: Date },
     completedAt: { type: Date },
+    syncId: { type: String, index: true },
+    callLogId: { type: Schema.Types.ObjectId, ref: 'CallLog' },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
   },
   { timestamps: true }

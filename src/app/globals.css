@@ -421,9 +421,15 @@ tbody tr:last-child { border-bottom: none; }
   z-index: 30;
 }
 
-/* Page body padding */
+/* Page body padding — overridden by Tailwind responsive classes on individual pages */
 .page-body {
-  padding: 28px;
+  padding: 16px;
+}
+@media (min-width: 640px) {
+  .page-body { padding: 24px; }
+}
+@media (min-width: 1024px) {
+  .page-body { padding: 32px; }
 }
 
 /* ============================================================
@@ -451,4 +457,43 @@ tbody tr:last-child { border-bottom: none; }
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
   transition: all 0.3s ease;
+}
+
+/* ============================================================
+   MOBILE RESPONSIVE UTILITIES
+   ============================================================ */
+
+/* Touch target minimum size for buttons on mobile */
+@media (max-width: 640px) {
+  button, a {
+    min-height: 36px;
+  }
+
+  /* Ensure modals don't overflow on small screens */
+  .fixed.inset-0 > div {
+    max-height: 95dvh;
+    overflow-y: auto;
+  }
+
+  /* Table cells smaller on mobile */
+  tbody td { padding: 10px 12px; font-size: 13px; }
+  thead th { padding: 10px 12px; }
+
+  /* Kanban horizontal scroll on mobile */
+  .kanban-column { min-width: 240px; }
+
+  /* Metric cards stack on mobile */
+  .metric-card { padding: 14px 16px; }
+}
+
+/* Ensure horizontal scroll for tables on all mobile widths */
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent text overflow issues on mobile */
+.truncate-mobile {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

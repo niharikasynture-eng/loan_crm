@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api-client';
 import { useAuth } from '@/context/AuthContext';
-import { Plus, Search, UserCheck, Upload, Download, X, CheckCircle, AlertCircle, FileSpreadsheet } from 'lucide-react';
+import { Plus, Search, UserCheck, Upload, Download, X, CheckCircle, AlertCircle, FileSpreadsheet, Filter, Phone, Trash2, Calendar, Bell, ChevronDown } from 'lucide-react';
+import CallButton from '@/components/CallButton';
 
 interface Lead {
   _id: string; name: string; email: string; phone: string; company: string;
@@ -26,19 +27,26 @@ export default function LeadsPage() {
   const [assignModal, setAssignModal] = useState<Lead | null>(null);
   const [assignTo, setAssignTo] = useState('');
   const [assigning, setAssigning] = useState(false);
+  const [deleteModal, setDeleteModal] = useState<Lead | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
-  const isManager   = user?.role === 'manager';
-  const isOrgAdmin   = user?.role === 'org_admin';
+  // Bulk Assignment state
+  const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
+  const [bulkAssignModal, setBulkAssignModal] = useState(false);
+
+  const isManager = user?.role === 'manager';
+  const isOrgAdmin = user?.role === 'org_admin';
   const isSalesAgent = user?.role === 'sales_agent';
-  const canAddLead   = isOrgAdmin || isManager;
-  const canAssign    = isOrgAdmin || isManager;
+  const canAddLead = isOrgAdmin || isManager;
+  const canAssign = isOrgAdmin || isManager;
   const canImportExport = isOrgAdmin || isManager;
 
   // Import/Export state
   const [importModal, setImportModal] = useState(false);
-  const [importing, setImporting]     = useState(false);
+  const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ success: number; failed: number; errors: string[] } | null>(null);
-  const [dragOver, setDragOver]       = useState(false);
+  const [bulkSelectCount, setBulkSelectCount] = useState<number>(0);
+  const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadLeads = useCallback(async () => {
@@ -54,7 +62,7 @@ export default function LeadsPage() {
 
   useEffect(() => {
     if (canAssign) {
-      api.get<{ users: OrgUser[] }>('/users?role=sales_agent').then((d) => setOrgUsers(d.users)).catch(console.error);
+      api.get<{ users: OrgUser[] }>('/users?role=sales_agent,onsite_visitor').then((d) => setOrgUsers(d.users)).catch(console.error);
     }
   }, [canAssign]);
 
@@ -66,19 +74,19 @@ export default function LeadsPage() {
       const data = await api.get<{ leads: Lead[] }>('/leads?page=1&limit=9999');
       const XLSX = await import('xlsx');
       const rows = data.leads.map(l => ({
-        'Name':        l.name,
-        'Email':       l.email || '',
-        'Phone':       l.phone || '',
-        'Company':     l.company || '',
-        'Status':      l.status,
-        'Source':      l.source,
+        'Name': l.name,
+        'Email': l.email || '',
+        'Phone': l.phone || '',
+        'Company': l.company || '',
+        'Status': l.status,
+        'Source': l.source,
         'Assigned To': l.assignedTo?.name || 'Unassigned',
-        'Created':     new Date(l.createdAt).toLocaleDateString(),
+        'Created': new Date(l.createdAt).toLocaleDateString(),
       }));
       const ws = XLSX.utils.json_to_sheet(rows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Leads');
-      XLSX.writeFile(wb, `leads_export_${new Date().toISOString().slice(0,10)}.xlsx`);
+      XLSX.writeFile(wb, `leads_export_${new Date().toISOString().slice(0, 10)}.xlsx`);
     } catch (err) { console.error('Export failed:', err); alert('Export failed. Please try again.'); }
   }
 
@@ -89,29 +97,81 @@ export default function LeadsPage() {
     try {
       const XLSX = await import('xlsx');
       const buffer = await file.arrayBuffer();
-      const wb     = XLSX.read(buffer, { type: 'array' });
-      const ws     = wb.Sheets[wb.SheetNames[0]];
+      const wb = XLSX.read(buffer, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
       const rows: any[] = XLSX.utils.sheet_to_json(ws);
+
+      const HEADER_MAP: Record<string, string> = {
+        'name': 'name', 'full name': 'name', 'client name': 'name', 'customer name': 'name',
+        'phone': 'phone', 'phone number': 'phone', 'contact': 'phone', 'mobile': 'phone', 'mobile number': 'phone',
+        'email': 'email', 'email address': 'email',
+        'company': 'company', 'organization': 'company', 'company name': 'company',
+        'source': 'source', 'lead source': 'source',
+        'secondary phone': 'secondaryPhone', 'alternate phone': 'secondaryPhone',
+        'address': 'address', 'location': 'address',
+        'flat no': 'flatNo', 'flat number': 'flatNo', 'apartment': 'flatNo',
+        'landmark': 'landmark',
+        'area': 'area', 'locality': 'area',
+        'pincode': 'pincode', 'postal code': 'pincode', 'zip code': 'pincode',
+        'income': 'income', 'annual income': 'income',
+        'occupation': 'occupation', 'job': 'occupation', 'profession': 'occupation',
+        'education': 'education',
+        'date of visit': 'dateOfVisit', 'visit date': 'dateOfVisit',
+        'time of visit': 'timeOfVisit', 'visit time': 'timeOfVisit',
+        'map link': 'mapLink', 'google maps': 'mapLink', 'location link': 'mapLink',
+        'tse name': 'tseName',
+        'tl name': 'tlName',
+      };
 
       let success = 0; const errors: string[] = [];
       for (const row of rows) {
-        const name  = row['Name']  || row['name']  || row['Full Name'] || '';
-        const email = row['Email'] || row['email'] || '';
-        const phone = row['Phone'] || row['phone'] || '';
-        if (!name) { errors.push(`Row skipped: missing Name`); continue; }
+        const leadData: any = { customFields: {} };
+        const usedKeys = new Set<string>();
+
+        // 1. Extract and Map fields
+        Object.keys(row).forEach(key => {
+          const lowerKey = key.toLowerCase().trim();
+          const mappedField = HEADER_MAP[lowerKey];
+
+          if (mappedField) {
+            leadData[mappedField] = row[key]?.toString().trim();
+            usedKeys.add(key);
+          }
+        });
+
+        // 2. Put everything else in customFields
+        Object.keys(row).forEach(key => {
+          if (!usedKeys.has(key)) {
+            leadData.customFields[key] = row[key];
+          }
+        });
+
+        // 3. Validate main fields
+        if (!leadData.name && !leadData.phone) {
+          errors.push(`Row skipped: Missing Name and Phone`);
+          continue;
+        }
+        if (!leadData.name) {
+          errors.push(`Row skipped: Phone ${leadData.phone} has no Name`);
+          continue;
+        }
+        if (!leadData.phone) {
+          errors.push(`Row skipped: ${leadData.name} has no Phone Number`);
+          continue;
+        }
+
         try {
           await api.post('/leads', {
-            name: name.toString().trim(),
-            email: email.toString().trim(),
-            phone: phone.toString().trim(),
-            company: (row['Company'] || row['company'] || '').toString().trim(),
-            source:  (row['Source']  || row['source']  || 'Import').toString().trim(),
+            ...leadData,
+            source: leadData.source || 'Import',
             status: 'new',
           });
           success++;
-        } catch (e: any) { errors.push(`"${name}": ${e.message}`); }
+        } catch (e: any) {
+          errors.push(`"${leadData.name || 'Unknown'}": ${e.message}`);
+        }
       }
-      setImportResult({ success, failed: errors.length, errors: errors.slice(0, 5) });
+      setImportResult({ success, failed: errors.length, errors: errors.slice(0, 10) });
       if (success > 0) loadLeads();
     } catch (err) {
       setImportResult({ success: 0, failed: 1, errors: ['Could not parse file. Please use the template format.'] });
@@ -134,6 +194,65 @@ export default function LeadsPage() {
     finally { setAssigning(false); }
   }
 
+  const toggleLead = (id: string, isSelectable: boolean = true) => {
+    if (!isSelectable) return;
+    const next = new Set(selectedLeads);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedLeads(next);
+  };
+
+  const handleBulkSelect = (count: number) => {
+    setBulkSelectCount(count);
+    if (count === 0) {
+      setSelectedLeads(new Set());
+      return;
+    }
+    const selectableLeads = leads.filter(l => !l.assignedTo && l.status === 'new');
+    const toSelect = selectableLeads.slice(0, count);
+    setSelectedLeads(new Set(toSelect.map(l => l._id)));
+  };
+
+  const toggleAll = () => {
+    const selectableLeads = leads.filter(l => !l.assignedTo && l.status === 'new');
+    if (selectedLeads.size === selectableLeads.length && selectableLeads.length > 0) {
+      setSelectedLeads(new Set());
+    } else {
+      setSelectedLeads(new Set(selectableLeads.map(l => l._id)));
+    }
+  };
+
+  async function handleBulkAssign() {
+    if (selectedLeads.size === 0 || !assignTo) return;
+    setAssigning(true);
+    try {
+      await api.patch('/leads/bulk', {
+        leadIds: Array.from(selectedLeads),
+        assignedTo: assignTo
+      });
+      setBulkAssignModal(false);
+      setAssignTo('');
+      setSelectedLeads(new Set());
+      loadLeads();
+    } catch (err) { console.error(err); }
+    finally { setAssigning(false); }
+  }
+
+  async function handleDelete() {
+    if (!deleteModal) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/leads/${deleteModal._id}`);
+      setDeleteModal(null);
+      loadLeads();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to delete lead. Please try again.');
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   const STATUS_BADGE: Record<string, { bg: string; color: string }> = {
     new: { bg: '#e8f0fe', color: '#1a73e8' },
     contacted: { bg: '#e3f6fd', color: '#0277bd' },
@@ -153,147 +272,306 @@ export default function LeadsPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-20">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <h1 className="text-2xl font-black text-gray-900 tracking-tighter uppercase whitespace-nowrap">
-            {isSalesAgent ? 'My Opportunity Hub' : 'Lead Central'}
-          </h1>
-          <p className="text-sm text-gray-500 font-medium">
-            {isSalesAgent ? 'Active leads currently assigned to your pipeline' : "Global view of all inbound and qualified opportunities"}
-          </p>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-wrap items-center gap-3">
-          {canImportExport && (
-            <>
-              <button
-                onClick={() => { setImportModal(true); setImportResult(null); }}
-                className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
-              >
-                <Upload size={15} className="text-indigo-500" /> Import
-              </button>
-              <button
-                onClick={handleExport}
-                className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
-              >
-                <Download size={15} className="text-emerald-500" /> Export
-              </button>
-            </>
-          )}
-          {canAddLead && (
-            <Link
-              href="/leads/new"
-              className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all shadow-md shadow-indigo-100 active:scale-95"
-            >
-              <Plus size={15} /> Add Lead
-            </Link>
-          )}
-        </div>
+    <div className="max-w-[1280px] mx-auto space-y-8 animate-fade-in py-2 pb-32 bg-transparent min-h-screen">
+      
+      {/* ── TITLE BLOCK ── */}
+      <div className="mb-4">
+        <h1 className="text-2xl font-semibold text-slate-900 tracking-tight mb-1">Lead Central</h1>
+        <p className="text-xs text-slate-500 font-medium tracking-tight">Global view of all inbound and qualified opportunities</p>
       </div>
 
-      {/* Table Card */}
-      <div className="bg-white border border-gray-100 rounded-3xl shadow-sm overflow-hidden animate-slide-in">
-        {/* Search */}
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid #f0f4f9' }}>
-          <form onSubmit={handleSearch} style={{ position: 'relative', maxWidth: 360 }}>
-            <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#a0aec0' }} />
-            <input type="text" placeholder="Search leads..." className="input-field" style={{ paddingLeft: 36 }} value={search} onChange={(e) => setSearch(e.target.value)} />
-          </form>
-        </div>
+      {/* ── ACTION TOOLBAR (Row 3) ── */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-2">
+         {/* Search Bar */}
+         <div className="flex-1 max-w-2xl">
+           <form onSubmit={handleSearch} className="flex items-center gap-4">
+              <div className="relative flex-1">
+                <input 
+                  type="text" 
+                  placeholder="Search leads..." 
+                  className="block w-full pl-4 pr-10 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm" 
+                  value={search} 
+                  onChange={(e) => setSearch(e.target.value)} 
+                />
+                <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none">
+                  <Search size={16} className="text-slate-400" />
+                </div>
+              </div>
 
-        {/* Table */}
+              {/* Conditional Bulk Actions */}
+              {(isManager || isOrgAdmin) && canAssign && (
+                <div className="flex items-center gap-3">
+                  {/* Selection Count Filter */}
+                  <div className="relative group">
+                    <select 
+                      value={bulkSelectCount}
+                      onChange={(e) => handleBulkSelect(Number(e.target.value))}
+                      className="appearance-none pl-4 pr-10 py-2 bg-white border border-slate-200 rounded-lg text-[12px] font-bold text-slate-600 cursor-pointer shadow-sm hover:border-slate-300 transition-all focus:outline-none"
+                    >
+                       <option value={0}>Select Count</option>
+                       {[10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(n => (
+                         <option key={n} value={n}>{n} Leads</option>
+                       ))}
+                    </select>
+                    <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  </div>
+
+                  {selectedLeads.size > 0 && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.preventDefault(); setBulkAssignModal(true); setAssignTo(''); }}
+                      className="flex items-center gap-2 px-5 py-2.5 text-[12px] font-bold uppercase tracking-wide text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-md shadow-emerald-50 active:scale-95 animate-in zoom-in-95 duration-200"
+                    >
+                      <UserCheck size={14} /> Assign {selectedLeads.size} Leads
+                    </button>
+                  )}
+                </div>
+              )}
+           </form>
+         </div>
+
+         {/* Right Side Actions */}
+         <div className="flex items-center gap-3">
+            {canImportExport && (
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => { setImportModal(true); setImportResult(null); }}
+                  className="flex items-center gap-2 px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all"
+                >
+                  <Upload size={14} /> Import
+                </button>
+                <button
+                  onClick={handleExport}
+                  className="flex items-center gap-2 px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all"
+                >
+                  <Download size={14} /> Export
+                </button>
+              </div>
+            )}
+            
+            {canAddLead && (
+              <Link
+                href="/leads/new"
+                className="flex items-center gap-2 px-5 py-2.5 text-[11px] font-bold uppercase tracking-wider text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all shadow-md shadow-indigo-50 active:scale-95"
+              >
+                <Plus size={16} strokeWidth={2.5} /> Add Lead
+              </Link>
+            )}
+         </div>
+      </div>
+
+      {/* ── MAIN TABLE CARD ── */}
+      <div className="bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
         {loading ? (
-          <div style={{ padding: '60px 0', textAlign: 'center', color: '#a0aec0', fontSize: 14 }}>Loading leads...</div>
+          <div className="py-40 flex flex-col items-center justify-center gap-6">
+            <div className="w-12 h-12 border-4 border-slate-100 border-t-indigo-600 rounded-full animate-spin" />
+            <p className="text-[12px] font-black text-slate-400 uppercase tracking-widest">Accessing Lead Pipeline...</p>
+          </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div className="overflow-x-auto">
+            <table className="w-full border-separate border-spacing-0">
               <thead>
-                <tr style={{ background: '#f7f8fc', borderBottom: '1px solid #e2e8f0' }}>
-                  {['Name', 'Company', 'Status', 'Source', 'Assigned To', 'Created', 'Actions'].map(h => (
-                    <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#a0aec0', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{h}</th>
+                <tr className="bg-white border-b border-slate-100">
+                  <th className="px-8 py-5 text-left w-12 border-b border-slate-50">
+                    <input
+                      type="checkbox"
+                      onChange={toggleAll}
+                      checked={leads.length > 0 && Array.from(selectedLeads).length === leads.filter(l => !l.assignedTo && l.status === 'new').length && selectedLeads.size > 0}
+                      className="w-4 h-4 cursor-pointer accent-indigo-600 rounded-lg border-slate-200 transition-all"
+                    />
+                  </th>
+                  {['Client Details', 'Organization', 'Status', 'Source', 'Activity', 'Actions'].map((h) => (
+                    <th key={h} className="px-6 py-5 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-50 text-left first:pl-2">
+                       {h}
+                    </th>
                   ))}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-50">
                 {leads.length === 0 ? (
-                  <tr><td colSpan={7} style={{ textAlign: 'center', padding: '48px 0', color: '#a0aec0' }}>No leads found</td></tr>
-                ) : leads.map((lead) => (
-                  <tr key={lead._id} onClick={() => router.push(`/leads/${lead._id}`)}
-                    style={{ borderBottom: '1px solid #f0f4f9', cursor: 'pointer', transition: 'background 0.12s' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = '#f7f8fc')}
-                    onMouseLeave={e => (e.currentTarget.style.background = '#fff')}>
-                    <td style={{ padding: '14px 16px' }}>
-                      <p style={{ fontWeight: 600, color: '#1a202c', fontSize: 14 }}>{lead.name}</p>
-                      <p style={{ fontSize: 12, color: '#a0aec0', marginTop: 2 }}>{lead.email || lead.phone || 'No contact info'}</p>
-                    </td>
-                    <td style={{ padding: '14px 16px', color: '#4a5568', fontSize: 13 }}>{lead.company || '—'}</td>
-                    <td style={{ padding: '14px 16px' }}><StatusBadge status={lead.status} /></td>
-                    <td style={{ padding: '14px 16px', color: '#4a5568', fontSize: 13, textTransform: 'capitalize' }}>{lead.source}</td>
-                    <td style={{ padding: '14px 16px' }}>
-                      {lead.assignedTo ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#e8f0fe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#1a73e8', flexShrink: 0 }}>
-                            {lead.assignedTo.name.charAt(0)}
-                          </div>
-                          <span style={{ fontSize: 13, color: '#4a5568' }}>{lead.assignedTo.name}</span>
+                  <tr>
+                    <td colSpan={7} className="py-40 text-center bg-slate-50/20">
+                      <div className="flex flex-col items-center gap-5">
+                        <div className="w-20 h-20 rounded-[32px] bg-white border border-slate-100 shadow-inner flex items-center justify-center text-slate-200">
+                          <AlertCircle size={32} />
                         </div>
-                      ) : <span style={{ color: '#a0aec0', fontStyle: 'italic', fontSize: 13 }}>Unassigned</span>}
-                    </td>
-                    <td style={{ padding: '14px 16px', color: '#a0aec0', fontSize: 13 }}>{new Date(lead.createdAt).toLocaleDateString()}</td>
-                    <td style={{ padding: '14px 16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={(e) => e.stopPropagation()}>
-                        <Link href={`/leads/${lead._id}`} style={{ padding: '4px 10px', fontSize: 12, fontWeight: 600, color: '#1a73e8', background: '#e8f0fe', border: '1px solid rgba(26,115,232,0.2)', borderRadius: 6, textDecoration: 'none' }}>
-                          View
-                        </Link>
-                        {canAssign && (
-                          <button onClick={() => { setAssignModal(lead); setAssignTo(lead.assignedTo?._id || ''); }}
-                            style={{ padding: '4px 10px', fontSize: 12, fontWeight: 600, color: '#0f9d58', background: '#e6f4ea', border: '1px solid rgba(15,157,88,0.2)', borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <UserCheck size={12} /> Assign
-                          </button>
-                        )}
+                        <div>
+                          <p className="text-xl font-black text-slate-900 tracking-tight mb-2">No Leads Identified</p>
+                          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Adjust your filters or add a new record</p>
+                        </div>
                       </div>
                     </td>
                   </tr>
-                ))}
+                ) : leads.map((lead) => {
+                  const isSelectable = !lead.assignedTo && lead.status === 'new';
+                  return (
+                    <tr key={lead._id}
+                      className={`group hover:bg-slate-50/80 transition-all duration-300 cursor-pointer ${selectedLeads.has(lead._id) ? 'bg-indigo-50/40' : 'bg-white'}`}
+                      onClick={() => router.push(`/leads/${lead._id}`)}
+                    >
+                      <td className="px-8 py-4" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          disabled={!isSelectable}
+                          checked={selectedLeads.has(lead._id)}
+                          onChange={() => toggleLead(lead._id, isSelectable)}
+                          className={`w-4 h-4 cursor-pointer accent-indigo-600 rounded-lg border-slate-200 bg-white transition-all ${!isSelectable && 'opacity-20 cursor-not-allowed'}`}
+                        />
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <span className="text-[14px] font-semibold text-slate-800 group-hover:text-indigo-600 transition-colors tracking-tight">{lead.name}</span>
+                          <span className="text-[12px] font-medium text-slate-400 tabular-nums">{lead.email || lead.phone || 'No contact'}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-[13px] font-medium text-slate-500 tracking-tight">{lead.company || '—'}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                         <div className="inline-flex items-center px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100/50 text-[10px] font-bold uppercase tracking-wider shadow-sm">
+                           {lead.status.replace('_', ' ')}
+                         </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-[12px] font-medium text-slate-400 tracking-wide">{lead.source}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                         {lead.assignedTo ? (
+                           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100/50">
+                              <div className="w-4 h-4 rounded-lg bg-emerald-500 text-white flex items-center justify-center text-[8px] font-bold">
+                                {lead.assignedTo.name.charAt(0)}
+                              </div>
+                              <span className="text-[11px] font-bold uppercase tracking-tight leading-none">Assigned to {lead.assignedTo.name.split(' ')[0]}</span>
+                           </div>
+                         ) : (
+                           <button
+                             onClick={(e) => { e.stopPropagation(); setAssignModal(lead); setAssignTo(''); }}
+                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100/30 text-[11px] font-bold uppercase tracking-tight hover:bg-indigo-600 hover:text-white transition-all shadow-sm active:scale-95"
+                           >
+                             <UserCheck size={12} /> Assign Client
+                           </button>
+                         )}
+                      </td>
+                      <td className="px-8 py-4">
+                        <div className="flex items-center gap-4">
+                          <Link
+                            href={`/leads/${lead._id}`}
+                            className="text-[12px] font-bold text-indigo-600 hover:underline transition-all tracking-tight whitespace-nowrap"
+                          >
+                            View Details
+                          </Link>
+                          {(isManager || isOrgAdmin) && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setDeleteModal(lead); }}
+                              className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                              title="Archive Lead"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
 
-        {/* Pagination */}
+        {/* ── PAGINATION ── */}
         {totalPages > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', borderTop: '1px solid #f0f4f9' }}>
-            <button disabled={page === 1} onClick={() => setPage((p) => p - 1)} className="btn-secondary">Previous</button>
-            <span style={{ fontSize: 13, color: '#718096' }}>Page {page} of {totalPages}</span>
-            <button disabled={page === totalPages} onClick={() => setPage((p) => p + 1)} className="btn-secondary">Next</button>
+          <div className="px-12 py-8 bg-slate-50/50 border-t border-slate-50 flex items-center justify-between">
+            <button 
+               disabled={page === 1} 
+               onClick={(e) => { e.stopPropagation(); setPage(p => p - 1); }} 
+               className="px-6 py-3 bg-white border border-slate-200 rounded-2xl text-[12px] font-black uppercase tracking-widest text-slate-500 hover:text-indigo-600 hover:border-indigo-400 disabled:opacity-30 transition-all shadow-sm"
+            >
+              Previous
+            </button>
+            <div className="px-5 py-2.5 bg-white border border-slate-200 rounded-2xl shadow-sm text-[12px] font-black text-slate-400 tabular-nums uppercase">
+              Page <span className="text-slate-900">{page}</span> of {totalPages}
+            </div>
+            <button 
+               disabled={page === totalPages} 
+               onClick={(e) => { e.stopPropagation(); setPage(p => p + 1); }} 
+               className="px-6 py-3 bg-white border border-slate-200 rounded-2xl text-[12px] font-black uppercase tracking-widest text-slate-500 hover:text-indigo-600 hover:border-indigo-400 disabled:opacity-30 transition-all shadow-sm"
+            >
+              Next
+            </button>
           </div>
         )}
       </div>
 
+      {/* ── MODALS (Design Updated) ── */}
+
       {/* Assign Modal */}
       {assignModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }}>
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, width: '100%', maxWidth: 380, boxShadow: '0 20px 40px rgba(0,0,0,0.15)' }}>
-            <div style={{ padding: '18px 22px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <UserCheck size={18} style={{ color: '#1a73e8' }} />
-              <h2 style={{ fontSize: 16, fontWeight: 700, color: '#1a202c' }}>Assign Lead</h2>
-            </div>
-            <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <p style={{ fontSize: 13, color: '#718096' }}>Assigning: <strong style={{ color: '#1a202c' }}>"{assignModal.name}"</strong></p>
-              <div>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#4a5568', marginBottom: 8 }}>Assign To</label>
-                <select className="input-field" value={assignTo} onChange={(e) => setAssignTo(e.target.value)}>
-                  <option value="">Unassigned</option>
-                  {orgUsers.map((u) => <option key={u._id} value={u._id}>{u.name}</option>)}
-                </select>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-md">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="px-8 py-8 flex items-center gap-4 border-b border-slate-50">
+              <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 shadow-inner">
+                <UserCheck size={22} />
               </div>
-              <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                <button onClick={() => setAssignModal(null)} className="btn-secondary" style={{ flex: 1 }}>Cancel</button>
-                <button onClick={handleAssign} disabled={assigning} className="btn-primary" style={{ flex: 1 }}>
-                  {assigning ? 'Assigning...' : 'Assign'}
+              <div>
+                <h2 className="text-xl font-bold text-slate-900 tracking-tight leading-none mb-1.5">Assign Client</h2>
+                <p className="text-[13px] text-slate-400 font-medium tracking-tight">Assigning: <span className="font-semibold text-slate-900">{assignModal.name}</span></p>
+              </div>
+            </div>
+            <div className="p-8 space-y-6">
+              <div className="relative">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2.5">Agent Assignment</label>
+                <div className="relative">
+                  <select 
+                    className="w-full pl-5 pr-10 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-[14px] font-medium text-slate-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-400 transition-all appearance-none cursor-pointer" 
+                    value={assignTo} 
+                    onChange={(e) => setAssignTo(e.target.value)}
+                  >
+                    <option value="">Unassigned</option>
+                    {orgUsers.map((u) => <option key={u._id} value={u._id}>{u.name}</option>)}
+                  </select>
+                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
+                </div>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setAssignModal(null)} className="flex-1 px-6 py-3.5 bg-slate-50 text-slate-500 text-[12px] font-bold uppercase tracking-wider rounded-2xl hover:bg-slate-100 transition-all">Cancel</button>
+                <button onClick={handleAssign} disabled={assigning} className="flex-1 px-6 py-3.5 bg-indigo-600 text-white text-[12px] font-bold uppercase tracking-wider rounded-2xl hover:bg-indigo-700 shadow-md shadow-indigo-100 active:scale-95 transition-all">
+                  {assigning ? 'Confirming...' : 'Assign Client'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Assign Modal */}
+      {bulkAssignModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-md">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="px-8 py-8 flex items-center gap-4 border-b border-slate-50">
+              <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 shadow-inner">
+                <UserCheck size={22} />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-slate-900 tracking-tight leading-none mb-1.5">Bulk Member Sync</h2>
+                <p className="text-[13px] text-slate-400 font-medium">Syncing <span className="text-emerald-600 font-semibold">{selectedLeads.size} leads</span> to agent.</p>
+              </div>
+            </div>
+            <div className="p-8 space-y-6">
+              <div className="relative">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2.5">Agent Assignment</label>
+                <div className="relative">
+                  <select className="w-full pl-5 pr-10 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-[14px] font-medium text-slate-700 focus:outline-none focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-400 transition-all appearance-none cursor-pointer" value={assignTo} onChange={(e) => setAssignTo(e.target.value)}>
+                    <option value="">Unassigned</option>
+                    {orgUsers.map((u) => <option key={u._id} value={u._id}>{u.name}</option>)}
+                  </select>
+                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
+                </div>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setBulkAssignModal(false)} className="flex-1 px-6 py-3.5 bg-slate-50 text-slate-500 text-[12px] font-bold uppercase tracking-wider rounded-2xl hover:bg-slate-100 transition-all">Cancel</button>
+                <button onClick={handleBulkAssign} disabled={assigning || !assignTo} className="flex-1 px-6 py-3.5 bg-emerald-600 text-white text-[12px] font-bold uppercase tracking-wider rounded-2xl hover:bg-emerald-700 shadow-md shadow-emerald-50 active:scale-95 transition-all">
+                  {assigning ? 'Syncing...' : 'Bulk Assign'}
                 </button>
               </div>
             </div>
@@ -303,53 +581,48 @@ export default function LeadsPage() {
 
       {/* ── Import Modal ── */}
       {importModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl border border-gray-100 overflow-hidden">
-
-            {/* Header */}
-            <div className="flex items-center justify-between px-7 py-5 border-b border-gray-100">
-              <div className="flex items-center gap-4">
-                <div className="w-11 h-11 rounded-2xl bg-indigo-50 flex items-center justify-center">
-                  <FileSpreadsheet size={22} className="text-indigo-600" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md">
+          <div className="bg-white rounded-[40px] w-full max-w-2xl shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="flex items-center justify-between px-10 py-8 border-b border-slate-50">
+              <div className="flex items-center gap-6">
+                <div className="w-16 h-16 rounded-3xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-inner">
+                  <FileSpreadsheet size={28} />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-gray-900">Import Leads</h2>
-                  <p className="text-xs text-gray-400 mt-0.5">Upload an Excel (.xlsx) or CSV file</p>
+                  <h2 className="text-3xl font-black text-slate-900 tracking-tighter">Import Intelligence</h2>
+                  <p className="text-[14px] text-slate-400 font-medium">Upload Excel (.xlsx) or CSV format</p>
                 </div>
               </div>
               <button
                 onClick={() => { setImportModal(false); setImportResult(null); }}
-                className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                className="w-12 h-12 flex items-center justify-center rounded-2xl text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all"
               >
-                <X size={16} />
+                <X size={24} />
               </button>
             </div>
 
-            <div className="p-7 space-y-5">
-              {/* Drop Zone */}
+            <div className="p-10 space-y-10">
               {!importResult && (
                 <div
                   onDragOver={e => { e.preventDefault(); setDragOver(true); }}
                   onDragLeave={() => setDragOver(false)}
                   onDrop={handleFileDrop}
                   onClick={() => fileInputRef.current?.click()}
-                  className={`relative rounded-2xl border-2 border-dashed p-10 text-center cursor-pointer transition-all ${
-                    dragOver ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 bg-gray-50 hover:border-indigo-300 hover:bg-indigo-50/30'
-                  }`}
+                  className={`relative rounded-[40px] border-4 border-dashed p-14 text-center cursor-pointer transition-all duration-500 ${dragOver ? 'border-indigo-500 bg-indigo-50' : 'border-slate-100 bg-slate-50 hover:border-indigo-400/50 hover:bg-indigo-50/20'}`}
                 >
                   {importing ? (
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="w-10 h-10 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
-                      <p className="text-sm font-semibold text-indigo-600">Importing leads, please wait...</p>
+                    <div className="flex flex-col items-center gap-5">
+                      <div className="w-14 h-14 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+                      <p className="text-[14px] font-black text-indigo-600 uppercase tracking-widest">Processing Batch...</p>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center gap-3">
-                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${dragOver ? 'bg-indigo-100' : 'bg-white border border-gray-200'}`}>
-                        <Upload size={24} className={dragOver ? 'text-indigo-600' : 'text-gray-400'} />
+                    <div className="flex flex-col items-center gap-6">
+                      <div className={`w-20 h-20 rounded-[32px] flex items-center justify-center shadow-inner ${dragOver ? 'bg-indigo-100 text-indigo-600' : 'bg-white text-slate-300 border border-slate-50'}`}>
+                        <Upload size={32} />
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-gray-900">Drag & drop your file here</p>
-                        <p className="text-xs text-gray-400 mt-1">or <span className="text-indigo-600 font-semibold">click to browse</span> — .xlsx, .xls, .csv supported</p>
+                        <p className="text-xl font-black text-slate-900 tracking-tight">Drop your lead file here</p>
+                        <p className="text-[13px] text-slate-400 mt-2 font-medium">or <span className="text-indigo-600 font-black uppercase tracking-widest">browse files</span> — .xlsx, .csv</p>
                       </div>
                     </div>
                   )}
@@ -358,61 +631,85 @@ export default function LeadsPage() {
                 </div>
               )}
 
-              {/* Result */}
               {importResult && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-5 text-center">
-                      <CheckCircle size={22} className="text-emerald-500 mx-auto mb-2" />
-                      <p className="text-3xl font-black text-emerald-600">{importResult.success}</p>
-                      <p className="text-xs font-semibold text-emerald-500 mt-1 uppercase tracking-wide">Imported</p>
+                <div className="space-y-8">
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="bg-emerald-50/50 border border-emerald-100 rounded-[32px] p-8 text-center shadow-inner">
+                      <CheckCircle size={32} className="text-emerald-500 mx-auto mb-4" />
+                      <p className="text-5xl font-black text-emerald-600 tabular-nums">{importResult.success}</p>
+                      <p className="text-[12px] font-black text-emerald-500 mt-2 uppercase tracking-widest">Imported Successfully</p>
                     </div>
                     {importResult.failed > 0 && (
-                      <div className="bg-red-50 border border-red-100 rounded-2xl p-5 text-center">
-                        <AlertCircle size={22} className="text-red-500 mx-auto mb-2" />
-                        <p className="text-3xl font-black text-red-500">{importResult.failed}</p>
-                        <p className="text-xs font-semibold text-red-400 mt-1 uppercase tracking-wide">Failed</p>
+                      <div className="bg-red-50/50 border border-red-100 rounded-[32px] p-8 text-center shadow-inner">
+                        <AlertCircle size={32} className="text-red-500 mx-auto mb-4" />
+                        <p className="text-5xl font-black text-red-500 tabular-nums">{importResult.failed}</p>
+                        <p className="text-[12px] font-black text-red-500 mt-2 uppercase tracking-widest">Failed Records</p>
                       </div>
                     )}
                   </div>
-                  {importResult.errors.length > 0 && (
-                    <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 space-y-1">
-                      <p className="text-xs font-bold text-amber-700 mb-2">Issues encountered:</p>
-                      {importResult.errors.map((e, i) => (
-                        <p key={i} className="text-xs text-amber-700">• {e}</p>
-                      ))}
-                    </div>
-                  )}
                   <button
                     onClick={() => setImportResult(null)}
-                    className="text-sm font-semibold text-indigo-600 hover:underline"
+                    className="text-sm font-black text-indigo-600 hover:underline uppercase tracking-widest"
                   >
-                    ← Import another file
+                    ← Upload Another Batch
                   </button>
                 </div>
               )}
 
-              {/* Column Guide */}
-              <div className="bg-gray-50 border border-gray-100 rounded-xl px-5 py-4">
-                <p className="text-xs font-bold text-gray-700 mb-3">📋 Required column format:</p>
-                <div className="flex gap-2 flex-wrap">
-                  {['Name *', 'Email', 'Phone', 'Company', 'Source'].map(col => (
-                    <code key={col} className={`text-xs px-2.5 py-1 rounded-lg font-mono border ${
-                      col.includes('*') ? 'bg-red-50 border-red-200 text-red-600' : 'bg-white border-gray-200 text-indigo-600'
-                    }`}>{col}</code>
+              <div className="bg-slate-50 border border-slate-100 rounded-[32px] p-8">
+                <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-5">📋 Schema Support Guide:</p>
+                <div className="flex gap-3 flex-wrap mb-6">
+                  {['Name *', 'Phone *', 'Email', 'Company', 'Source', 'Address', '...'].map(col => (
+                    <code key={col} className={`text-[11px] px-3.5 py-1.5 rounded-xl font-mono border shadow-sm ${col.includes('*') ? 'bg-indigo-50 border-indigo-200 text-indigo-600 font-black' : 'bg-white border-slate-100 text-slate-400'}`}>{col}</code>
                   ))}
                 </div>
-                <p className="text-[11px] text-gray-400 mt-3">* Name is required. All other fields are optional.</p>
+                <div className="space-y-4">
+                  <p className="text-[12px] text-slate-900 font-bold leading-relaxed px-4 border-l-4 border-indigo-500">* Required Fields: Name and Phone are essential for duplicate prevention and outreach.</p>
+                  <p className="text-[12px] text-slate-400 font-medium leading-relaxed px-4 border-l-4 border-slate-200 ml-4">Advanced Mapping: Our AI automatically correlates columns. Unrecognized data is preserved in custom fields.</p>
+                </div>
               </div>
             </div>
 
-            <div className="px-7 py-4 border-t border-gray-100 flex justify-end">
+            <div className="px-10 py-8 border-t border-slate-50 flex justify-end">
               <button
                 onClick={() => { setImportModal(false); setImportResult(null); }}
-                className="px-5 py-2.5 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+                className="px-8 py-4 text-[13px] font-black uppercase tracking-widest text-slate-500 bg-slate-50 hover:bg-slate-100 rounded-[28px] transition-all"
               >
-                Close
+                Dismiss
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-md overflow-hidden">
+          <div className="bg-white rounded-[40px] w-full max-w-md shadow-2xl border border-slate-100 p-10 animate-in zoom-in-95 duration-300">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-20 h-20 rounded-[32px] bg-red-50 flex items-center justify-center mb-6 shadow-inner text-red-500">
+                <Trash2 size={36} strokeWidth={2.5} />
+              </div>
+              <h2 className="text-3xl font-black text-slate-900 tracking-tighter leading-none mb-4">Archive Record?</h2>
+              <p className="text-base text-slate-400 font-medium mb-10 leading-relaxed px-2">
+                This will permanently archive <span className="font-black text-slate-900">"{deleteModal.name}"</span>. Associated call history and activity logs will be hidden from the pipeline.
+              </p>
+              
+              <div className="grid grid-cols-2 gap-4 w-full">
+                <button
+                  onClick={() => setDeleteModal(null)}
+                  className="px-8 py-5 text-[13px] font-black uppercase tracking-widest text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-[28px] transition-all active:scale-95"
+                >
+                  Keep
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="px-8 py-5 text-[13px] font-black uppercase tracking-widest text-white bg-red-500 hover:bg-red-600 rounded-[28px] shadow-lg shadow-red-100 transition-all active:scale-95"
+                >
+                  {deleting ? 'Removing...' : 'Archive'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

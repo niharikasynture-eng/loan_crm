@@ -43,12 +43,13 @@ export async function PATCH(
     }
 
     const body = await req.json();
-    const { name, phone, avatar, role, managerId, isActive } = body;
+    const { name, phone, avatar, role, managerId, isActive, callSyncToken } = body;
 
     const updates: Record<string, unknown> = {};
     if (name) updates.name = name;
     if (phone !== undefined) updates.phone = phone;
     if (avatar !== undefined) updates.avatar = avatar;
+    if (callSyncToken !== undefined) updates.callSyncToken = callSyncToken;
     // Only admins can change roles
     if (role && allowed.includes(auth.role)) updates.role = role;
     if (managerId !== undefined) updates.managerId = managerId;
@@ -82,11 +83,8 @@ export async function DELETE(
     const { id } = await params;
     await connectDB();
 
-    await User.findOneAndUpdate(
-      { _id: id, organizationId: auth.organizationId },
-      { isActive: false }
-    );
-    return apiSuccess(null, 'User deactivated');
+    await User.findOneAndDelete({ _id: id, organizationId: auth.organizationId });
+    return apiSuccess(null, 'User deleted');
   } catch (err: unknown) {
     if (err instanceof Error && err.message === 'UNAUTHORIZED') return apiError('Unauthorized', 401);
     return apiError('Failed to delete user', 500);

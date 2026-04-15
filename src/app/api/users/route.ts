@@ -15,7 +15,10 @@ export async function GET(req: NextRequest) {
     const role = searchParams.get('role');
 
     const query: Record<string, unknown> = { organizationId: auth.organizationId, isActive: true };
-    if (role) query.role = role;
+    if (role) {
+      if (role.includes(',')) query.role = { $in: role.split(',') };
+      else query.role = role;
+    }
 
     const [users, total] = await Promise.all([
       User.find(query)

@@ -38,13 +38,7 @@ export async function POST(
       }
     );
 
-    await Activity.create({
-      organizationId: auth.organizationId,
-      leadId: lead._id,
-      type: 'call',
-      notes: `Call started with ${lead.name} (${lead.phone})`,
-      createdBy: auth.userId,
-    });
+    // No longer logging 'Call started' activity here to prevent duplication with end-call sync
 
     return apiSuccess({
       callLogId: callLog._id,

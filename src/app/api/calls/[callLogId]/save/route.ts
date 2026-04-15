@@ -70,11 +70,20 @@ export async function POST(
       return `${m}:${s}`;
     };
 
+    const formatDuration = (seconds?: number) => {
+      if (!seconds && seconds !== 0) return '0S';
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      if (m === 0) return `${s}S`;
+      return s > 0 ? `${m}M ${s}S` : `${m}M`;
+    };
+
     await Activity.create({
       organizationId: auth.organizationId,
       leadId: callLog.leadId,
       type: 'call',
-      notes: `Manual Call completed. Dial Duration: ${formatTime(duration)}. Connected Talk Time: ${formatTime(connectedDuration)}.`,
+      notes: `Manual Call via CRM. Duration: ${formatDuration(connectedDuration || duration)}.`,
+      duration: connectedDuration || duration || 0,
       createdBy: auth.userId,
     });
 

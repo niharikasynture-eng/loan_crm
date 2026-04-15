@@ -23,8 +23,8 @@ export async function GET(req: NextRequest) {
     const query: Record<string, unknown> = { organizationId: auth.organizationId };
     if (isScheduled) query.scheduledAt = { $exists: true, $ne: null };
     
-    // Sales agent: only see activities for leads they own
-    if (auth.role === ROLES.SALES_AGENT) {
+    // Sales agent and Onsite Visitor: only see activities for leads they own
+    if (auth.role === ROLES.SALES_AGENT || auth.role === ROLES.ONSITE_VISITOR) {
       const myLeads = await Lead.find({ assignedTo: auth.userId, organizationId: auth.organizationId }).select('_id').lean();
       const myLeadIds = myLeads.map(l => l._id);
       query.leadId = { $in: myLeadIds };
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
 
     if (leadId) {
       // If direct leadId provided, ensure salesperson owns it
-      if (auth.role === ROLES.SALES_AGENT) {
+      if (auth.role === ROLES.SALES_AGENT || auth.role === ROLES.ONSITE_VISITOR) {
         const lead = await Lead.findOne({ _id: leadId, assignedTo: auth.userId, organizationId: auth.organizationId });
         if (!lead) query.leadId = 'nothing'; // block
         else query.leadId = leadId;
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     const auth = requireAuth(req);
     await connectDB();
 
-    if (auth.role === ROLES.SUPER_ADMIN) return apiError('Access denied', 403);
+    if (auth.role === ROLES.SUPER_ADMIN || auth.role === ROLES.ONSITE_VISITOR) return apiError('Access denied', 403);
 
     const body = await req.json();
     const { leadId, type, outcome, duration, notes, link, scheduledAt, completedAt, priority } = body;

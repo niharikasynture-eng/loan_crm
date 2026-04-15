@@ -16,6 +16,28 @@ export async function GET(req: NextRequest) {
     }
 
     const orgId = new mongoose.Types.ObjectId(auth.organizationId);
+    const { searchParams } = req.nextUrl;
+    const period = searchParams.get('period') || '30d';
+
+    // Calculate Date Range
+    let startDate = new Date(0); // Default: All time
+    const now = new Date();
+    
+    if (period === 'today') {
+      startDate = new Date(now.setHours(0, 0, 0, 0));
+    } else if (period === '7d') {
+      const sevenDaysAgo = new Date(now);
+      sevenDaysAgo.setDate(now.getDate() - 7);
+      startDate = sevenDaysAgo;
+    } else if (period === '30d') {
+      const thirtyDaysAgo = new Date(now);
+      thirtyDaysAgo.setDate(now.getDate() - 30);
+      startDate = thirtyDaysAgo;
+    } else if (period === '90d') {
+      const ninetyDaysAgo = new Date(now);
+      ninetyDaysAgo.setDate(now.getDate() - 90);
+      startDate = ninetyDaysAgo;
+    }
 
     // 1. Get all salespeople in the organization
     const salespeople = await User.find({
@@ -31,7 +53,8 @@ export async function GET(req: NextRequest) {
       { 
         $match: { 
           organizationId: orgId,
-          createdBy: { $in: salespersonIds }
+          createdBy: { $in: salespersonIds },
+          createdAt: { $gte: startDate }
         } 
       },
       {
@@ -48,7 +71,8 @@ export async function GET(req: NextRequest) {
         $match: {
           organizationId: orgId,
           assignedTo: { $in: salespersonIds },
-          stage: 'closed_won'
+          stage: 'closed_won',
+          updatedAt: { $gte: startDate }
         }
       },
       {

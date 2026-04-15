@@ -145,7 +145,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </Suspense>
         
         <div className="flex-1 overflow-x-hidden overflow-y-auto w-full">
-          <div className="page-body p-4 md:p-6 lg:p-8 max-w-[1600px] mx-auto">
+          <div className="page-body p-4 md:p-6 lg:p-8 max-w-[1280px] mx-auto">
             {children}
           </div>
         </div>

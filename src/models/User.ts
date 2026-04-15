@@ -7,7 +7,7 @@ export interface IUser extends Document {
   name: string;
   email: string;
   password: string;
-  role: 'super_admin' | 'org_admin' | 'manager' | 'sales_agent';
+  role: 'super_admin' | 'org_admin' | 'manager' | 'sales_agent' | 'onsite_visitor';
   managerId?: mongoose.Types.ObjectId;
   phone?: string;
   avatar?: string;
@@ -16,6 +16,7 @@ export interface IUser extends Document {
   inviteExpiry?: Date;
   passwordSetToken?: string;
   passwordSetExpiry?: Date;
+  callSyncToken?: string;
   lastLogin?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -34,7 +35,7 @@ const UserSchema = new Schema<IUser>(
     password: { type: String, required: true, select: false },
     role: {
       type: String,
-      enum: ['super_admin', 'org_admin', 'manager', 'sales_agent'],
+      enum: ['super_admin', 'org_admin', 'manager', 'sales_agent', 'onsite_visitor'],
       default: 'sales_agent',
     },
     managerId: { type: Schema.Types.ObjectId, ref: 'User' },
@@ -45,6 +46,7 @@ const UserSchema = new Schema<IUser>(
     inviteExpiry: { type: Date },
     passwordSetToken: { type: String, index: true },
     passwordSetExpiry: { type: Date },
+    callSyncToken: { type: String, index: true },
     lastLogin: { type: Date },
   },
   { timestamps: true }
@@ -54,9 +56,16 @@ UserSchema.index({ email: 1, organizationId: 1 }, { unique: true });
 UserSchema.index({ organizationId: 1, role: 1 });
 
 UserSchema.pre('save', async function () {
-  if (!this.isModified('password')) return;
-  const salt = await bcrypt.genSalt(12);
-  this.password = await bcrypt.hash(this.password, salt);
+  // Hash password
+  if (this.isModified('password')) {
+    const salt = await bcrypt.genSalt(12);
+    this.password = await bcrypt.hash(this.password, salt);
+  }
+
+  // Auto-generate call sync token if missing
+  if (!this.callSyncToken) {
+    this.callSyncToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  }
 });
 
 

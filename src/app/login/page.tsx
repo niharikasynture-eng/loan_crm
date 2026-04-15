@@ -1,15 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-import { Eye, EyeOff, BarChart2, Users, TrendingUp, CheckSquare } from 'lucide-react';
+import { Eye, EyeOff, BarChart2, Users, TrendingUp, CheckSquare, ChevronDown, Check } from 'lucide-react';
 
 const ROLE_OPTIONS = [
   { value: 'super_admin',  label: 'Super Admin',  desc: 'Full platform control', color: '#7c3aed' },
   { value: 'org_admin',   label: 'Org Admin',     desc: 'Manage your organization', color: '#1a73e8' },
   { value: 'manager',     label: 'Manager',        desc: 'Team & pipeline oversight', color: '#0f9d58' },
   { value: 'sales_agent', label: 'Sales Person',   desc: 'Leads & deals access', color: '#f29900' },
+  { value: 'onsite_visitor', label: 'Onsite Visitor', desc: 'Assigned leads view only', color: '#0ea5e9' },
 ];
 
 export default function LoginPage() {
@@ -17,9 +18,22 @@ export default function LoginPage() {
   const [password, setPassword]         = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [selectedRole, setSelectedRole] = useState('org_admin');
+  const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
   const [error, setError]               = useState('');
   const [isLoading, setIsLoading]       = useState(false);
   const { login } = useAuth();
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setRoleDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -37,21 +51,23 @@ export default function LoginPage() {
   const activeRole = ROLE_OPTIONS.find(r => r.value === selectedRole)!;
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: "'Inter', sans-serif", background: '#f0f4f9' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: "'Inter', sans-serif", background: '#f0f4f9' }} className="flex-col sm:flex-row">
 
       {/* ── LEFT PANEL — Login Form ── */}
-      <div style={{
-        flex: '0 0 440px',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'flex-start',
-        padding: '36px 44px 24px',
-        background: '#ffffff',
-        boxShadow: '4px 0 24px rgba(0,0,0,0.06)',
-        position: 'relative',
-        zIndex: 1,
-        overflowY: 'auto',
-      }}>
+      <div
+        className="w-full sm:w-[420px] sm:flex-shrink-0"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'flex-start',
+          padding: '36px 44px 24px',
+          background: '#ffffff',
+          boxShadow: '4px 0 24px rgba(0,0,0,0.06)',
+          position: 'relative',
+          zIndex: 1,
+          overflowY: 'auto',
+        }}
+      >
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
           <div style={{
@@ -74,41 +90,99 @@ export default function LoginPage() {
           Enter your email and password to access your account.
         </p>
 
-        {/* Role Selector */}
+        {/* Role Selector Dropdown */}
         <div style={{ marginBottom: 16 }}>
           <p style={{ fontSize: 11, fontWeight: 700, color: '#718096', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
             Login As
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-            {ROLE_OPTIONS.map(role => (
-              <button
-                key={role.value}
-                type="button"
-                onClick={() => setSelectedRole(role.value)}
-                style={{
-                  padding: '7px 10px',
-                  borderRadius: 7,
-                  border: selectedRole === role.value
-                    ? `2px solid ${role.color}`
-                    : '2px solid #e2e8f0',
-                  background: selectedRole === role.value
-                    ? `${role.color}12`
-                    : '#fafafa',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  transition: 'all 0.15s',
-                }}
-              >
-                <span style={{
-                  display: 'block',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: selectedRole === role.value ? role.color : '#4a5568',
-                }}>
-                  {role.label}
-                </span>
-              </button>
-            ))}
+          <div ref={dropdownRef} style={{ position: 'relative' }}>
+            {/* Trigger Button */}
+            <button
+              type="button"
+              onClick={() => setRoleDropdownOpen(!roleDropdownOpen)}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '10px 14px',
+                borderRadius: 8,
+                border: `2px solid ${activeRole.color}`,
+                background: `${activeRole.color}10`,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{
+                  width: 10, height: 10, borderRadius: '50%',
+                  background: activeRole.color, flexShrink: 0,
+                }} />
+                <div style={{ textAlign: 'left' }}>
+                  <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: activeRole.color }}>
+                    {activeRole.label}
+                  </span>
+                  <span style={{ display: 'block', fontSize: 11, color: '#a0aec0', marginTop: 1 }}>
+                    {activeRole.desc}
+                  </span>
+                </div>
+              </div>
+              <ChevronDown
+                size={16}
+                color={activeRole.color}
+                style={{ transform: roleDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
+              />
+            </button>
+
+            {/* Dropdown List */}
+            {roleDropdownOpen && (
+              <div style={{
+                position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0,
+                background: '#fff', borderRadius: 10,
+                border: '1px solid #e2e8f0',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+                zIndex: 50, overflow: 'hidden',
+              }}>
+                {ROLE_OPTIONS.map(role => (
+                  <button
+                    key={role.value}
+                    type="button"
+                    onClick={() => { setSelectedRole(role.value); setRoleDropdownOpen(false); }}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '10px 14px',
+                      background: selectedRole === role.value ? `${role.color}0d` : 'transparent',
+                      border: 'none',
+                      borderBottom: '1px solid #f7fafc',
+                      cursor: 'pointer',
+                      transition: 'background 0.12s',
+                      textAlign: 'left',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = `${role.color}12`)}
+                    onMouseLeave={e => (e.currentTarget.style.background = selectedRole === role.value ? `${role.color}0d` : 'transparent')}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{
+                        width: 8, height: 8, borderRadius: '50%',
+                        background: role.color, flexShrink: 0,
+                      }} />
+                      <div>
+                        <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: selectedRole === role.value ? role.color : '#4a5568' }}>
+                          {role.label}
+                        </span>
+                        <span style={{ display: 'block', fontSize: 11, color: '#a0aec0' }}>
+                          {role.desc}
+                        </span>
+                      </div>
+                    </div>
+                    {selectedRole === role.value && <Check size={14} color={role.color} />}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -220,17 +294,18 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* ── RIGHT PANEL — Branding ── */}
-      <div style={{
-        flex: 1,
-        background: 'linear-gradient(135deg, #1a73e8 0%, #1557b0 50%, #0d3f8f 100%)',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        padding: '52px 60px',
-        position: 'relative',
-        overflow: 'hidden',
-      }}>
+      {/* ── RIGHT PANEL — Branding (hidden on mobile) ── */}
+      <div
+        className="hidden sm:flex"
+        style={{
+          flex: 1,
+          background: 'linear-gradient(135deg, #1a73e8 0%, #1557b0 50%, #0d3f8f 100%)',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          padding: '52px 60px',
+          position: 'relative',
+          overflow: 'hidden',
+        }}>
         {/* Decorative circles */}
         <div style={{
           position: 'absolute', top: -80, right: -80,

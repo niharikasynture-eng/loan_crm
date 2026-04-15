@@ -27,8 +27,8 @@ export async function GET(req: NextRequest) {
 
     const query: Record<string, unknown> = { organizationId: auth.organizationId };
 
-    // Sales agent can only see their own leads
-    if (auth.role === ROLES.SALES_AGENT) {
+    // Sales agent and Onsite Visitor can only see their own leads
+    if (auth.role === ROLES.SALES_AGENT || auth.role === ROLES.ONSITE_VISITOR) {
       query.assignedTo = auth.userId;
     }
 
@@ -69,7 +69,12 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { name, phone, email, company, source, status, assignedTo, value, notes, tags } = body;
+    const { 
+      name, phone, email, company, source, status, assignedTo, value, notes, tags,
+      secondaryPhone, address, flatNo, landmark, area, pincode, income, occupation, education,
+      dateOfVisit, timeOfVisit, mapLink, hasMedeclaim, sumAssured, insuranceCompany, healthStatus,
+      familyAges, tseName, tlName, visitDate, customFields
+    } = body;
 
     if (!name) return apiError('Lead name is required');
 
@@ -81,10 +86,14 @@ export async function POST(req: NextRequest) {
       company,
       source: source || 'Other',
       status: status || 'new',
-      assignedTo: assignedTo || auth.userId,
+      assignedTo: assignedTo || null,
       value,
       notes,
       tags: tags || [],
+      secondaryPhone, address, flatNo, landmark, area, pincode, income, occupation, education,
+      dateOfVisit, timeOfVisit, mapLink, hasMedeclaim, sumAssured, insuranceCompany, healthStatus,
+      familyAges, tseName, tlName, visitDate,
+      customFields: customFields || {},
       createdBy: auth.userId,
     });
 

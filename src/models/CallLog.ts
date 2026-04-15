@@ -18,6 +18,7 @@ export interface ICallLog extends Document {
   orgId?: string;
   recordingUrl?: string;
   twilioCallSid?: string;
+  syncId?: string;
 }
 
 const CallLogSchema = new Schema<ICallLog>(
@@ -44,6 +45,7 @@ const CallLogSchema = new Schema<ICallLog>(
     orgId: { type: String },
     recordingUrl: { type: String },
     twilioCallSid: { type: String },
+    syncId: { type: String, index: true },
   },
   { timestamps: true }
 );

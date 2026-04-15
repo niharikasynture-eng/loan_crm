@@ -21,8 +21,8 @@ export async function GET(req: NextRequest) {
 
     const query: Record<string, unknown> = { organizationId: auth.organizationId };
     
-    // Sales agent: only see tasks assigned to them
-    if (auth.role === ROLES.SALES_AGENT) {
+    // Sales agent and Onsite Visitor: only see tasks assigned to them
+    if (auth.role === ROLES.SALES_AGENT || auth.role === ROLES.ONSITE_VISITOR) {
       query.assignedTo = auth.userId;
     } else {
       if (assignedTo) query.assignedTo = assignedTo;
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
     
     if (leadId) {
       // If salesperson, ensure lead is theirs
-      if (auth.role === ROLES.SALES_AGENT) {
+      if (auth.role === ROLES.SALES_AGENT || auth.role === ROLES.ONSITE_VISITOR) {
         const lead = await Lead.findOne({ _id: leadId, assignedTo: auth.userId, organizationId: auth.organizationId });
         if (!lead) query.leadId = 'nothing';
         else query.leadId = leadId;
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
     const auth = requireAuth(req);
     await connectDB();
 
-    if (auth.role === ROLES.SUPER_ADMIN) return apiError('Access denied', 403);
+    if (auth.role === ROLES.SUPER_ADMIN || auth.role === ROLES.ONSITE_VISITOR) return apiError('Access denied', 403);
 
     const body = await req.json();
     const { title, description, leadId, dealId, dueDate, priority, assignedTo, link } = body;

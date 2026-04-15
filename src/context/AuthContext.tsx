@@ -11,6 +11,7 @@ interface User {
   organizationId: string;
   phone?: string;
   avatar?: string;
+  callSyncToken?: string;
 }
 
 interface Organization {
@@ -94,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         org_admin: 'Org Admin',
         manager: 'Manager',
         sales_agent: 'Sales Person',
+        onsite_visitor: 'Onsite Visitor',
       };
       throw new Error(
         `Access denied. You selected "${ROLE_LABELS[selectedRole] || selectedRole}" but your account role is "${ROLE_LABELS[u.role] || u.role}". Please select the correct role.`

@@ -71,6 +71,7 @@ export async function POST(req: NextRequest) {
         organizationId: tokenPayload.organizationId,
         avatar: user.avatar,
         phone: user.phone,
+        callSyncToken: user.callSyncToken,
       },
       organization: org
         ? {

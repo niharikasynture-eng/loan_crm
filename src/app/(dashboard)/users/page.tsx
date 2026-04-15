@@ -66,12 +66,27 @@ export default function UsersPage() {
     } catch (err: any) { alert(err.message || 'Operation failed'); }
     finally { setSubmitting(false); }
   }
+  
+  async function handleDelete(id: string) {
+    if (id === currentUser?.id) return alert("You cannot delete yourself");
+    if (!confirm("Are you sure you want to delete this user? This action cannot be undone.")) return;
+    
+    setLoading(true);
+    try {
+      await api.delete(`/users/${id}`);
+      loadUsers();
+    } catch (err: any) {
+      alert(err.message || "Failed to delete user");
+      setLoading(false);
+    }
+  }
 
   const ROLE_META: Record<string, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
     super_admin: { label: 'Super Admin',  color: '#7c3aed', bg: '#f3f0ff', icon: <ShieldAlert size={14} style={{ color: '#7c3aed' }} /> },
     org_admin:   { label: 'Org Admin',    color: '#1a73e8', bg: '#e8f0fe', icon: <ShieldCheck size={14} style={{ color: '#1a73e8' }} /> },
     manager:     { label: 'Manager',      color: '#0f9d58', bg: '#e6f4ea', icon: <Shield size={14} style={{ color: '#0f9d58' }} /> },
     sales_agent: { label: 'Sales Agent',  color: '#f29900', bg: '#fef7e0', icon: <UserIcon size={14} style={{ color: '#f29900' }} /> },
+    onsite_visitor: { label: 'Onsite Visitor',  color: '#0ea5e9', bg: '#f0f9ff', icon: <UserIcon size={14} style={{ color: '#0ea5e9' }} /> },
   };
 
   return (
@@ -136,8 +151,11 @@ export default function UsersPage() {
                       </span>
                     </td>
                     <td style={{ padding: '14px 16px', color: '#a0aec0', fontSize: 13 }}>{new Date(u.createdAt).toLocaleDateString()}</td>
-                    <td style={{ padding: '14px 16px' }}>
+                    <td style={{ padding: '14px 16px', display: 'flex', gap: 12 }}>
                       <button onClick={() => openEdit(u)} style={{ fontSize: 13, fontWeight: 600, color: '#1a73e8', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Edit</button>
+                      {u._id !== currentUser?.id && (
+                        <button onClick={() => handleDelete(u._id)} style={{ fontSize: 13, fontWeight: 600, color: '#d93025', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Delete</button>
+                      )}
                     </td>
                   </tr>
                 );
@@ -183,6 +201,7 @@ export default function UsersPage() {
                   <option value="sales_agent">Sales Agent</option>
                   <option value="manager">Manager</option>
                   <option value="org_admin">Organization Admin</option>
+                  <option value="onsite_visitor">Onsite Visitor</option>
                 </select>
               </div>
 

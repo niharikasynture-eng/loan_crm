@@ -29,13 +29,13 @@ export async function POST(
 
     const { sid } = await initiateCall(currentUser.phone, lead.phone, twimlUrl);
 
-    const callLog = await CallLog.create({
+    const callLog = (await CallLog.create({
       leadId: lead._id,
-      orgId: auth.organizationId,
+      organizationId: auth.organizationId,
       salesPersonId: auth.userId,
       twilioCallSid: sid,
       status: 'initiated',
-    });
+    })) as any;
 
     return apiSuccess({ 
       callLogId: callLog._id, 

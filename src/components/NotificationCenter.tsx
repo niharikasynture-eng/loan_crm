@@ -41,9 +41,9 @@ export default function NotificationCenter() {
         if (latest) {
           const isLead = latest.type === 'new_lead' || latest.type === 'lead_assigned';
           showToast(
-            latest.message, 
+            latest.type === 'lead_assigned' ? `A manager has assigned a new lead to you: "${latest.message.split(': "')[1]?.replace('"', '') || 'New Lead'}"` : latest.message, 
             isLead ? 'success' : 'info', 
-            isLead ? '🚀 New Lead Opportunity' : latest.title
+            isLead ? '🚀 Lead Assigned' : latest.title
           );
         }
       }
@@ -62,7 +62,7 @@ export default function NotificationCenter() {
 
   useEffect(() => {
     loadNotifications(true);
-    const interval = setInterval(() => loadNotifications(), 30000); // 30s polling
+    const interval = setInterval(() => loadNotifications(), 10000); // Poll every 10s for immediate feedback
     return () => clearInterval(interval);
   }, [loadNotifications]);
 
@@ -102,50 +102,51 @@ export default function NotificationCenter() {
 
   return (
     <div className="relative" ref={dropdownRef}>
-      {/* Bell Trigger */}
+      {/* Clean Bell Trigger */}
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all duration-300 group shadow-sm active:scale-95"
+        className="relative p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
       >
-        <Bell size={20} className={unreadCount > 0 ? 'animate-bounce' : ''} />
+        <Bell size={20} strokeWidth={2.2} />
         {unreadCount > 0 && (
-          <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 text-white text-[9px] font-black flex items-center justify-center rounded-full border-2 border-white animate-pulse shadow-md">
+          <span className="absolute top-1 right-1 w-4 h-4 bg-blue-600 text-white text-[9px] font-bold flex items-center justify-center rounded-full border border-white shadow-sm">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
 
-      {/* Modern Popover UI */}
+      {/* Minimalist Square Panel */}
       {isOpen && (
-        <div className="absolute right-0 mt-3 w-80 md:w-96 bg-white rounded-[2rem] shadow-2xl border border-gray-100 z-50 overflow-hidden animate-slide-down origin-top-right">
-          {/* Header */}
-          <div className="bg-gradient-to-br from-gray-900 to-indigo-950 p-6 text-white">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
-                 <Zap size={14} className="text-indigo-400" />
-                 Alert Stream
-              </h3>
+        <div className="absolute right-0 mt-2 w-80 md:w-96 bg-white rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] border border-gray-100 z-50 overflow-hidden animate-in fade-in zoom-in duration-200 origin-top-right">
+          {/* Simple Header */}
+          <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between bg-white">
+            <div className="flex items-center gap-3">
+              <h3 className="text-[13px] font-bold text-gray-900 uppercase tracking-wider">Notifications</h3>
               {unreadCount > 0 && (
-                <button 
-                  onClick={markAllRead}
-                  disabled={loading}
-                  className="text-[10px] font-black uppercase tracking-widest text-indigo-300 hover:text-white transition-colors"
-                >
-                  Clear All
-                </button>
+                <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-full">
+                  {unreadCount} New
+                </span>
               )}
             </div>
-            <p className="text-[11px] text-indigo-200/60 font-medium">You have {unreadCount} unread transmissions pending.</p>
+            {unreadCount > 0 && (
+              <button 
+                onClick={markAllRead}
+                disabled={loading}
+                className="text-[10px] font-bold text-gray-400 hover:text-blue-600 transition-colors uppercase tracking-widest"
+              >
+                Clear All
+              </button>
+            )}
           </div>
 
-          {/* List */}
-          <div className="max-h-[420px] overflow-y-auto custom-scrollbar bg-gray-50/50">
+          {/* Activity List */}
+          <div className="max-h-[380px] overflow-y-auto custom-scrollbar">
             {notifications.length === 0 ? (
-              <div className="py-16 text-center space-y-4">
-                <div className="w-16 h-16 bg-white rounded-3xl shadow-sm border border-gray-50 flex items-center justify-center mx-auto text-gray-200">
-                  <Bell size={32} />
+              <div className="py-12 text-center flex flex-col items-center">
+                <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center text-gray-200 mb-3">
+                  <Bell size={24} />
                 </div>
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Horizon Clear</p>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">No activities</p>
               </div>
             ) : (
               notifications.map((n) => (
@@ -153,38 +154,40 @@ export default function NotificationCenter() {
                   key={n._id}
                   href={n.link || '#'}
                   onClick={() => { markAsRead(n._id); setIsOpen(false); }}
-                  className={`group relative flex items-start gap-6 p-6 transition-all border-b border-gray-100 hover:bg-white ${!n.read ? 'bg-indigo-50/10' : ''}`}
+                  className={`flex items-start gap-4 p-5 transition-all border-b border-gray-50 hover:bg-gray-50/50 ${!n.read ? 'bg-blue-50/30' : ''}`}
                 >
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all group-hover:scale-110 group-hover:shadow-lg ${!n.read ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-100' : 'bg-gray-100 text-gray-400 opacity-60'}`}>
-                    {n.type === 'new_lead' || n.type === 'lead_assigned' ? <UserPlus size={22} /> : <MessageSquare size={22} />}
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${!n.read ? 'bg-blue-600 text-white shadow-md shadow-blue-100' : 'bg-gray-100 text-gray-400'}`}>
+                    {n.type === 'new_lead' || n.type === 'lead_assigned' ? <UserPlus size={16} /> : <MessageSquare size={16} />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-3 mb-2">
-                      <span className={`text-sm font-black uppercase tracking-wide leading-none ${!n.read ? 'text-gray-900' : 'text-gray-500'}`}>
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className={`text-[12px] font-bold truncate ${!n.read ? 'text-gray-900' : 'text-gray-500'}`}>
                         {n.title}
                       </span>
-                      <span className="text-[10px] font-black text-gray-400 uppercase flex-shrink-0 bg-gray-100 px-2 py-0.5 rounded-md">
+                      <span className="text-[9px] font-bold text-gray-300 whitespace-nowrap uppercase">
                         {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
-                    <p className={`text-sm leading-relaxed ${!n.read ? 'text-gray-700 font-bold' : 'text-gray-500 font-medium'} line-clamp-2`}>
+                    <p className={`text-[11px] leading-relaxed ${!n.read ? 'text-gray-600 font-medium' : 'text-gray-400 font-normal'} line-clamp-2`}>
                       {n.message}
                     </p>
                   </div>
                   {!n.read && (
-                    <div className="absolute right-0 top-0 bottom-0 w-1 bg-indigo-600 shadow-[0_0_12px_#4f46e5] rounded-l-full" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-600 mt-2 flex-shrink-0" />
                   )}
                 </Link>
               ))
             )}
           </div>
 
-          {/* Footer */}
-          <div className="p-4 bg-white border-t border-gray-50 text-center">
-             <Link href="/activities" className="text-[10px] font-black text-indigo-600 uppercase tracking-widest hover:underline" onClick={() => setIsOpen(false)}>
-               View All Operation Activity
-             </Link>
-          </div>
+          {/* Footer View All */}
+          <Link 
+            href="/activities" 
+            className="block w-full py-3 text-center text-[10px] font-bold text-gray-400 hover:text-blue-600 hover:bg-gray-50 transition-all border-t border-gray-50 uppercase tracking-widest"
+            onClick={() => setIsOpen(false)}
+          >
+            History Preview
+          </Link>
         </div>
       )}
     </div>
