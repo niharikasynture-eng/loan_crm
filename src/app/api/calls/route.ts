@@ -5,6 +5,8 @@ import CallLog from '@/models/CallLog';
 import Activity from '@/models/Activity';
 import Lead from '@/models/Lead';
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/calls - Fetch organization call history
 export async function GET(req: NextRequest) {
   try {
