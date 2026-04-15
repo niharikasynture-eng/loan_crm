@@ -49,15 +49,28 @@ export default function CallLogsPage() {
   // Group identical calls and favor the "Verified" record.
   const uniqueLogs = Array.from(
     filteredLogs.reduce((acc, log) => {
-      if (!log.leadId?._id || !log.salesPersonId?._id) return acc;
+      // Create a unique key for grouping. 
+      // Fallback to the log's own ID if lead/salesperson data is missing/unpopulated.
+      const leadId = log.leadId?._id || (log.leadId as any)?.id || 'unknown-lead';
+      const agentId = log.salesPersonId?._id || (log.salesPersonId as any)?.id || 'unknown-agent';
       
-      // Key: Lead + Agent + Time (Minute precisión)
-      const timeKey = new Date(log.startedAt).setSeconds(0, 0);
-      const key = `${log.leadId?._id}-${log.salesPersonId?._id}-${timeKey}`;
+      const timeDate = new Date(log.startedAt);
+      const timeKey = isNaN(timeDate.getTime()) ? 'unknown-time' : timeDate.setSeconds(0, 0);
       
-      const existing = acc.get(key);
+      // If we have enough data to identify a duplicate, use a composite key.
+      // Otherwise, just use the log's own unique ID so it's always shown.
+      const groupKey = (leadId !== 'unknown-lead' && agentId !== 'unknown-agent' && timeKey !== 'unknown-time')
+        ? `${leadId}-${agentId}-${timeKey}`
+        : log._id;
+      
+      const existing = acc.get(groupKey);
+      
+      // Merging Rule: 
+      // 1. If it's a new group, add it.
+      // 2. If we find a "Verified" record (syncId !== 'MANUAL'), 
+      //    it should replace any "MANUAL" placeholder in that group.
       if (!existing || (existing.syncId === 'MANUAL' && log.syncId !== 'MANUAL')) {
-        acc.set(key, log);
+        acc.set(groupKey, log);
       }
       return acc;
     }, new Map<string, CallLog>()).values()
