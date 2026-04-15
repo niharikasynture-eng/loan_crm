@@ -502,3 +502,48 @@ Success: Logged 4s call for Yash
 Params: {}
 Body: {"token":"jee8schytmrmyyixiacgm","phone":"+919689420767","duration":"4","type":"outgoing"}
 Success: Logged 4s call for Yash
+
+[2026-04-15T11:29:52.303Z] SYNC ATTEMPT:
+Params: {}
+Body: {"token":"jee8schytmrmyyixiacgm","phone":"+919689420767","duration":"2","type":"outgoing"}
+CORRECTION (DEEP MERGE): Updated browser records for Yash with verified 2s
+
+[2026-04-15T11:30:39.995Z] SYNC ATTEMPT:
+Params: {}
+Body: {"token":"jee8schytmrmyyixiacgm","phone":"+919689420767","duration":"5","type":"outgoing"}
+Success: Logged 5s call for Yash
+
+[2026-04-15T11:31:51.272Z] SYNC ATTEMPT:
+Params: {}
+Body: {"token":"jee8schytmrmyyixiacgm","phone":"+919689420767","duration":"4","type":"outgoing"}
+Success: Logged 4s call for Yash
+
+[2026-04-15T11:32:32.166Z] SYNC ATTEMPT:
+Params: {}
+Body: {"token":"jee8schytmrmyyixiacgm","phone":"+919689420767","duration":"2","type":"outgoing"}
+Success: Logged 2s call for Yash
+
+[2026-04-15T11:33:45.389Z] SYNC ATTEMPT:
+Params: {}
+Body: {"token":"jee8schytmrmyyixiacgm","phone":"+919689420767","duration":"8","type":"outgoing"}
+Success: Logged 8s call for Yash
+
+[2026-04-15T11:34:58.812Z] SYNC ATTEMPT:
+Params: {}
+Body: {"token":"jee8schytmrmyyixiacgm","phone":"+919689420767","duration":"0","type":"outgoing"}
+Success: Logged 0s call for Yash
+
+[2026-04-15T11:38:54.530Z] SYNC ATTEMPT:
+Params: {}
+Body: {"token":"jee8schytmrmyyixiacgm","phone":"+919689420767","duration":"5","type":"outgoing"}
+CORRECTION (DEEP MERGE): Updated browser records for Yash with verified 5s
+
+[2026-04-15T11:40:00.200Z] SYNC ATTEMPT:
+Params: {}
+Body: {"token":"jee8schytmrmyyixiacgm","phone":"+919307270884","duration":"5","type":"outgoing"}
+Success: Logged 5s call for Rohan G
+
+[2026-04-15T11:41:08.786Z] SYNC ATTEMPT:
+Params: {}
+Body: {"token":"jee8schytmrmyyixiacgm","phone":"+919307270884","duration":"8","type":"outgoing"}
+Success: Logged 8s call for Rohan G

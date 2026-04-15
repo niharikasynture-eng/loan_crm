@@ -23,78 +23,55 @@ export async function POST(
       status: 'initiated',
     });
 
-    if (!callLog) return apiError('Call log not found or already completed', 404);
+    if (!callLog) return apiError('Call log already completed or not found', 404);
 
-    // ── SERVER-SIDE DURATION CALCULATION ──
-    // startedAt was set by the server when salesperson clicked "Call"
-    // The client CANNOT manipulate this value
     const now = new Date();
+    // ── STEP 1: PRIORITIZE HARDWARE SYNC ──
+    // Check if a hardware sync already came in for this lead/salesperson in the last 60 minutes
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+    const hardwareVerifiedSync = await Activity.findOne({ 
+      leadId: callLog.leadId, 
+      createdBy: auth.userId, 
+      type: 'call', 
+      createdAt: { $gte: oneHourAgo },
+      notes: /Verified/i 
+    });
+
+    if (hardwareVerifiedSync) {
+      // If a hardware sync already arrived, this browser timer is redundant.
+      // Delete the placeholder initiated log and exit silently.
+      await CallLog.findByIdAndDelete(callLogId);
+      return apiSuccess({
+        duration: 0,
+        syncStatus: 'already_verified'
+      }, 'Call already verified via hardware sync. Cleanup successful.');
+    }
+
+    // ── STEP 2: CALCULATE BROWSER DURATION ──
     const rawDurationSeconds = Math.round((now.getTime() - callLog.startedAt.getTime()) / 1000);
-
-    // Hard cap: max 10 minutes via browser timer
     const duration = Math.min(rawDurationSeconds, MAX_BROWSER_CALL_SECONDS);
-
-    // Flag if they returned suspiciously late (> 10 min)
-    const isLateReturn = rawDurationSeconds > MAX_BROWSER_CALL_SECONDS;
-    const isSuspicious = rawDurationSeconds > MAX_BROWSER_CALL_SECONDS * 1.5; // > 15 min
-
-    const trustLabel = isSuspicious
-      ? '🚨 Suspicious — Late Return'
-      : isLateReturn
-      ? '⚠️ Capped at 10 Min'
-      : '📱 Browser Timer';
-
-    // Subtract a 5-second "navigation buffer" as requested for better accuracy
-    // (Time taken to alt-tab back to CRM)
     const adjustedDuration = Math.max(0, duration - 5);
 
+    const trustLabel = rawDurationSeconds > MAX_BROWSER_CALL_SECONDS * 1.5 
+      ? '🚨 Suspicious' 
+      : rawDurationSeconds > MAX_BROWSER_CALL_SECONDS 
+      ? '⚠️ Capped' 
+      : '📱 Browser Timer';
+
+    // Update CallLog to completed (only if not verified by phone yet)
     callLog.status = 'completed';
     callLog.duration = adjustedDuration;
     callLog.connectedDuration = adjustedDuration;
     callLog.endedAt = now;
     callLog.syncId = 'MANUAL';
-    callLog.notes = `Browser Timer Call. ${trustLabel}. Raw: ${rawDurationSeconds}s, Saved: ${adjustedDuration}s`;
+    callLog.notes = `Browser Timer. Raw: ${rawDurationSeconds}s`;
     await callLog.save();
-
-    // Create or update activity
-    const formatDuration = (s: number) => {
-      const m = Math.floor(s / 60);
-      const sec = s % 60;
-      if (m === 0) return `${sec}s`;
-      return sec > 0 ? `${m}m ${sec}s` : `${m}m`;
-    };
-
-    // Check if activity already exists for this callLogId (Duplication Prevention)
-    // Also check if a "Verified" sync already came in for this lead/salesperson in the last 2 minutes
-    const twoMinsAgo = new Date(now.getTime() - 2 * 60 * 1000);
-    const existingActivity = await Activity.findOne({ 
-      $or: [
-        { callLogId },
-        { 
-          leadId: callLog.leadId, 
-          createdBy: auth.userId, 
-          type: 'call', 
-          createdAt: { $gte: twoMinsAgo },
-          notes: /Verified/i 
-        }
-      ]
-    });
-
-    if (existingActivity) {
-      return apiSuccess({
-        duration: adjustedDuration,
-        rawDuration: rawDurationSeconds,
-        isLateReturn,
-        isSuspicious,
-        trustLabel,
-      }, 'Call already logged via hardware sync or previous request');
-    }
 
     await Activity.create({
       organizationId: auth.organizationId,
       leadId: callLog.leadId,
       type: 'call',
-      notes: `${trustLabel}. Duration: ${formatDuration(adjustedDuration)}.${isLateReturn ? ` ⚠️ Browser was hidden for ${formatDuration(rawDurationSeconds)} (capped).` : ''} (⏱ Waiting for phone sync...)`,
+      notes: `${trustLabel}. Duration: ${adjustedDuration}s (⏱ Syncing...)`,
       duration: adjustedDuration,
       callLogId,
       createdBy: auth.userId,
@@ -105,10 +82,8 @@ export async function POST(
     return apiSuccess({
       duration: adjustedDuration,
       rawDuration: rawDurationSeconds,
-      isLateReturn,
-      isSuspicious,
       trustLabel,
-    }, 'Call logged via browser timer');
+    }, 'Call logged via browser timer placeholder');
   } catch (err: unknown) {
     if (err instanceof Error && err.message === 'UNAUTHORIZED') return apiError('Unauthorized', 401);
     console.error(err);

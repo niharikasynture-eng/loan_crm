@@ -7,8 +7,8 @@ import { useAuth } from '@/context/AuthContext';
 
 interface CallLog {
   _id: string;
-  leadId: { name: string; phone: string } | null;
-  salesPersonId: { name: string; email: string } | null;
+  leadId: { _id: string; name: string; phone: string } | null;
+  salesPersonId: { _id: string; name: string; email: string } | null;
   duration: number;
   status: string;
   notes: string;
@@ -44,6 +44,24 @@ export default function CallLogsPage() {
     log.salesPersonId?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     log.leadId?.phone.includes(searchTerm)
   );
+
+  // ── FINAL DEDUPLICATION (Safety Net) ──
+  // Group identical calls and favor the "Verified" record.
+  const uniqueLogs = Array.from(
+    filteredLogs.reduce((acc, log) => {
+      if (!log.leadId?._id || !log.salesPersonId?._id) return acc;
+      
+      // Key: Lead + Agent + Time (Minute precisión)
+      const timeKey = new Date(log.startedAt).setSeconds(0, 0);
+      const key = `${log.leadId?._id}-${log.salesPersonId?._id}-${timeKey}`;
+      
+      const existing = acc.get(key);
+      if (!existing || (existing.syncId === 'MANUAL' && log.syncId !== 'MANUAL')) {
+        acc.set(key, log);
+      }
+      return acc;
+    }, new Map<string, CallLog>()).values()
+  ).sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
 
   const formatDuration = (s: number) => {
     if (s === 0) return '0s';
@@ -105,7 +123,7 @@ export default function CallLogsPage() {
             <div className="w-12 h-12 border-4 border-gray-100 border-t-indigo-600 rounded-full animate-spin shadow-inner" />
             <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Synchronizing Logs...</span>
           </div>
-        ) : filteredLogs.length === 0 ? (
+        ) : uniqueLogs.length === 0 ? (
           <div className="py-32 text-center bg-white border border-dashed border-[#e6e8ec] rounded-3xl">
             <div className="w-20 h-20 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-6">
               <Phone className="w-10 h-10 text-gray-100" />
@@ -126,7 +144,7 @@ export default function CallLogsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f0f2f5]">
-                {filteredLogs.map((log) => (
+                {uniqueLogs.map((log) => (
                   <tr key={log._id} className="hover:bg-gray-50/50 transition-colors group">
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-3">

@@ -25,6 +25,7 @@ export async function POST(
       organizationId: auth.organizationId,
       salesPersonId: auth.userId,
       status: 'initiated',
+      isBrowserInitiated: true,
     });
 
     await Lead.updateOne(

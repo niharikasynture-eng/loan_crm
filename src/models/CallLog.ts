@@ -19,6 +19,7 @@ export interface ICallLog extends Document {
   recordingUrl?: string;
   twilioCallSid?: string;
   syncId?: string;
+  isBrowserInitiated?: boolean;
 }
 
 const CallLogSchema = new Schema<ICallLog>(
@@ -46,6 +47,7 @@ const CallLogSchema = new Schema<ICallLog>(
     recordingUrl: { type: String },
     twilioCallSid: { type: String },
     syncId: { type: String, index: true },
+    isBrowserInitiated: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

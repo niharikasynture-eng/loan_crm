@@ -139,27 +139,27 @@ export async function POST(req: NextRequest) {
       }
 
       // ────── SMART CORRECTION (Overwrite Browser Timer) ──────
-      // If there's a "Browser Timer" activity/calllog for the same lead/user within 15 mins,
+      // If there's a "Browser Timer" activity/calllog for the same lead/user within 60 mins,
       // overwrite it with the real hardware duration instead of duplicating.
-      const fifteenMinsAgo = new Date(Date.now() - 15 * 60 * 1000);
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
       
-      // 1. Find existing Activity
+      // 1. Find existing Activity (ONLY if it's browser-initiated or placeholder)
       let activityToUpdate = await Activity.findOne({
         leadId: lead._id,
         createdBy: user._id,
         type: 'call',
-        createdAt: { $gte: fifteenMinsAgo },
-        notes: /Browser Timer/i
+        createdAt: { $gte: oneHourAgo },
+        notes: /Timer|Syncing|Manual/i
       }).sort({ createdAt: -1 });
 
-      // 2. Find existing CallLog
+      // 2. Find existing CallLog (Look for ANY manual/placeholder for this lead/user)
       let callLogToUpdate = await CallLog.findOne({
         leadId: lead._id,
         salesPersonId: user._id,
-        createdAt: { $gte: fifteenMinsAgo },
+        createdAt: { $gte: oneHourAgo },
         $or: [
           { syncId: 'MANUAL' },
-          { notes: /Browser Timer/i },
+          { notes: /Timer|Manual/i },
           { status: 'initiated' }
         ]
       }).sort({ createdAt: -1 });
