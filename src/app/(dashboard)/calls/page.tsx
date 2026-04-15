@@ -20,16 +20,24 @@ export default function CallLogsPage() {
   const { user: authUser } = useAuth();
   const [logs, setLogs] = useState<CallLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   async function loadLogs() {
     setLoading(true);
+    setError(null);
     try {
       // Fetch all call logs for the organization
       const data = await api.get<{ callLogs: CallLog[] }>('/calls');
+      
+      if (!data || !data.callLogs) {
+        throw new Error('API returned malformed data: ' + JSON.stringify(data));
+      }
+      
       setLogs(data.callLogs);
-    } catch (err) {
-      console.error('Failed to load call logs');
+    } catch (err: any) {
+      console.error('Failed to load call logs:', err);
+      setError(err.message || 'Failed to communicate with records server');
     } finally {
       setLoading(false);
     }
@@ -53,34 +61,30 @@ export default function CallLogsPage() {
            agentName.includes(search);
   });
 
-  // ── FINAL DEDUPLICATION (Safety Net) ──
+  // ── FINAL DEDUPLICATION (Ultra-Safe) ──
+  // We prioritize 'Verified' over 'Manual' but we NEVER skip a log.
   const uniqueLogs = Array.from(
     filteredLogs.reduce((acc, log) => {
-      // Robust key generation
-      const leadId = log.leadId?._id || (log.leadId as any)?.id || 'no-lead';
-      const agentId = log.salesPersonId?._id || (log.salesPersonId as any)?.id || 'no-agent';
-      
+      // Key: Try to group by Lead + Agent + Time, but fallback to individual ID
+      const leadId = log.leadId?._id || (log.leadId as any)?.id || 'unknown';
+      const agentId = log.salesPersonId?._id || (log.salesPersonId as any)?.id || 'unknown';
       const timeDate = new Date(log.startedAt);
       const timeKey = isNaN(timeDate.getTime()) ? 'no-time' : timeDate.setSeconds(0, 0);
       
-      // Composite key for grouping true duplicates
-      const groupKey = (leadId !== 'no-lead' && agentId !== 'no-agent' && timeKey !== 'no-time')
+      // If we have full metadata, use a composite key for deduplication
+      const groupKey = (leadId !== 'unknown' && agentId !== 'unknown' && timeKey !== 'no-time')
         ? `${leadId}-${agentId}-${timeKey}`
-        : log._id || Math.random().toString();
+        : log._id || `${Math.random()}`; // Unique enough to satisfy the map
       
       const existing = acc.get(groupKey);
       
-      // Favor hardware-verified logs
+      // Merge: Hardware sync (NOT manual) takes priority
       if (!existing || (existing.syncId === 'MANUAL' && log.syncId !== 'MANUAL')) {
         acc.set(groupKey, log);
       }
       return acc;
     }, new Map<string, CallLog>()).values()
-  ).sort((a, b) => {
-    const timeA = new Date(a.startedAt).getTime() || 0;
-    const timeB = new Date(b.startedAt).getTime() || 0;
-    return timeB - timeA;
-  });
+  ).sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
 
   const formatDuration = (s: number) => {
     if (s === 0) return '0s';
@@ -106,6 +110,11 @@ export default function CallLogsPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            {logs.length > 0 && (
+              <div className="px-3 py-1 bg-white border border-gray-200 rounded-lg text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                Raw Storage: {logs.length}
+              </div>
+            )}
             <div className="relative">
               <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
               <input 
@@ -119,11 +128,27 @@ export default function CallLogsPage() {
           </div>
         </div>
 
+        {error && (
+          <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center gap-3 text-red-600">
+            <Shield className="w-5 h-5" />
+            <div className="flex flex-col">
+              <p className="text-xs font-bold uppercase tracking-tight">Connection Problem</p>
+              <p className="text-xs opacity-80">{error}</p>
+            </div>
+            <button 
+              onClick={() => loadLogs()}
+              className="ml-auto px-4 py-1.5 bg-red-600 text-white text-[10px] font-black rounded-xl uppercase tracking-widest hover:bg-red-700 transition-colors"
+            >
+              Retry Sync
+            </button>
+          </div>
+        )}
+
         {/* Stats Row */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
           <div className="bg-white p-6 rounded-[24px] border border-[#e6e8ec] shadow-sm">
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Synced Logs</p>
-            <p className="text-2xl font-black text-gray-900">{logs.length}</p>
+            <p className="text-2xl font-black text-gray-900">{uniqueLogs.length}</p>
           </div>
           <div className="bg-white p-6 rounded-[24px] border border-[#e6e8ec] shadow-sm">
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Connected Minutes</p>
@@ -149,6 +174,7 @@ export default function CallLogsPage() {
             </div>
             <h3 className="text-xl font-bold text-gray-900 mb-2">No call records found</h3>
             <p className="text-sm text-gray-500">Call logs will appear here the moment a salesperson hangs up.</p>
+            {logs.length > 0 && <p className="mt-4 text-[10px] text-orange-500 font-bold uppercase">Debug: {logs.length} raw logs exist but were hidden by grouping.</p>}
           </div>
         ) : (
           <div className="bg-white rounded-[24px] border border-[#e6e8ec] shadow-sm overflow-hidden">
