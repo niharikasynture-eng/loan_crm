@@ -4,6 +4,7 @@ import { requireAuth, apiError, apiSuccess } from '@/lib/auth';
 import CallLog from '@/models/CallLog';
 import Activity from '@/models/Activity';
 import Lead from '@/models/Lead';
+import User from '@/models/User';
 
 export const dynamic = 'force-dynamic';
 
