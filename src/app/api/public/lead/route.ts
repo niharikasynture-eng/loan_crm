@@ -99,14 +99,7 @@ export async function POST(req: NextRequest) {
     }, { status: 201 });
 
   } catch (error: any) {
-    console.error('Public Lead Capture Error:', error);
-    // Explicitly write to error_log.txt since this is a 500
-    try {
-      const fs = require('fs');
-      const logData = `PUBLIC LEAD ERROR: ${error.message}\nSTACK: ${error.stack}\nTIME: ${new Date().toISOString()}\n`;
-      fs.appendFileSync('error_log.txt', logData);
-    } catch (e) {}
-    
+    console.error('[PUBLIC LEAD ERROR]', error.message, error.stack);
     return NextResponse.json({ message: 'Internal Server Error', error: error.message }, { status: 500 });
   }
 }

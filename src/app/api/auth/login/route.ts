@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import fs from 'fs';
+
 import { connectDB } from '@/lib/db';
 import { signToken } from '@/lib/jwt';
 import { apiError, apiSuccess } from '@/lib/auth';
@@ -85,8 +85,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (err: unknown) {
     console.error('[LOGIN_ERROR]', err); // Critical for debugging in terminal
-    const logData = `ERROR: ${err instanceof Error ? err.stack || err.message : String(err)}\nTIME: ${new Date().toISOString()}\n-------------------\n`;
-    try { fs.appendFileSync('error_log.txt', logData); } catch {}
+    console.error('[LOGIN_ERROR] Details:', err instanceof Error ? err.stack : String(err));
     return apiError('Login failed', 500);
   }
 }

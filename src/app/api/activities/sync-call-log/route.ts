@@ -1,11 +1,9 @@
-// Fix applied at 13:20 PM - Ensuring 'let' is recognized
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import Activity from '@/models/Activity';
 import Lead from '@/models/Lead';
 import User from '@/models/User';
 import CallLog from '@/models/CallLog';
-import fs from 'fs';
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,7 +13,7 @@ export async function POST(req: NextRequest) {
     const contentType = req.headers.get('content-type') || '';
     let rawData: any;
     
-    // DEBUG LOGGING - Capture everything
+    // Parse body based on content type
     try {
       if (contentType.includes('application/json')) {
         rawData = await req.json();
@@ -29,11 +27,7 @@ export async function POST(req: NextRequest) {
       rawData = Object.fromEntries(searchParams);
     }
 
-    const logEntry = `\n[${new Date().toISOString()}] SYNC ATTEMPT:\nParams: ${JSON.stringify(Object.fromEntries(searchParams))}\nBody: ${JSON.stringify(rawData)}\n`;
-    fs.appendFileSync('sync_debug.log', logEntry);
-    
-    console.log('\x1b[36m%s\x1b[0m', '--- 📱 SYNC REQUEST RECEIVED FROM PHONE ---');
-    console.log(`Phone: ${rawData.phone || 'Unknown'}, Duration: ${rawData.duration || '0'}`);
+    console.log('[SYNC] Request received:', JSON.stringify(rawData));
 
     // Wrap in array if it's a single object
     const logs = Array.isArray(rawData) ? rawData : [rawData];
@@ -42,7 +36,6 @@ export async function POST(req: NextRequest) {
     for (const body of logs) {
       // 1. Unified Key Matching (Flexible for 30+ different phone types)
       const allData = { ...Object.fromEntries(searchParams), ...body };
-      const allKeys = Object.keys(allData).map(k => k.trim().toLowerCase());
 
       // Find Token
       const tokenKey = Object.keys(allData).find(k => k.trim().toLowerCase() === 'token');
@@ -52,7 +45,7 @@ export async function POST(req: NextRequest) {
       const phoneKey = Object.keys(allData).find(k => ['phone', 'number', 'call_number', 'from', 'to', 'contact_number'].includes(k.trim().toLowerCase()));
       const rawPhone = phoneKey ? String(allData[phoneKey]) : '';
 
-      // Find Duration (Crucial: Handles " [15s] " or "60" or "01:00")
+      // Find Duration
       const durationKey = Object.keys(allData).find(k => ['duration', 'dur', 'time', 'seconds', 'call_duration'].includes(k.trim().toLowerCase()));
       const durationRaw = durationKey ? String(allData[durationKey]) : '0';
 
@@ -71,21 +64,19 @@ export async function POST(req: NextRequest) {
       }
 
       if (!user) {
-        const msg = `Error: Invalid Token (${tokenRaw})`;
-        fs.appendFileSync('sync_debug.log', `${msg}\n`);
+        console.log(`[SYNC] Invalid token: ${tokenRaw}`);
         results.push({ error: 'Invalid sync token', tokenReceived: tokenRaw });
         continue;
       }
 
-      // Clean Duration (Handle decimals from Now-starttime calculation)
+      // Clean Duration
       const duration = Math.round(parseFloat(durationRaw)) || 0;
       
       // Clean Phone Number
       const normalizedIncoming = rawPhone.replace(/\D/g, '');
       
       if (!normalizedIncoming || normalizedIncoming.length < 5) {
-        const msg = `Error: Invalid Phone (${rawPhone})`;
-        fs.appendFileSync('sync_debug.log', `${msg}\n`);
+        console.log(`[SYNC] Invalid phone: ${rawPhone}`);
         results.push({ error: 'Invalid phone', rawPhone });
         continue;
       }
@@ -100,7 +91,7 @@ export async function POST(req: NextRequest) {
       });
 
       if (!lead) {
-        // PREDICTIVE MATCHING (Fix for Samsung bug: phone sends its own number instead of lead's)
+        // PREDICTIVE MATCHING (Fix for Samsung bug)
         const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
         const pendingCall = await Activity.findOne({
           organizationId: user.organizationId,
@@ -113,8 +104,7 @@ export async function POST(req: NextRequest) {
         if (pendingCall) {
           const matchedLead = await Lead.findById(pendingCall.leadId);
           if (matchedLead) {
-            fs.appendFileSync('sync_debug.log', `Predictive Match: Lead ${matchedLead.name} found from pending CRM action.\n`);
-            // Use this lead and mark the pending activity as completed so we don't reuse it
+            console.log(`[SYNC] Predictive Match: ${matchedLead.name}`);
             lead = matchedLead;
             pendingCall.status = 'completed';
             await pendingCall.save();
@@ -123,8 +113,7 @@ export async function POST(req: NextRequest) {
       }
 
       if (!lead) {
-        const msg = `Warning: Lead not found for number ${normalizedIncoming}`;
-        fs.appendFileSync('sync_debug.log', `${msg}\n`);
+        console.log(`[SYNC] Lead not found for phone: ${normalizedIncoming}`);
         results.push({ status: 'ignored', message: 'Lead not found', phone: normalizedIncoming });
         continue;
       }
@@ -138,13 +127,11 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      // ────── SMART CORRECTION (Overwrite Browser Timer) ──────
-      // If there's a "Browser Timer" activity/calllog for the same lead/user within 60 mins,
-      // overwrite it with the real hardware duration instead of duplicating.
+      // ────── SMART CORRECTION (Overwrite Browser Timer if Smart Method was used) ──────
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
       
-      // 1. Find existing Activity (ONLY if it's browser-initiated or placeholder)
-      let activityToUpdate = await Activity.findOne({
+      // Find existing browser-placeholder Activity
+      const activityToUpdate = await Activity.findOne({
         leadId: lead._id,
         createdBy: user._id,
         type: 'call',
@@ -152,8 +139,8 @@ export async function POST(req: NextRequest) {
         notes: /Timer|Syncing|Manual/i
       }).sort({ createdAt: -1 });
 
-      // 2. Find existing CallLog (Look for ANY manual/placeholder for this lead/user)
-      let callLogToUpdate = await CallLog.findOne({
+      // Find existing browser-placeholder CallLog
+      const callLogToUpdate = await CallLog.findOne({
         leadId: lead._id,
         salesPersonId: user._id,
         createdAt: { $gte: oneHourAgo },
@@ -168,6 +155,7 @@ export async function POST(req: NextRequest) {
       const verifiedNotes = `✅ Verified ${callTypeLabel} Call. Duration: ${duration}s`;
 
       if (activityToUpdate || callLogToUpdate) {
+        // Update existing browser placeholder records with hardware-verified data
         if (activityToUpdate) {
           activityToUpdate.duration = duration;
           activityToUpdate.notes = verifiedNotes;
@@ -182,34 +170,32 @@ export async function POST(req: NextRequest) {
           callLogToUpdate.connectedDuration = duration;
           callLogToUpdate.syncId = syncId;
           callLogToUpdate.status = 'completed';
-          callLogToUpdate.notes = `Hardware Verified Override. Real logs: ${duration}s`;
+          callLogToUpdate.notes = `Hardware Verified. Real duration: ${duration}s`;
           callLogToUpdate.endedAt = new Date();
           await callLogToUpdate.save();
         } else if (activityToUpdate?.callLogId) {
-          // If we found an activity but it linked to a callLog we missed in the query
           await CallLog.findByIdAndUpdate(activityToUpdate.callLogId, {
-            duration: duration,
+            duration,
             connectedDuration: duration,
-            syncId: syncId,
+            syncId,
             status: 'completed',
-            notes: `Hardware Verified Override via Activity Link.`,
+            notes: `Hardware Verified via Activity Link.`,
             endedAt: new Date()
           });
         }
         
-        fs.appendFileSync('sync_debug.log', `CORRECTION (DEEP MERGE): Updated browser records for ${lead.name} with verified ${duration}s\n`);
+        console.log(`[SYNC] CORRECTED browser record for ${lead.name} → ${duration}s`);
         results.push({ status: 'corrected', activityId: activityToUpdate?._id, duration, lead: lead.name });
-        continue; // Skip creation
+        continue;
       }
 
-      // ────── SAVE NEW RECORDS (If no correction needed) ──────
-      // 1. Create Official Call Log
-      await CallLog.create({
+      // ────── CREATE NEW RECORDS (Automate App: no browser placeholder exists) ──────
+      const newCallLog = await CallLog.create({
         leadId: lead._id,
         organizationId: user.organizationId,
         salesPersonId: user._id,
         status: 'completed',
-        duration: duration,
+        duration,
         connectedDuration: duration,
         startedAt: new Date(timestampRaw),
         endedAt: new Date(),
@@ -217,41 +203,36 @@ export async function POST(req: NextRequest) {
         notes: `Automated ${callTypeLabel} call. (Hardware Verified)`,
       });
 
-      // 2. Create Public Activity Feed Item
       const activity = await Activity.create({
         organizationId: user.organizationId,
         leadId: lead._id,
         type: 'call',
-        duration: duration,
+        duration,
         syncId,
-        notes: `✅ Verified ${callTypeLabel} Call. Duration: ${duration}s`,
+        notes: verifiedNotes,
         createdBy: user._id,
         status: 'completed',
         completedAt: new Date(),
       });
 
-      // 3. Update Lead Status
+      // Update Lead Status
       lead.lastCalledAt = new Date();
       lead.totalCalls = (lead.totalCalls || 0) + 1;
       lead.status = 'contacted';
       if (lead.pipelineStage === 'new') lead.pipelineStage = 'contacted';
       await lead.save();
 
-      fs.appendFileSync('sync_debug.log', `Success: Logged ${duration}s call for ${lead.name}\n`);
-      results.push({ status: 'success', activityId: activity._id, duration, lead: lead.name });
+      console.log(`[SYNC] SUCCESS: Logged ${duration}s call for ${lead.name} (${callTypeLabel})`);
+      results.push({ status: 'success', activityId: activity._id, callLogId: newCallLog._id, duration, lead: lead.name });
     }
-
-    const debugId = `VERIFIED-${Math.floor(Math.random() * 9000) + 1000}`;
-    console.log(`\x1b[35m[${debugId}]\x1b[0m SYNC COMPLETED: ${results.length} results processed.`);
 
     return NextResponse.json({ 
       success: true, 
-      debugId,
       processed: results.length,
       results 
     });
   } catch (err: any) {
-    console.error('CRITICAL SYNC ERROR:', err.message);
+    console.error('[SYNC] CRITICAL ERROR:', err.message);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
