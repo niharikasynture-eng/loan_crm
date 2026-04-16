@@ -129,7 +129,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       
       {/* Dynamic Sidebar Container */}
       <div 
-        className={`fixed inset-y-0 left-0 z-50 lg:sticky lg:top-0 lg:h-screen transition-all duration-300 ease-in-out bg-white border-r border-gray-100 flex-shrink-0 overflow-hidden ${
+        className={`fixed inset-y-0 left-0 z-50 lg:sticky lg:top-0 h-[100dvh] transition-all duration-300 ease-in-out bg-white border-r border-gray-100 flex-shrink-0 overflow-hidden ${
           isSidebarOpen ? 'w-[280px] translate-x-0' : 'lg:w-[80px] -translate-x-full lg:translate-x-0'
         }`}
       >

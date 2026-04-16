@@ -248,41 +248,22 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
         )}
       </nav>
 
-      {/* ── User Footer ── */}
+      {/* ── Action Footer ── */}
       <div className={`p-4 border-t ${isSuperAdmin ? 'border-[#e2e8f0] bg-white/50' : 'border-gray-100 bg-white'}`}>
-        {!isCollapsed ? (
-          <div className="flex items-center gap-3 py-1">
-            <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-indigo-100/50 shadow-lg border-2 border-white overflow-hidden flex-shrink-0 bg-indigo-600`}>
-               {user?.avatar ? <img src={user.avatar} alt="" className="w-full h-full object-cover" /> : user?.name?.charAt(0).toUpperCase()}
-            </div>
-            <div className="flex-1 min-w-0">
-               <p className="text-[13px] font-bold text-gray-900 truncate leading-none mb-1 uppercase tracking-tight">{user?.name || 'Mayur S'}</p>
-               <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest leading-none bg-[#f1f5f9] text-[#64748b] border border-[#e2e8f0]`}>
-               {user?.role?.replace('_', ' ').toUpperCase() || 'SUPER ADMIN'}
-             </span>
-            </div>
-            <button 
-              onClick={logout}
-              title="Sign Out"
-              className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-            >
-              <LogOut size={16} />
-            </button>
+        <button 
+          onClick={logout}
+          title="Sign Out"
+          className={`w-full flex items-center gap-3 rounded-2xl transition-all duration-200 border-2 items-center group ${isCollapsed ? 'justify-center p-0 border-transparent text-gray-500 hover:bg-red-50 hover:text-red-500 h-12 w-12 mx-auto' : 'px-4 py-3 border-transparent text-gray-500 hover:bg-red-50 hover:text-red-600'}`}
+        >
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${isCollapsed ? '' : 'bg-gray-100 group-hover:bg-red-100'}`}>
+            <LogOut size={isCollapsed ? 20 : 18} className="group-hover:text-red-500 transition-colors" />
           </div>
-        ) : (
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-white">
-               {user?.name?.charAt(0).toUpperCase()}
-            </div>
-            <button onClick={logout} className="p-2 text-gray-400 hover:text-red-500">
-               <LogOut size={18} />
-            </button>
-          </div>
-        )}
+          {!isCollapsed && <span className="text-sm font-bold tracking-tight animate-fade-in group-hover:text-red-600 transition-colors">Sign Out</span>}
+        </button>
       </div>
 
       <style jsx>{`
-        .sidebar { height: 100vh; overflow: hidden; display: flex; flexDirection: column; }
+        .sidebar { height: 100%; overflow: hidden; display: flex; flexDirection: column; }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }

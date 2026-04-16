@@ -177,8 +177,8 @@ export default function CallLogsPage() {
             {logs.length > 0 && <p className="mt-4 text-[10px] text-orange-500 font-bold uppercase">Debug: {logs.length} raw logs exist but were hidden by grouping.</p>}
           </div>
         ) : (
-          <div className="bg-white rounded-[24px] border border-[#e6e8ec] shadow-sm overflow-hidden">
-            <table className="w-full text-left">
+          <div className="bg-white rounded-[24px] border border-[#e6e8ec] shadow-sm overflow-hidden overflow-x-auto">
+            <table className="w-full text-left min-w-[800px]">
               <thead>
                 <tr className="bg-gray-50 border-b border-[#e6e8ec]">
                   <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Agent</th>

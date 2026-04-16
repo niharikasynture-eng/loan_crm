@@ -178,7 +178,7 @@ export default function RegisterPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {[
               { icon: <Building2 size={18} />, text: 'Create your organization in seconds' },
-              { icon: <Users size={18} />,     text: 'Invite team members with role-based access' },
+              { icon: <Users size={18} />, text: 'Invite team members with role-based access' },
               { icon: <TrendingUp size={18} />, text: 'Track leads, deals and your pipeline' },
               { icon: <BarChart2 size={18} />, text: 'Get approved and go live right away' },
             ].map((item, i) => (

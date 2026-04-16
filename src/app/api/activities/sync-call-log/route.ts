@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
         createdBy: user._id,
         type: 'call',
         createdAt: { $gte: oneHourAgo },
-        notes: /Timer|Syncing|Manual/i
+        notes: /Timer|Syncing|Manual|Smart App/i
       }).sort({ createdAt: -1 });
 
       // Find existing browser-placeholder CallLog
@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
       }).sort({ createdAt: -1 });
 
       const callTypeLabel = typeRaw.toLowerCase().includes('incoming') ? 'Incoming' : 'Outgoing';
-      const verifiedNotes = `✅ Verified ${callTypeLabel} Call. Duration: ${duration}s`;
+      let verifiedNotes = `✅ Verified ${callTypeLabel} Call. Duration: ${duration}s`;
 
       if (activityToUpdate || callLogToUpdate) {
         // Update existing browser placeholder records with hardware-verified data
@@ -163,8 +163,22 @@ export async function POST(req: NextRequest) {
           activityToUpdate.status = 'completed';
           activityToUpdate.completedAt = new Date();
           await activityToUpdate.save();
+        } else if (callLogToUpdate) {
+          // User initiated call via browser, but background sync arrived before they returned to CRM tab.
+          // Create the verified activity since browser-end hasn't run.
+          await Activity.create({
+            organizationId: user.organizationId,
+            leadId: lead._id,
+            type: 'call',
+            duration,
+            syncId,
+            notes: verifiedNotes,
+            createdBy: user._id,
+            status: 'completed',
+            completedAt: new Date(),
+            callLogId: callLogToUpdate._id
+          });
         }
-
         if (callLogToUpdate) {
           callLogToUpdate.duration = duration;
           callLogToUpdate.connectedDuration = duration;

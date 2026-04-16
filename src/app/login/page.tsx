@@ -51,7 +51,7 @@ export default function LoginPage() {
   const activeRole = ROLE_OPTIONS.find(r => r.value === selectedRole)!;
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: "'Inter', sans-serif", background: '#f0f4f9' }} className="flex-col sm:flex-row">
+    <div style={{ display: 'flex', minHeight: '100dvh', fontFamily: "'Inter', sans-serif", background: '#ffffff' }} className="flex-col sm:flex-row">
 
       {/* ── LEFT PANEL — Login Form ── */}
       <div

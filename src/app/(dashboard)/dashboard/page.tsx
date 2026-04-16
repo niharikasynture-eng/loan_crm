@@ -72,7 +72,7 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="max-w-screen-2xl mx-auto px-6 py-6 flex flex-col gap-6">
+    <div className="max-w-screen-2xl mx-auto p-4 sm:p-6 flex flex-col gap-4 sm:gap-6">
 
       {/* ── Dashboard Header ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -86,23 +86,24 @@ export default function DashboardPage() {
 
       {/* Public Lead Form Banner */}
       {(user?.role === 'org_admin' || user?.role === 'manager') && (
-        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
+        <div className="bg-white border border-gray-100 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
             <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0 text-indigo-600">
               <Link2 size={18} />
             </div>
             <div>
-              <p className="text-sm font-bold text-gray-900">Public Lead Capture Form</p>
-              <p className="text-[11px] font-medium text-gray-400">Capture leads automatically into your CRM</p>
+              <p className="text-sm font-bold text-gray-900">Public Lead Capture</p>
+              <p className="text-[11px] font-medium text-gray-400">Capture leads automatically</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            <div className="flex-1 sm:flex-none bg-gray-50 border border-gray-100 rounded-lg px-3 py-2 text-[11px] text-indigo-600 font-medium font-mono truncate max-w-[200px] md:max-w-xs text-center sm:text-left">
+          
+          <div className="flex items-center w-full sm:w-auto p-1 bg-gray-50 border border-gray-100 rounded-lg">
+            <div className="flex-1 px-3 py-2 text-[10px] sm:text-[11px] text-indigo-600 font-medium font-mono truncate min-w-0">
               {publicLeadUrl}
             </div>
             <button
               onClick={copyToClipboard}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider text-white transition-all flex-shrink-0 ${copied ? 'bg-emerald-500' : 'bg-indigo-600 hover:bg-indigo-700'}`}
+              className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-md text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-white transition-all flex-shrink-0 ${copied ? 'bg-emerald-500' : 'bg-indigo-600 hover:bg-indigo-700'}`}
             >
               {copied ? <CheckCircle size={12} /> : <Copy size={12} />}
               {copied ? 'Copied' : 'Copy'}
@@ -114,15 +115,15 @@ export default function DashboardPage() {
       {/* ── Metric Cards ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {metricCards.map(({ label, value, sub, subColor, icon: Icon, iconBg, iconColor }) => (
-          <div key={label} className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm hover:border-gray-200 transition-all group">
+          <div key={label} className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm hover:border-gray-200 transition-all group overflow-hidden">
             <div className="flex items-center justify-between mb-6">
               <span className={`p-2 rounded-lg ${iconBg} ${iconColor}`}>
                 <Icon size={18} />
               </span>
-              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{label}</p>
+              <p className="text-[9px] font-bold text-gray-400 text-right uppercase tracking-wider leading-tight min-w-0 flex-1 truncate ml-2 break-normal">{label}</p>
             </div>
-            <p className="text-3xl font-bold text-gray-900 leading-none mb-2 tabular-nums">{value ?? 0}</p>
-            <p className={`text-[10px] font-bold uppercase tracking-wide ${subColor}`}>{sub}</p>
+            <p className="text-2xl sm:text-3xl font-bold text-gray-900 leading-none mb-2 tabular-nums">{value ?? 0}</p>
+            <p className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wide truncate ${subColor}`}>{sub}</p>
           </div>
         ))}
       </div>
@@ -146,13 +147,13 @@ export default function DashboardPage() {
           ) : activities.map((act) => {
             const t = TYPE_COLORS[act.type?.toLowerCase()] ?? { bg: 'bg-gray-50', text: 'text-gray-500', dot: 'bg-gray-400' };
             return (
-              <div key={act._id} className="flex items-start gap-8 p-12 hover:bg-gray-50/50 transition-colors group overflow-hidden">
-                <div className="w-14 h-14 rounded-xl bg-indigo-50 border border-indigo-100/50 flex items-center justify-center text-indigo-600 text-lg font-bold flex-shrink-0">
+              <div key={act._id} className="flex items-start gap-4 sm:gap-6 p-5 sm:p-8 hover:bg-gray-50/50 transition-colors group overflow-hidden">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-indigo-50 border border-indigo-100/50 flex items-center justify-center text-indigo-600 text-sm sm:text-lg font-bold flex-shrink-0">
                   {act.createdBy?.name?.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-4 flex-wrap mb-4 text-base">
-                    <span className="font-bold text-gray-900">{act.createdBy?.name}</span>
+                  <div className="flex items-center gap-2 sm:gap-4 flex-wrap mb-3 text-sm sm:text-base">
+                    <span className="font-bold text-gray-900 truncate max-w-[120px] sm:max-w-none">{act.createdBy?.name}</span>
                     <span className={`inline-flex items-center gap-2 text-[11px] font-bold px-3 py-1 rounded-md ${t.bg} ${t.text} uppercase tracking-wider border border-current opacity-70`}>
                       {act.type}
                     </span>
@@ -160,8 +161,8 @@ export default function DashboardPage() {
                     <span className="font-bold text-blue-600 hover:underline cursor-pointer truncate max-w-[250px]">{act.leadId?.name}</span>
                   </div>
                   {act.notes && (
-                    <div className="bg-gray-50/50 rounded-2xl px-6 py-4 border border-gray-100/50 mb-4 shadow-inner">
-                      <p className="text-base font-medium text-gray-700 leading-relaxed italic">
+                    <div className="bg-gray-50/50 rounded-xl sm:rounded-2xl px-4 py-3 sm:px-6 sm:py-4 border border-gray-100/50 mb-3 shadow-inner">
+                      <p className="text-sm sm:text-base font-medium text-gray-700 leading-relaxed italic break-words">
                         &ldquo;{act.notes}&rdquo;
                       </p>
                     </div>

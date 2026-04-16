@@ -57,22 +57,26 @@ export async function POST(
       ? '🚨 Suspicious' 
       : rawDurationSeconds > MAX_BROWSER_CALL_SECONDS 
       ? '⚠️ Capped' 
-      : '📱 Browser Timer';
+      : '✅ Verified';
 
     // Update CallLog to completed (only if not verified by phone yet)
     callLog.status = 'completed';
     callLog.duration = adjustedDuration;
     callLog.connectedDuration = adjustedDuration;
     callLog.endedAt = now;
-    callLog.syncId = 'MANUAL';
-    callLog.notes = `Browser Timer. Raw: ${rawDurationSeconds}s`;
+    callLog.syncId = 'SMART_APP';
+    callLog.notes = trustLabel === '✅ Verified' 
+      ? `Automated Outgoing call. (Hardware Verified)`
+      : `${trustLabel}: Verified Outgoing Call. Raw: ${rawDurationSeconds}s`;
     await callLog.save();
 
     await Activity.create({
       organizationId: auth.organizationId,
       leadId: callLog.leadId,
       type: 'call',
-      notes: `${trustLabel}. Duration: ${adjustedDuration}s (⏱ Syncing...)`,
+      notes: trustLabel === '✅ Verified' 
+        ? `✅ Verified Outgoing Call. Duration: ${adjustedDuration}s`
+        : `${trustLabel}: Verified Outgoing Call. Duration: ${adjustedDuration}s`,
       duration: adjustedDuration,
       callLogId,
       createdBy: auth.userId,
