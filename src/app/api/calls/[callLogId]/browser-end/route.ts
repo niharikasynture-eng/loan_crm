@@ -4,8 +4,6 @@ import { requireAuth, apiError, apiSuccess } from '@/lib/auth';
 import CallLog from '@/models/CallLog';
 import Activity from '@/models/Activity';
 
-const MAX_BROWSER_CALL_SECONDS = 600; // 10 min hard cap
-
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ callLogId: string }> }
@@ -20,75 +18,62 @@ export async function POST(
       _id: callLogId,
       organizationId: auth.organizationId,
       salesPersonId: auth.userId,
-      status: 'initiated',
     });
 
-    if (!callLog) return apiError('Call log already completed or not found', 404);
+    if (!callLog) return apiError('Call log not found', 404);
 
     const now = new Date();
-    // ── STEP 1: PRIORITIZE HARDWARE SYNC ──
-    // Check if a hardware sync already came in for this lead/salesperson in the last 60 minutes
-    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-    const hardwareVerifiedSync = await Activity.findOne({ 
-      leadId: callLog.leadId, 
-      createdBy: auth.userId, 
-      type: 'call', 
-      createdAt: { $gte: oneHourAgo },
-      notes: /Verified/i 
-    });
 
-    if (hardwareVerifiedSync) {
-      // If a hardware sync already arrived, this browser timer is redundant.
-      // Delete the placeholder initiated log and exit silently.
-      await CallLog.findByIdAndDelete(callLogId);
+    // ── STEP 1: If already completed (by Hardware Sync), return gracefully ──
+    if (callLog.status === 'completed') {
       return apiSuccess({
-        duration: hardwareVerifiedSync.duration || 0,
+        duration: callLog.duration || 0,
         trustLabel: '✅ Auto-Synced by Device',
         syncStatus: 'already_verified'
-      }, 'Call already verified via hardware sync. Cleanup successful.');
+      }, 'Call already verified via hardware sync.');
     }
 
-    // ── STEP 2: CALCULATE BROWSER DURATION ──
-    const rawDurationSeconds = Math.round((now.getTime() - callLog.startedAt.getTime()) / 1000);
-    const duration = Math.min(rawDurationSeconds, MAX_BROWSER_CALL_SECONDS);
-    const adjustedDuration = Math.max(0, duration - 5);
+    // ── STEP 2: Mark CallLog as placeholder — do NOT use browser elapsed time as duration ──
+    // Browser click-to-return time includes dialing + ringing (easily 15-25s even for a 5s call).
+    // The ONLY source of truth for real talk duration is the Automate app hardware sync.
+    const rawBrowserElapsed = Math.round((now.getTime() - callLog.startedAt.getTime()) / 1000);
 
-    const trustLabel = rawDurationSeconds > MAX_BROWSER_CALL_SECONDS * 1.5 
-      ? '🚨 Suspicious' 
-      : rawDurationSeconds > MAX_BROWSER_CALL_SECONDS 
-      ? '⚠️ Capped' 
-      : '✅ Verified';
-
-    // Update CallLog to completed (only if not verified by phone yet)
     callLog.status = 'completed';
-    callLog.duration = adjustedDuration;
-    callLog.connectedDuration = adjustedDuration;
     callLog.endedAt = now;
-    callLog.syncId = 'SMART_APP';
-    callLog.notes = trustLabel === '✅ Verified' 
-      ? `Automated Outgoing call. (Hardware Verified)`
-      : `${trustLabel}: Verified Outgoing Call. Raw: ${rawDurationSeconds}s`;
+    callLog.syncId = 'BROWSER_TIMER';
+    // Store elapsed for debugging only — never shown to users
+    callLog.notes = `[Placeholder: browser elapsed ${rawBrowserElapsed}s — awaiting hardware sync]`;
+    callLog.duration = 0;            // Hardware sync sets the real duration
+    callLog.connectedDuration = 0;
     await callLog.save();
 
-    await Activity.create({
-      organizationId: auth.organizationId,
-      leadId: callLog.leadId,
-      type: 'call',
-      notes: trustLabel === '✅ Verified' 
-        ? `✅ Verified Outgoing Call. Duration: ${adjustedDuration}s`
-        : `${trustLabel}: Verified Outgoing Call. Duration: ${adjustedDuration}s`,
-      duration: adjustedDuration,
+    // ── STEP 3: Create a provisional Activity with duration 0 ──
+    // sync-call-log (Automate app) will find this by syncId: 'BROWSER_TIMER' and overwrite with real data.
+    const existingActivity = await Activity.findOne({
       callLogId,
-      createdBy: auth.userId,
-      status: 'completed',
-      completedAt: now,
+      organizationId: auth.organizationId,
     });
 
+    if (!existingActivity) {
+      await Activity.create({
+        organizationId: auth.organizationId,
+        leadId: callLog.leadId,
+        type: 'call',
+        notes: `📱 Call logged. Syncing duration from device...`,
+        duration: 0,
+        callLogId,
+        createdBy: auth.userId,
+        status: 'completed',
+        completedAt: now,
+        syncId: 'BROWSER_TIMER',
+      });
+    }
+
     return apiSuccess({
-      duration: adjustedDuration,
-      rawDuration: rawDurationSeconds,
-      trustLabel,
-    }, 'Call logged via browser timer placeholder');
+      duration: 0,
+      rawBrowserElapsed,
+      trustLabel: '📱 Awaiting device sync',
+    }, 'Call placeholder created. Hardware sync will update duration.');
   } catch (err: unknown) {
     if (err instanceof Error && err.message === 'UNAUTHORIZED') return apiError('Unauthorized', 401);
     console.error(err);

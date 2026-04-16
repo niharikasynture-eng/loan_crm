@@ -93,12 +93,14 @@ export async function POST(req: NextRequest) {
       if (!lead) {
         // PREDICTIVE MATCHING (Fix for Samsung bug)
         const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
-        const pendingCall = await Activity.findOne({
+        const pendingCall = await CallLog.findOne({
           organizationId: user.organizationId,
-          createdBy: user._id,
-          type: 'call',
-          status: 'pending',
-          createdAt: { $gte: twoMinutesAgo }
+          salesPersonId: user._id,
+          createdAt: { $gte: twoMinutesAgo },
+          $or: [
+            { status: 'initiated' },
+            { syncId: 'BROWSER_TIMER' }
+          ]
         }).sort({ createdAt: -1 });
 
         if (pendingCall) {
@@ -106,8 +108,6 @@ export async function POST(req: NextRequest) {
           if (matchedLead) {
             console.log(`[SYNC] Predictive Match: ${matchedLead.name}`);
             lead = matchedLead;
-            pendingCall.status = 'completed';
-            await pendingCall.save();
           }
         }
       }
@@ -128,28 +128,30 @@ export async function POST(req: NextRequest) {
       }
 
       // ────── SMART CORRECTION (Overwrite Browser Timer if Smart Method was used) ──────
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-      
-      // Find existing browser-placeholder Activity
+      // Android Doze mode can delay Automate syncs by 10-30 minutes. Use a wide window.
+      const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+
+      // Find existing browser-placeholder Activity (any BROWSER_TIMER within 30 min for this lead+user)
       const activityToUpdate = await Activity.findOne({
         leadId: lead._id,
         createdBy: user._id,
         type: 'call',
-        createdAt: { $gte: oneHourAgo },
-        notes: /Timer|Syncing|Manual|Smart App/i
+        createdAt: { $gte: thirtyMinutesAgo },
+        syncId: 'BROWSER_TIMER'
       }).sort({ createdAt: -1 });
 
       // Find existing browser-placeholder CallLog
       const callLogToUpdate = await CallLog.findOne({
         leadId: lead._id,
         salesPersonId: user._id,
-        createdAt: { $gte: oneHourAgo },
+        createdAt: { $gte: thirtyMinutesAgo },
         $or: [
-          { syncId: 'MANUAL' },
-          { notes: /Timer|Manual/i },
+          { syncId: 'BROWSER_TIMER' },
           { status: 'initiated' }
         ]
       }).sort({ createdAt: -1 });
+
+      console.log(`[SYNC] Correction search results — activityToUpdate: ${activityToUpdate?._id || 'none'}, callLogToUpdate: ${callLogToUpdate?._id || 'none'}`);
 
       const callTypeLabel = typeRaw.toLowerCase().includes('incoming') ? 'Incoming' : 'Outgoing';
       let verifiedNotes = `✅ Verified ${callTypeLabel} Call. Duration: ${duration}s`;

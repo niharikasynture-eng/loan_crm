@@ -268,19 +268,21 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
           document.removeEventListener('visibilitychange', handleVisibility);
           
           setIsBrowserCallActive(false);
-          // Set a temporary result to show we are syncing
-          setBrowserCallResult({ duration: 0, trustLabel: '📞 Syncing with phone...' });
+          // Show syncing state — real duration comes from Automate app, not browser
+          setBrowserCallResult({ duration: 0, trustLabel: '📱 Syncing duration from device...' });
 
-          // 5. Server calculates real duration from locked startedAt — client sends nothing
+          // 5. Tell server to close the placeholder CallLog
           try {
-            const result = await api.post<{ duration: number; trustLabel: string; isLateReturn: boolean }>(
+            const result = await api.post<{ duration: number; trustLabel: string; rawBrowserElapsed: number }>(
               `/calls/${callLogId}/browser-end`, {}
             );
-            // Result from browser timer (adjusted)
+            // Show syncing state in UI
             setBrowserCallResult({ duration: result.duration, trustLabel: result.trustLabel });
             
-            // Refresh activities to show the new log (added delay to ensure DB consistency)
-            setTimeout(() => loadData(), 800);
+            // Refresh activities immediately, then again after 15s and 60s to catch slow Android syncs
+            setTimeout(() => loadData(), 1000);
+            setTimeout(() => loadData(), 15000);
+            setTimeout(() => loadData(), 60000);
           } catch (err) {
             console.error('Browser call end failed:', err);
             setBrowserCallResult(null);
@@ -288,6 +290,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
         }
       };
       document.addEventListener('visibilitychange', handleVisibility);
+
 
     } catch (err: any) {
       alert(err.message || 'Could not initiate Smart Call. Please try again.');
