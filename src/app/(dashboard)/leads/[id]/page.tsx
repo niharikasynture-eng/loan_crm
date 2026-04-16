@@ -261,25 +261,39 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
       // 3. Open native dialer
       window.open(`tel:${lead.phone}`, '_self');
 
-      // 4. Auto-end when salesperson returns to this tab
+      // 4. Capture precise 'Hidden' time (when dialer actually opens)
+      let hiddenAt = Date.now();
+      const onHidden = () => {
+        if (document.visibilityState === 'hidden') {
+          hiddenAt = Date.now();
+        }
+      };
+      document.addEventListener('visibilitychange', onHidden);
+
+      // 5. Auto-end when salesperson returns to this tab
       const handleVisibility = async () => {
         if (document.visibilityState === 'visible') {
-          // Remove listener immediately to prevent multiple triggers
+          // Clean up listeners
           document.removeEventListener('visibilitychange', handleVisibility);
+          document.removeEventListener('visibilitychange', onHidden);
           
           setIsBrowserCallActive(false);
-          // Show syncing state — real duration comes from Automate app, not browser
-          setBrowserCallResult({ duration: 0, trustLabel: '📱 Syncing duration from device...' });
+          // Show syncing state
+          setBrowserCallResult({ duration: 0, trustLabel: '📱 Syncing duration...' });
 
-          // 5. Tell server to close the placeholder CallLog
+          const visibleAt = Date.now();
+          const clientElapsedSeconds = Math.round((visibleAt - hiddenAt) / 1000);
+
+          // 6. Tell server to close the placeholder CallLog
           try {
             const result = await api.post<{ duration: number; trustLabel: string; rawBrowserElapsed: number }>(
-              `/calls/${callLogId}/browser-end`, {}
+              `/calls/${callLogId}/browser-end`, 
+              { clientDuration: clientElapsedSeconds }
             );
-            // Show syncing state in UI
+            
             setBrowserCallResult({ duration: result.duration, trustLabel: result.trustLabel });
             
-            // Refresh activities immediately, then again after 15s and 60s to catch slow Android syncs
+            // Refresh activities
             setTimeout(() => loadData(), 1000);
             setTimeout(() => loadData(), 15000);
             setTimeout(() => loadData(), 60000);

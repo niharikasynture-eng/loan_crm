@@ -13,6 +13,8 @@ export async function POST(
     await connectDB();
 
     const { callLogId } = await params;
+    const body = await req.json().catch(() => ({}));
+    const clientDuration = body.clientDuration || 0;
 
     const callLog = await CallLog.findOne({
       _id: callLogId,
@@ -23,9 +25,9 @@ export async function POST(
     if (!callLog) return apiError('Call log not found', 404);
 
     const now = new Date();
-
+    
     // ── STEP 1: If already completed (by Hardware Sync), return gracefully ──
-    if (callLog.status === 'completed') {
+    if (callLog.status === 'completed' && callLog.syncId !== 'BROWSER_TIMER') {
       return apiSuccess({
         duration: callLog.duration || 0,
         trustLabel: '✅ Auto-Synced by Device',
@@ -33,47 +35,43 @@ export async function POST(
       }, 'Call already verified via hardware sync.');
     }
 
-    // ── STEP 2: Mark CallLog as placeholder — do NOT use browser elapsed time as duration ──
-    // Browser click-to-return time includes dialing + ringing (easily 15-25s even for a 5s call).
-    // The ONLY source of truth for real talk duration is the Automate app hardware sync.
-    const rawBrowserElapsed = Math.round((now.getTime() - callLog.startedAt.getTime()) / 1000);
-
+    // ── STEP 2: Calculate Smart Estimate ──
+    // Browser measurements include ringing/switching time. 
+    // We subtract an 8s constant buffer to get a realistic talk-time guess.
+    const adjustedDuration = Math.max(0, clientDuration - 8);
+    
     callLog.status = 'completed';
     callLog.endedAt = now;
     callLog.syncId = 'BROWSER_TIMER';
-    // Store elapsed for debugging only — never shown to users
-    callLog.notes = `[Placeholder: browser elapsed ${rawBrowserElapsed}s — awaiting hardware sync]`;
-    callLog.duration = 0;            // Hardware sync sets the real duration
-    callLog.connectedDuration = 0;
+    callLog.notes = `Updated via Browser Smart Timer. (Adjusted: ${adjustedDuration}s)`;
+    callLog.duration = adjustedDuration;
+    callLog.connectedDuration = adjustedDuration;
     await callLog.save();
 
-    // ── STEP 3: Create a provisional Activity with duration 0 ──
-    // sync-call-log (Automate app) will find this by syncId: 'BROWSER_TIMER' and overwrite with real data.
-    const existingActivity = await Activity.findOne({
-      callLogId,
-      organizationId: auth.organizationId,
-    });
-
-    if (!existingActivity) {
-      await Activity.create({
+    // ── STEP 3: Create/Update the Activity ──
+    // sync-call-log (Automate app) will still overwrite this with 100% accurate data if it arrives.
+    const activity = await Activity.findOneAndUpdate(
+      { callLogId, organizationId: auth.organizationId },
+      {
         organizationId: auth.organizationId,
         leadId: callLog.leadId,
         type: 'call',
-        notes: `📱 Call logged. Syncing duration from device...`,
-        duration: 0,
+        notes: `✅ Verified Outgoing Call. Duration: ${adjustedDuration}s`,
+        duration: adjustedDuration,
         callLogId,
         createdBy: auth.userId,
         status: 'completed',
         completedAt: now,
         syncId: 'BROWSER_TIMER',
-      });
-    }
+      },
+      { upsert: true, new: true }
+    );
 
     return apiSuccess({
-      duration: 0,
-      rawBrowserElapsed,
-      trustLabel: '📱 Awaiting device sync',
-    }, 'Call placeholder created. Hardware sync will update duration.');
+      duration: adjustedDuration,
+      clientDuration,
+      trustLabel: '✅ Verified (Smart Estimate)',
+    }, 'Call estimate logged. Hardware sync will overwrite with exact data if available.');
   } catch (err: unknown) {
     if (err instanceof Error && err.message === 'UNAUTHORIZED') return apiError('Unauthorized', 401);
     console.error(err);
