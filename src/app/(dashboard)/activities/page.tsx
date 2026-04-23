@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api-client';
-import { Phone, Calendar, Mail, MessageSquare, FileText, CheckCircle2, Clock, Filter, User as UserIcon, MessageCircle } from 'lucide-react';
+import { Phone, Calendar, Mail, MessageCircle, FileText, CheckCircle2, Clock, Filter, User as UserIcon, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import Link from 'next/link';
 
 interface Activity {
   _id: string;
@@ -177,7 +178,12 @@ export default function ActivitiesPage() {
                         {act.type === 'meeting' && (
                           <span className="text-gray-500"> has a meeting with </span>
                         )}
-                        <span className="font-semibold">{toTitleCase(act.leadId?.name || 'Unknown')}</span>
+                        <Link 
+                          href={`/leads/${act.leadId?._id}`}
+                          className="font-semibold text-indigo-600 hover:underline decoration-2 underline-offset-4"
+                        >
+                          {toTitleCase(act.leadId?.name || 'Unknown')}
+                        </Link>
                       </div>
                       
                       <span className="text-[12px] font-medium text-gray-300 tabular-nums whitespace-nowrap">

@@ -109,9 +109,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   };
 
   const handleClick = (t: Toast) => {
-    if (t.link) {
-      router.push(t.link);
-      removeToast(t.id);
+    if (t.link && typeof t.link === 'string') {
+      try {
+        router.push(t.link);
+        removeToast(t.id);
+      } catch (err) {
+        console.error('Router navigation failed, falling back to window.location', err);
+        window.location.href = t.link;
+      }
     }
   };
 

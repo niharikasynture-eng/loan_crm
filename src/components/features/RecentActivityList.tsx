@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { Phone, Mail, MessageCircle, StickyNote, CalendarCheck } from 'lucide-react';
+import Link from 'next/link';
 
 interface Activity {
   _id: string;
@@ -9,7 +10,7 @@ interface Activity {
   notes: string;
   createdAt: string;
   createdBy: { name: string; avatar?: string };
-  leadId: { name: string };
+  leadId: { _id: string; name: string };
 }
 
 interface RecentActivityListProps {
@@ -110,12 +111,13 @@ export function RecentActivityList({ activities }: RecentActivityListProps) {
 
                 <span className="text-[11px]" style={{ color: 'var(--text-disabled)' }}>→</span>
 
-                <span
-                  className="text-[14px] font-medium"
+                <Link
+                  href={`/leads/${act.leadId?._id}`}
+                  className="text-[14px] font-medium hover:underline decoration-2 underline-offset-4"
                   style={{ color: 'var(--brand)' }}
                 >
                   {act.leadId?.name}
-                </span>
+                </Link>
               </div>
 
               {act.notes && (

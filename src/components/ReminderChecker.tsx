@@ -70,7 +70,8 @@ export function ReminderChecker() {
           notifiedRef.current.add(activity._id);
           
           const priorityLabel = activity.priority ? ` [${activity.priority.toUpperCase()}]` : '';
-          const leadId = activity.leadId?._id || activity.leadId;
+          const leadIdRaw = activity.leadId?._id || activity.leadId;
+          const leadId = leadIdRaw ? leadIdRaw.toString() : null;
           const leadLink = leadId ? `/leads/${leadId}` : undefined;
           
           showToast(
