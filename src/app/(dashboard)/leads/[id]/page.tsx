@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import CallButton from '@/components/CallButton';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/hooks/useToast';
 
 const TYPE_META: Record<string, { icon: React.ReactNode; color: string; bg: string; border: string; text: string; label: string }> = {
   call: { icon: <Phone size={14} />, color: '#6366f1', bg: 'bg-indigo-50', border: 'border-indigo-100', text: 'text-indigo-600', label: 'Call' },
@@ -81,6 +82,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
   const { user } = useAuth();
   const isOnsiteVisitor = user?.role === 'onsite_visitor';
   const isSalesAgent = user?.role === 'sales_agent';
+  const { showToast } = useToast();
 
   const [lead, setLead] = useState<Lead | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -716,7 +718,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                       window.open(`tel:${lead.phone}`, '_self');
                       setTimeout(() => setIsDialing(false), 3000);
                     } else {
-                      alert('No phone number available for this lead.');
+                      showToast('No phone number available for this lead.', 'error', 'Error');
                     }
                   }}
                   className={`w-full flex items-center gap-4 p-5 rounded-2xl border ${isDialing ? 'border-emerald-200 bg-emerald-50' : 'border-indigo-100 bg-white shadow-sm'} hover:shadow-md hover:-translate-y-0.5 transition-all group`}
@@ -1090,10 +1092,10 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                             scheduledAt: scheduledAt,
                             priority: notePriority
                           });
-                          alert('Note and reminder task saved successfully!');
+                          showToast('Note and reminder task saved successfully!', 'success', 'Saved');
                           handleLogged();
                         } catch (err: any) {
-                          alert(`Failed to save note reminder: ${err.message || 'Unknown error'}`);
+                          showToast(`Failed to save note reminder: ${err.message || 'Unknown error'}`, 'error', 'Error');
                         } finally {
                           setSubmitting(false);
                         }
@@ -1247,7 +1249,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                       const endSeconds = endH * 3600 + parseInt(callData.endMinute) * 60 + parseInt(callData.endSecond);
                       const duration = endSeconds - startSeconds;
 
-                      if (duration < 0) return alert('End time cannot be earlier than start time');
+                      if (duration < 0) return showToast('End time cannot be earlier than start time', 'error', 'Invalid Time');
 
                       logActivity('call', {
                         duration: duration,
@@ -1355,7 +1357,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                           link: meetingData.link
                         });
                         handleLogged();
-                        alert('Meeting scheduled and task created!');
+                        showToast('Meeting scheduled and task created!', 'success', 'Scheduled');
                       } catch (err) {
                         alert('Failed to schedule meeting');
                       } finally {
@@ -1471,17 +1473,17 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                   </div>
                   <button
                     onClick={async () => {
-                      if (!lead.phone) return alert('Lead must have a phone number.');
+                      if (!lead.phone) return showToast('Lead must have a phone number.', 'error', 'Error');
                       setSubmitting(true);
                       try {
                         await api.post('/activities/whatsapp', {
                           leadId: lead._id,
                           message: whatsappData.message
                         });
-                        alert('WhatsApp message sent successfully!');
+                        showToast('WhatsApp message sent successfully!', 'success', 'WhatsApp');
                         handleLogged();
                       } catch (err: any) {
-                        alert(err.message || 'Failed to send WhatsApp message');
+                        showToast(err.message || 'Failed to send WhatsApp message', 'error', 'WhatsApp Error');
                       } finally {
                         setSubmitting(false);
                       }
@@ -1559,7 +1561,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                   </div>
                   <button
                     onClick={async () => {
-                      if (!lead.email) return alert('Lead must have an email address.');
+                      if (!lead.email) return showToast('Lead must have an email address.', 'error', 'Error');
                       setSubmitting(true);
                       try {
                         await api.post('/activities/email', {
@@ -1567,10 +1569,10 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                           subject: emailData.subject,
                           message: emailData.message
                         });
-                        alert('Email sent successfully via system!');
+                        showToast('Email sent successfully via system!', 'success', 'Email Sent');
                         handleLogged();
                       } catch (err: any) {
-                        alert(err.message || 'Failed to send email. Check SMTP settings.');
+                        showToast(err.message || 'Failed to send email. Check SMTP settings.', 'error', 'Email Error');
                       } finally {
                         setSubmitting(false);
                       }
@@ -1654,9 +1656,9 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                           notes: reminderData.notes
                         });
                         handleLogged();
-                        alert('Call reminder scheduled successfully!');
+                        showToast('Call reminder scheduled successfully!', 'success', 'Scheduled');
                       } catch (err) {
-                        alert('Failed to schedule reminder');
+                        showToast('Failed to schedule reminder', 'error', 'Error');
                       } finally {
                         setSubmitting(false);
                       }

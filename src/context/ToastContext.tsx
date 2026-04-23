@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { X, CheckCircle, AlertCircle, Info, AlertTriangle, Bell, ArrowRight } from 'lucide-react';
+import { X, CheckCircle, XCircle, AlertCircle, Info, AlertTriangle, Bell, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning' | 'reminder';
@@ -16,6 +16,8 @@ interface Toast {
   link?: string;
   autoDismiss?: boolean;
   priority?: ReminderPriority;
+  avatarName?: string;
+  avatarSrc?: string;
 }
 
 interface ToastContextType {
@@ -24,7 +26,7 @@ interface ToastContextType {
   error: (message: string) => void;
   info: (message: string) => void;
   warning: (message: string) => void;
-  showToast: (message: string, type?: ToastType, title?: string, priority?: any, link?: string) => void;
+  showToast: (message: string, type?: ToastType, title?: string, priority?: any, link?: string, avatarName?: string, avatarSrc?: string) => void;
 }
 
 const ToastContext = createContext<ToastContextType | null>(null);
@@ -74,7 +76,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const toast = useCallback((
     type: ToastType,
     message: string,
-    options: { title?: string; link?: string; autoDismiss?: boolean; priority?: ReminderPriority } = {}
+    options: { title?: string; link?: string; autoDismiss?: boolean; priority?: ReminderPriority; avatarName?: string; avatarSrc?: string } = {}
   ) => {
     const id = uuidv4();
     const isReminder = type === 'reminder';
@@ -103,9 +105,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     type: ToastType = 'info',
     title?: string,
     priority?: ReminderPriority,
-    link?: string
+    link?: string,
+    avatarName?: string,
+    avatarSrc?: string
   ) => {
-    toast(type, message, { title, priority, link });
+    toast(type, message, { title, priority, link, avatarName, avatarSrc });
   };
 
   const handleClick = (t: Toast) => {
@@ -166,11 +170,19 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                   className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center mt-0.5"
                   style={{ background: iconBg }}
                 >
-                  {t.type === 'success' && <CheckCircle size={18} color="#fff" />}
-                  {t.type === 'error'   && <AlertCircle size={18} color="#fff" />}
-                  {t.type === 'warning' && <AlertTriangle size={18} color="#fff" />}
-                  {t.type === 'info'    && <Info size={18} color="#fff" />}
-                  {isReminder           && <Bell size={18} color="#fff" className="animate-bounce" />}
+                  {t.avatarName ? (
+                    <div className="flex h-full w-full items-center justify-center font-black text-[13px]" style={{ color: '#fff' }}>
+                      {t.avatarName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                    </div>
+                  ) : (
+                    <>
+                      {t.type === 'success' && <CheckCircle size={18} color="#fff" />}
+                      {t.type === 'error'   && <XCircle size={18} color="#fff" />}
+                      {t.type === 'info'    && <Info size={18} color="#fff" />}
+                      {t.type === 'warning' && <AlertCircle size={18} color="#fff" />}
+                      {isReminder           && <Bell size={18} color="#fff" className="animate-bounce" />}
+                    </>
+                  )}
                 </div>
 
                 {/* Text */}

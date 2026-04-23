@@ -57,14 +57,14 @@ export function ReminderChecker() {
 
         // Recently due check (triggers if scheduled now or within the last 5 minutes)
         // We allow up to 5 minutes to catch up if computer was asleep or tab was inactive
-        const isRecentlyDue = scheduledTime <= nowTime && (nowTime - scheduledTime) < 300000;
+        const isRecentlyDue = Math.abs(nowTime - scheduledTime) < 300000;
 
         if (
+          isRecentlyDue && 
+          !notifiedRef.current.has(activity._id) && 
           (activity.type === 'call' || activity.type === 'note') && 
           creatorId?.toString() === currentUserId?.toString() && 
-          isRecentlyDue &&
-          activityDate === todayStart && 
-          !notifiedRef.current.has(activity._id) // CHECK THE REF SYNC
+          activityDate === todayStart
         ) {
           // MARK AS NOTIFIED IMMEDIATELY IN REF TO STOP NEXT TICK
           notifiedRef.current.add(activity._id);
@@ -79,7 +79,8 @@ export function ReminderChecker() {
             'reminder',
             activity.type === 'note' ? `NOTE ALERT${priorityLabel}: ${activity.leadId?.name || 'Lead'}` : `SCHEDULED CALL${priorityLabel}`,
             activity.priority?.toLowerCase() as any,
-            leadLink
+            leadLink,
+            activity.leadId?.name || 'Lead'
           );
           
           // Mark as notified in state/localStorage for persistence
