@@ -63,7 +63,7 @@ const REGULAR_CONFIG: Record<string, { bg: string; border: string; iconBg: strin
 
 const MAX_TOASTS = 6;
 const AUTO_DISMISS_MS = 5000;
-const REMINDER_DISMISS_MS = 12000;
+const REMINDER_DISMISS_MS = 15000; // 15s so user has time to read and click
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -159,9 +159,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               }}
               onClick={() => handleClick(t)}
             >
-              {/* Priority bar */}
+              {/* Priority bar — thicker for high */}
               {isReminder && (
-                <div style={{ height: 3, background: barClr, borderRadius: '14px 14px 0 0' }} />
+                <div style={{ height: prio === 'high' ? 5 : 3, background: barClr, borderRadius: '14px 14px 0 0' }} />
               )}
 
               <div className="flex items-start gap-3 p-3.5">
@@ -185,26 +185,38 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                   )}
                 </div>
 
-                {/* Text */}
                 <div className="flex-1 min-w-0">
-                  {/* Priority label or type label */}
-                  <p
-                    className="text-[10px] font-bold uppercase tracking-widest mb-0.5"
-                    style={{ color: textClr, opacity: 0.65 }}
-                  >
-                    {isReminder ? pc.label : (t.title ?? t.type)}
-                  </p>
-
-                  {/* Title (for reminders with separate title) */}
-                  {isReminder && t.title && (
-                    <p className="text-[11px] font-semibold mb-0.5" style={{ color: textClr, opacity: 0.8 }}>
-                      {t.title}
-                    </p>
+                  {/* For reminders: title (lead name) first, then priority badge */}
+                  {isReminder ? (
+                    <>
+                      {t.title && (
+                        <p className="text-[13px] font-bold leading-snug mb-1" style={{ color: textClr }}>
+                          {t.title}
+                        </p>
+                      )}
+                      <span
+                        className="inline-block text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mb-1"
+                        style={{ background: barClr, color: '#fff' }}
+                      >
+                        {pc.label.replace(/^\S+ /, '')}
+                      </span>
+                      <p className="text-[12px] font-medium leading-snug" style={{ color: textClr, opacity: 0.85 }}>
+                        {t.message}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p
+                        className="text-[10px] font-bold uppercase tracking-widest mb-0.5"
+                        style={{ color: textClr, opacity: 0.65 }}
+                      >
+                        {t.title ?? t.type}
+                      </p>
+                      <p className="text-[13px] font-medium leading-snug" style={{ color: textClr }}>
+                        {t.message}
+                      </p>
+                    </>
                   )}
-
-                  <p className="text-[13px] font-medium leading-snug" style={{ color: textClr }}>
-                    {t.message}
-                  </p>
 
                   {t.link && (
                     <div className="flex items-center gap-1 mt-1.5">

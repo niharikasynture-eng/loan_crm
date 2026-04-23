@@ -20,41 +20,62 @@ export async function GET(req: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
 
+    const remindersOnly = searchParams.get('remindersOnly') === 'true';
+
     const query: Record<string, unknown> = { organizationId: auth.organizationId };
-    if (isScheduled) query.scheduledAt = { $exists: true, $ne: null };
-    
-    // Sales agent and Onsite Visitor: only see activities for leads they own
-    if (auth.role === ROLES.SALES_AGENT || auth.role === ROLES.ONSITE_VISITOR) {
-      const myLeads = await Lead.find({ assignedTo: auth.userId, organizationId: auth.organizationId }).select('_id').lean();
-      const myLeadIds = myLeads.map(l => l._id);
-      query.leadId = { $in: myLeadIds };
-    }
 
-    if (leadId) {
-      // If direct leadId provided, ensure salesperson owns it
+    if (remindersOnly) {
+      // Only get activities scheduled for TODAY that are still pending
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date();
+      todayEnd.setHours(23, 59, 59, 999);
+      query.scheduledAt = { $gte: todayStart, $lte: todayEnd };
+      query.status = { $in: ['pending', null] };
+      query.type = { $in: ['note', 'call'] };
+      // Scope to this user's leads
       if (auth.role === ROLES.SALES_AGENT || auth.role === ROLES.ONSITE_VISITOR) {
-        const lead = await Lead.findOne({ _id: leadId, assignedTo: auth.userId, organizationId: auth.organizationId });
-        if (!lead) query.leadId = 'nothing'; // block
-        else query.leadId = leadId;
-      } else {
-        query.leadId = leadId;
+        const myLeads = await Lead.find({ assignedTo: auth.userId, organizationId: auth.organizationId }).select('_id').lean();
+        query.leadId = { $in: myLeads.map(l => l._id) };
       }
-    }
+      // Filter to only this user's created activities
+      query.createdBy = auth.userId;
+    } else {
+      if (isScheduled) query.scheduledAt = { $exists: true, $ne: null };
+      
+      // Sales agent and Onsite Visitor: only see activities for leads they own
+      if (auth.role === ROLES.SALES_AGENT || auth.role === ROLES.ONSITE_VISITOR) {
+        const myLeads = await Lead.find({ assignedTo: auth.userId, organizationId: auth.organizationId }).select('_id').lean();
+        const myLeadIds = myLeads.map(l => l._id);
+        query.leadId = { $in: myLeadIds };
+      }
 
-    if (type) query.type = type;
-    
-    // Admin/Manager can filter by salesperson
-    if (createdBy && auth.role !== ROLES.SALES_AGENT) {
-      query.createdBy = createdBy;
+      if (leadId) {
+        // If direct leadId provided, ensure salesperson owns it
+        if (auth.role === ROLES.SALES_AGENT || auth.role === ROLES.ONSITE_VISITOR) {
+          const lead = await Lead.findOne({ _id: leadId, assignedTo: auth.userId, organizationId: auth.organizationId });
+          if (!lead) query.leadId = 'nothing'; // block
+          else query.leadId = leadId;
+        } else {
+          query.leadId = leadId;
+        }
+      }
+
+      if (type) query.type = type;
+      
+      // Admin/Manager can filter by salesperson
+      if (createdBy && auth.role !== ROLES.SALES_AGENT) {
+        query.createdBy = createdBy;
+      }
     }
 
     const [activities, total] = await Promise.all([
       Activity.find(query)
         .populate('createdBy', 'name email avatar')
         .populate('leadId', 'name email phone')
-        .sort({ createdAt: -1 })
-        .skip((page - 1) * limit)
-        .limit(limit)
+        .sort(remindersOnly ? { scheduledAt: 1 } : { createdAt: -1 })
+        .skip(remindersOnly ? 0 : (page - 1) * limit)
+        .limit(remindersOnly ? 50 : limit)
         .lean(),
       Activity.countDocuments(query),
     ]);

@@ -1,117 +1,121 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { api } from '@/lib/api-client';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/useToast';
 
+// How often to check (ms) — 30s is enough; scheduled times are set in advance
+const POLL_INTERVAL_MS = 30_000;
+// How long after scheduled time we still fire (catchup window — handles tab sleep, deploys)
+const CATCHUP_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+
 export function ReminderChecker() {
   const { user } = useAuth();
   const { showToast } = useToast();
-  
-  // Load notified IDs from localStorage to ensure persistence across refreshes
-  const [notifiedIds, setNotifiedIds] = useState<Set<string>>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('crm_notified_active_reminders');
-        return saved ? new Set(JSON.parse(saved)) : new Set();
-      } catch { return new Set(); }
-    }
-    return new Set();
-  });
 
-  // Synchronous ref to prevent race conditions during rapid polling
-  const notifiedRef = useRef<Set<string>>(new Set());
+  // In-memory set for this session — avoids stale localStorage entries across days
+  const firedRef = useRef<Set<string>>(new Set());
 
-  // Initialize the ref from the state once on load
+  // Seed from localStorage on mount (so page refresh doesn't re-fire today's alerts)
   useEffect(() => {
-    notifiedIds.forEach(id => notifiedRef.current.add(id));
+    if (typeof window === 'undefined') return;
+    try {
+      const today = new Date().toDateString();
+      const raw = localStorage.getItem('crm_reminders_fired');
+      if (raw) {
+        const { date, ids } = JSON.parse(raw) as { date: string; ids: string[] };
+        // Only restore if the stored date is today — prevents carrying over old IDs
+        if (date === today) {
+          ids.forEach(id => firedRef.current.add(id));
+        } else {
+          // New day — clear stale entries
+          localStorage.removeItem('crm_reminders_fired');
+        }
+      }
+    } catch { /* ignore */ }
   }, []);
 
-  const checkInterval = useRef<NodeJS.Timeout | null>(null);
-  const mountTime = useRef(new Date().getTime());
-
-  // Save notified IDs to localStorage whenever they change
-  useEffect(() => {
+  const markFired = useCallback((id: string) => {
+    firedRef.current.add(id);
+    // Persist to localStorage
     if (typeof window !== 'undefined') {
-      localStorage.setItem('crm_notified_active_reminders', JSON.stringify(Array.from(notifiedIds)));
-    }
-  }, [notifiedIds]);
-
-  const checkReminders = async () => {
-    if (!user || user.role === 'super_admin') return;
-    try {
-      const res = await api.get<{ activities: any[] }>('/activities?limit=30&isScheduled=true');
-      const now = new Date();
-      const nowTime = now.getTime();
-      const todayStart = new Date().setHours(0, 0, 0, 0);
-
-      res.activities.forEach((activity) => {
-        if (!activity.scheduledAt) return;
-
-        const scheduledTime = new Date(activity.scheduledAt).getTime();
-        const activityDate  = new Date(activity.scheduledAt).setHours(0, 0, 0, 0);
-        
-        const creatorId = activity.createdBy?._id || activity.createdBy;
-        const currentUserId = user.id;
-
-        // Recently due check (triggers if scheduled now or within the last 5 minutes)
-        // We allow up to 5 minutes to catch up if computer was asleep or tab was inactive
-        const isRecentlyDue = Math.abs(nowTime - scheduledTime) < 300000;
-
-        if (
-          isRecentlyDue && 
-          !notifiedRef.current.has(activity._id) && 
-          (activity.type === 'call' || activity.type === 'note') && 
-          creatorId?.toString() === currentUserId?.toString() && 
-          activityDate === todayStart
-        ) {
-          // MARK AS NOTIFIED IMMEDIATELY IN REF TO STOP NEXT TICK
-          notifiedRef.current.add(activity._id);
-          
-          const priorityLabel = activity.priority ? ` [${activity.priority.toUpperCase()}]` : '';
-          const leadIdRaw = activity.leadId?._id || activity.leadId;
-          const leadId = leadIdRaw ? leadIdRaw.toString() : null;
-          const leadLink = leadId ? `/leads/${leadId}` : undefined;
-          
-          showToast(
-            activity.type === 'note' ? (activity.notes ? activity.notes : 'Reminder alert!') : `Follow-up with ${activity.leadId?.name || 'Lead'}`,
-            'reminder',
-            activity.type === 'note' ? `NOTE ALERT${priorityLabel}: ${activity.leadId?.name || 'Lead'}` : `SCHEDULED CALL${priorityLabel}`,
-            activity.priority?.toLowerCase() as any,
-            leadLink,
-            activity.leadId?.name || 'Lead'
-          );
-          
-          // Mark as notified in state/localStorage for persistence
-          setNotifiedIds(prev => {
-            const next = new Set(prev);
-            next.add(activity._id);
-            localStorage.setItem('crm_notified_active_reminders', JSON.stringify(Array.from(next)));
-            return next;
-          });
+      try {
+        const today = new Date().toDateString();
+        const raw = localStorage.getItem('crm_reminders_fired');
+        let ids: string[] = [];
+        if (raw) {
+          const parsed = JSON.parse(raw) as { date: string; ids: string[] };
+          if (parsed.date === today) ids = parsed.ids;
         }
-      });
+        ids.push(id);
+        localStorage.setItem('crm_reminders_fired', JSON.stringify({ date: today, ids }));
+      } catch { /* ignore */ }
+    }
+  }, []);
+
+  const checkReminders = useCallback(async () => {
+    if (!user || user.role === 'super_admin') return;
+
+    try {
+      const res = await api.get<{ activities: any[] }>('/activities?remindersOnly=true');
+      const activities = res.activities || [];
+
+      const nowMs = Date.now();
+
+      for (const activity of activities) {
+        if (!activity.scheduledAt) continue;
+        if (firedRef.current.has(activity._id)) continue;
+
+        const scheduledMs = new Date(activity.scheduledAt).getTime();
+
+        // Only fire if:
+        //   1. The scheduled time has already passed (scheduledMs <= nowMs)
+        //   2. But not more than CATCHUP_WINDOW_MS ago (prevents firing very old reminders)
+        const isPast = scheduledMs <= nowMs;
+        const isWithinCatchup = (nowMs - scheduledMs) <= CATCHUP_WINDOW_MS;
+
+        if (!isPast || !isWithinCatchup) continue;
+
+        // Mark fired BEFORE showing toast to prevent double-fire on rapid re-renders
+        markFired(activity._id);
+
+        const priority = (activity.priority || 'medium') as 'high' | 'medium' | 'low';
+        const leadName = activity.leadId?.name || 'Lead';
+        const leadIdRaw = activity.leadId?._id || activity.leadId;
+        const leadLink = leadIdRaw ? `/leads/${leadIdRaw.toString()}` : undefined;
+
+        const title =
+          activity.type === 'note'
+            ? `📝 NOTE REMINDER — ${leadName}`
+            : `📞 CALL REMINDER — ${leadName}`;
+
+        const message =
+          activity.notes?.trim()
+            ? activity.notes.trim()
+            : activity.type === 'note'
+            ? `You have a note reminder for ${leadName}`
+            : `Time to follow up with ${leadName}`;
+
+        showToast(message, 'reminder', title, priority, leadLink, leadName);
+      }
     } catch (err) {
-      // Background polling: suppress fatal overlay for network errors
       if (api.isNetworkError(err)) {
-        console.warn('Reminder check skipped: Network unreachable');
+        console.warn('[ReminderChecker] Skipped: network unreachable');
       } else {
-        console.error('Failed to check reminders:', err);
+        console.error('[ReminderChecker] Failed:', err);
       }
     }
-  };
+  }, [user, showToast, markFired]);
 
   useEffect(() => {
-    // Check every 2 seconds for high accuracy
-    checkInterval.current = setInterval(checkReminders, 2000);
-    checkReminders(); // Initial check
+    if (!user) return;
 
-    return () => {
-      if (checkInterval.current) clearInterval(checkInterval.current);
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]); // Re-run if user changes
+    // Run immediately on mount, then on interval
+    checkReminders();
+    const timer = setInterval(checkReminders, POLL_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [user, checkReminders]);
 
   return null;
 }
