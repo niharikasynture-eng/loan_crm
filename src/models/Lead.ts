@@ -29,6 +29,7 @@ export interface ILead extends Document {
   landmark?: string;
   area?: string;
   pincode?: string;
+  secondAreaReference?: string;
   income?: string;
   occupation?: string;
   education?: string;
@@ -38,6 +39,7 @@ export interface ILead extends Document {
   hasMedeclaim?: boolean;
   sumAssured?: string;
   insuranceCompany?: string;
+  healthSummary?: string;
   healthStatus?: {
     fit: boolean;
     bp: boolean;
@@ -102,6 +104,7 @@ const LeadSchema = new Schema<ILead>(
     landmark: { type: String, trim: true },
     area: { type: String, trim: true },
     pincode: { type: String, trim: true },
+    secondAreaReference: { type: String, trim: true },
     income: { type: String, trim: true },
     occupation: { type: String, trim: true },
     education: { type: String, trim: true },
@@ -111,6 +114,7 @@ const LeadSchema = new Schema<ILead>(
     hasMedeclaim: { type: Boolean, default: false },
     sumAssured: { type: String, trim: true },
     insuranceCompany: { type: String, trim: true },
+    healthSummary: { type: String, trim: true },
     healthStatus: {
       fit: { type: Boolean, default: false },
       bp: { type: Boolean, default: false },

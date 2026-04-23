@@ -120,6 +120,8 @@ export async function notifyNewLead(
   assignedToId?: string
 ) {
   try {
+    /* 
+    // STAFF NOTIFICATIONS DISABLED AS PER USER REQUEST
     // Find org admins and managers to notify
     const recipients = await User.find({
       organizationId,
@@ -156,6 +158,7 @@ export async function notifyNewLead(
         await sendLeadAssignedEmail(assignedUser.email, assignedUser.name, leadName, leadId);
       }
     }
+    */
   } catch (err) {
     console.error('Failed to send lead notifications:', err);
   }

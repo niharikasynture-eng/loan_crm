@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Bell, Clock, CheckCircle2, MessageSquare, UserPlus, Zap } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { useToast } from '@/components/Toast';
+import { useToast } from '@/hooks/useToast';
 import { api } from '@/lib/api-client';
+import { cn } from '@/lib/cn';
 import Link from 'next/link';
 
 interface Notification {
@@ -24,6 +25,7 @@ export default function NotificationCenter() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isBlinking, setIsBlinking] = useState(false);
   
   const prevUnreadCount = useRef(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -50,6 +52,11 @@ export default function NotificationCenter() {
 
       setNotifications(newNotifs);
       setUnreadCount(newCount);
+      
+      if (!isInitial && newCount > prevUnreadCount.current) {
+        setIsBlinking(true);
+      }
+      
       prevUnreadCount.current = newCount;
     } catch (err) {
       if (api.isNetworkError(err)) {
@@ -65,6 +72,19 @@ export default function NotificationCenter() {
     const interval = setInterval(() => loadNotifications(), 10000); // Poll every 10s for immediate feedback
     return () => clearInterval(interval);
   }, [loadNotifications]);
+  
+  // Stop blinking after 8 seconds
+  useEffect(() => {
+    if (isBlinking) {
+      const timer = setTimeout(() => setIsBlinking(false), 8000);
+      return () => clearTimeout(timer);
+    }
+  }, [isBlinking]);
+  
+  // Open panel stops blinking
+  useEffect(() => {
+    if (isOpen) setIsBlinking(false);
+  }, [isOpen]);
 
   // Handle click outside to close
   useEffect(() => {
@@ -105,11 +125,22 @@ export default function NotificationCenter() {
       {/* Clean Bell Trigger */}
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
+        className={cn(
+          "relative p-2 rounded-lg transition-all duration-200",
+          isOpen ? "text-blue-600 bg-blue-50 shadow-sm" : "text-gray-400 hover:text-blue-600 hover:bg-blue-50 active:scale-95"
+        )}
       >
-        <Bell size={20} strokeWidth={2.2} />
+        <Bell 
+          size={20} 
+          strokeWidth={2.2} 
+          className={cn(isBlinking ? "animate-bounce" : "")}
+          style={isBlinking ? { animationDuration: '1.2s' } : {}}
+        />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 w-4 h-4 bg-blue-600 text-white text-[9px] font-bold flex items-center justify-center rounded-full border border-white shadow-sm">
+          <span className={cn(
+            "absolute top-1 right-1 w-4 h-4 bg-blue-600 text-white text-[9px] font-bold flex items-center justify-center rounded-full border border-white shadow-sm transition-transform",
+            isBlinking ? "animate-pulse-blink scale-110" : ""
+          )}>
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}

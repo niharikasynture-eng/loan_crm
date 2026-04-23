@@ -123,6 +123,8 @@ export async function PATCH(
     if (body.assignedTo && body.assignedTo !== prevAssigned) {
       const assignedUser = await User.findById(body.assignedTo).select('name email role');
       if (assignedUser) {
+        /* 
+        // STAFF NOTIFICATIONS DISABLED AS PER USER REQUEST
         await Notification.create({
           userId: body.assignedTo,
           organizationId: auth.organizationId,
@@ -134,6 +136,7 @@ export async function PATCH(
         if (assignedUser.role === ROLES.SALES_AGENT) {
           await sendLeadAssignedEmail(assignedUser.email, assignedUser.name, (lead as {name: string}).name, id);
         }
+        */
         await AuditLog.create({
           action: 'lead_assigned',
           performedBy: auth.userId,

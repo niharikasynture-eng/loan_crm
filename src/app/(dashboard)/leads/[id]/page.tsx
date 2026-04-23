@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use } from 'react';
 import { api } from '@/lib/api-client';
-import { Mail, Phone, Building, Briefcase, Calendar, CheckSquare, MessageSquare, X, Clock, ClipboardList, Send, CheckCircle2, Pencil, Settings, Plus, Bell, MessageCircle, FileText, MapPin, HeartPulse, GraduationCap, Users, Shield, Trash2, User } from 'lucide-react';
+import { Mail, Phone, Building, Briefcase, Calendar, CheckSquare, MessageSquare, X, Clock, ClipboardList, Send, CheckCircle2, Pencil, Settings, Plus, Bell, MessageCircle, FileText, MapPin, HeartPulse, GraduationCap, Users, Shield, Trash2, User, TrendingUp, UserCog } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import CallButton from '@/components/CallButton';
@@ -255,7 +255,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
               });
             }, 8 * 60 * 1000);
           }
-        } catch {}
+        } catch { }
       }
 
       // 3. Open native dialer
@@ -276,7 +276,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
           // Clean up listeners
           document.removeEventListener('visibilitychange', handleVisibility);
           document.removeEventListener('visibilitychange', onHidden);
-          
+
           setIsBrowserCallActive(false);
           // Show syncing state
           setBrowserCallResult({ duration: 0, trustLabel: '📱 Syncing duration...' });
@@ -287,12 +287,12 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
           // 6. Tell server to close the placeholder CallLog
           try {
             const result = await api.post<{ duration: number; trustLabel: string; rawBrowserElapsed: number }>(
-              `/calls/${callLogId}/browser-end`, 
+              `/calls/${callLogId}/browser-end`,
               { clientDuration: clientElapsedSeconds }
             );
-            
+
             setBrowserCallResult({ duration: result.duration, trustLabel: result.trustLabel });
-            
+
             // Refresh activities
             setTimeout(() => loadData(), 1000);
             setTimeout(() => loadData(), 15000);
@@ -320,10 +320,11 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
         type,
         ...data
       });
-      handleLogged();
       alert(`${type.charAt(0).toUpperCase() + type.slice(1)} logged successfully!`);
-    } catch (err) {
-      alert('Failed to log activity');
+      handleLogged();
+    } catch (err: any) {
+      console.error('Activity Log Error:', err);
+      alert(`Failed to log activity: ${err.message || 'Unknown error'}`);
     } finally {
       setSubmitting(false);
     }
@@ -353,18 +354,25 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
     }
   }
 
-  const DetailItem = ({ label, value, isLink, link, highlight }: { label: string; value?: string | number; isLink?: boolean; link?: string; highlight?: boolean }) => (
-    <div className="flex flex-col gap-1">
-      <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">{label}</span>
-      {isLink && value ? (
-        <a href={link} className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors">
-          {value}
-        </a>
-      ) : (
-        <span className={`text-sm font-semibold ${highlight ? 'text-blue-700' : 'text-slate-800'} leading-tight`}>
-          {value || '—'}
-        </span>
+  const DetailItem = ({ label, value, isLink, link, highlight, icon: Icon }: { label: string; value?: string | number; isLink?: boolean; link?: string; highlight?: boolean; icon?: any }) => (
+    <div className="flex items-start gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-colors group/item">
+      {Icon && (
+        <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover/item:bg-blue-600 group-hover/item:text-white transition-all duration-300">
+          <Icon size={16} />
+        </div>
       )}
+      <div className="flex flex-col">
+        <span className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.12em]">{label}</span>
+        {isLink && value ? (
+          <a href={link} className="text-base font-medium text-blue-600 hover:text-blue-800 transition-colors mt-1">
+            {value}
+          </a>
+        ) : (
+          <span className={`text-base font-medium ${highlight ? 'text-blue-600' : 'text-slate-700'} mt-1`}>
+            {value || '—'}
+          </span>
+        )}
+      </div>
     </div>
   );
 
@@ -372,7 +380,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
   if (!lead) return <div className="p-8 text-red-400">Lead not found</div>;
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="max-w-5xl mx-auto">
       <div className="mb-4 flex flex-wrap items-center gap-2 text-[#94a3b8] text-sm">
         <Link href="/leads" className="hover:text-white transition-colors">Leads</Link>
         <span>/</span>
@@ -388,176 +396,219 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
       </div>
 
       <div className={isOnsiteVisitor ? 'w-full' : 'grid grid-cols-1 lg:grid-cols-3 gap-6'}>
-        {/* Onsite Visitor View: Protocol Layout */}
         {isOnsiteVisitor ? (
-          <div className="max-w-3xl mx-auto flex flex-col gap-6 pb-12">
-            {/* Header / Avatar Section */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 flex flex-col items-center text-center">
-              <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center text-xl font-bold text-white shadow-lg shadow-blue-100 mb-4">
+          <div className="max-w-4xl mx-auto flex flex-col gap-8 pb-20">
+            {/* ── Premium Profile Header ── */}
+            <div className="relative overflow-hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 group">
+              <div className="relative w-16 h-16 rounded-xl bg-indigo-600 flex items-center justify-center text-xl font-semibold text-white shadow-md ring-4 ring-indigo-50">
                 {lead.name.charAt(0).toUpperCase()}
               </div>
-              <h1 className="text-xl font-bold text-slate-900 tracking-tight">{lead.name}</h1>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mt-2 flex items-center gap-2">
-                <Building size={14} className="text-slate-400" />
-                {lead.company || 'Private Individual'}
-              </p>
-              <div className="mt-6 flex gap-2">
-                <span className="px-3 py-1 bg-slate-50 text-slate-600 text-[10px] font-semibold uppercase tracking-widest rounded-lg border border-slate-200">Visitor Access Only</span>
-                <span className="px-3 py-1 bg-slate-50 text-slate-600 text-[10px] font-semibold uppercase tracking-widest rounded-lg border border-slate-200">{lead.status.replace('_', ' ')}</span>
-              </div>
-            </div>
 
-            {/* 1. Basic Information */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider">1. Basic Information</h2>
-                <User size={15} className="text-slate-300" />
-              </div>
-              <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <DetailItem label="Full Name" value={lead.name} />
-                <DetailItem label="Email Address" value={lead.email} isLink link={`mailto:${lead.email}`} />
-                <DetailItem label="Phone Number" value={lead.phone} isLink link={`tel:${lead.phone}`} />
-                <DetailItem label="Secondary Phone" value={lead.secondaryPhone || '—'} />
-                <DetailItem label="Lead Source" value={lead.source} />
-                <DetailItem label="Company Name" value={lead.company || '—'} />
-              </div>
-            </div>
-
-            {/* 2. Address & Location */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider">2. Address & Location</h2>
-                <MapPin size={15} className="text-slate-300" />
-              </div>
-              <div className="p-6 flex flex-col gap-5">
-                <DetailItem label="Full Address" value={lead.address} />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <DetailItem label="Flat / Landmark" value={lead.flatNo || lead.landmark || '—'} />
-                  <DetailItem label="Area / Pincode" value={`${lead.area || ''} ${lead.pincode ? `(${lead.pincode})` : ''}`} />
+              <div className="relative text-center md:text-left flex-1">
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-1.5">
+                  <h1 className="text-xl font-semibold text-slate-900 tracking-tight">{lead.name}</h1>
+                  <span className="px-2.5 py-0.5 bg-indigo-50 text-indigo-600 text-[9px] font-semibold uppercase tracking-widest rounded-md border border-indigo-100">Verified Client</span>
                 </div>
-                {lead.mapLink && (
-                  <a href={lead.mapLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full py-3 bg-blue-500 text-white text-sm font-semibold rounded-lg hover:bg-blue-600 transition-all">
-                    <MapPin size={16} /> View on Google Maps
-                  </a>
-                )}
-              </div>
-            </div>
 
-            {/* 3. Professional & Income Profile */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider">3. Professional & Income Profile</h2>
-                <GraduationCap size={15} className="text-slate-300" />
-              </div>
-              <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-                <DetailItem label="Annual Income" value={lead.income} />
-                <DetailItem label="Job / Occupation" value={lead.occupation} />
-                <DetailItem label="Education Level" value={lead.education} />
-              </div>
-            </div>
-
-            {/* 4. Health & Insurance Profile */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider">4. Health & Insurance Profile</h2>
-                <HeartPulse size={15} className="text-slate-300" />
-              </div>
-              <div className="p-6 flex flex-col gap-5">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="flex flex-col gap-1.5">
-                    <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Medeclaim Status</span>
-                    <span className={`inline-flex items-center w-fit px-3 py-1 rounded-md text-xs font-semibold uppercase ${lead.hasMedeclaim ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-50 text-slate-500 border border-slate-200'}`}>
-                      {lead.hasMedeclaim ? 'Active / Included' : 'None / Not Reported'}
-                    </span>
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-5 text-slate-500 font-medium text-sm">
+                  <div className="flex items-center gap-2">
+                    <Building size={16} className="text-slate-400" />
+                    {lead.company || 'Private Individual'}
                   </div>
-                  {lead.hasMedeclaim && (
-                    <div className="grid grid-cols-2 gap-4">
-                      <DetailItem label="Sum Assured" value={lead.sumAssured} />
-                      <DetailItem label="Current Insurer" value={lead.insuranceCompany} />
-                    </div>
-                  )}
+                  <div className="w-1 h-1 rounded-full bg-slate-300 hidden md:block" />
+                  <div className="flex items-center gap-2">
+                    <MapPin size={16} className="text-slate-400" />
+                    {lead.area || 'Pune'}
+                  </div>
                 </div>
-                {lead.healthStatus && (
-                  <div className="pt-4 border-t border-slate-100 flex flex-col gap-2.5">
-                    <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Health Indicators</span>
-                    <div className="flex flex-wrap gap-2">
-                      {Object.entries(lead.healthStatus).map(([key, val]) => (
-                        <span key={key} className={`px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wide ${val
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-slate-100 text-slate-500 border border-slate-200'
-                          }`}>
-                          {key}
-                        </span>
-                      ))}
+
+                <div className="mt-4 flex flex-wrap justify-center md:justify-start gap-2">
+                  <span className="px-2.5 py-1 bg-slate-50 text-slate-600 text-[9px] font-medium uppercase tracking-widest rounded-md border border-slate-200">NEW</span>
+                  <span className="px-2.5 py-1 bg-emerald-50 text-emerald-600 text-[9px] font-medium uppercase tracking-widest rounded-md border border-emerald-100">ONSITE PROTOCOL ACTIVE</span>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Unified Information Section ── */}
+            <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
+              <div className="grid grid-cols-1 md:grid-cols-2">
+
+                {/* Column 1: Personal & Professional */}
+                <div className="p-8 md:p-10 border-b md:border-b-0 md:border-r border-slate-100 space-y-10">
+                  {/* Contact Info */}
+                  <section>
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                        <User size={14} />
+                      </div>
+                      <h2 className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.2em]">Contact Information</h2>
                     </div>
+                    <div className="grid grid-cols-1 gap-4">
+                      <DetailItem label="Full Name" value={lead.name} icon={User} />
+                      <DetailItem label="Email" value={lead.email} isLink link={`mailto:${lead.email}`} icon={Mail} />
+                      <DetailItem label="Phone" value={lead.phone} isLink link={`tel:${lead.phone}`} icon={Phone} />
+                      <DetailItem label="Lead Source" value={lead.source} icon={Briefcase} />
+                    </div>
+                  </section>
+
+                  {/* Professional Info */}
+                  <section>
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                        <Briefcase size={14} />
+                      </div>
+                      <h2 className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.2em]">Professional Profile</h2>
+                    </div>
+                    <div className="grid grid-cols-1 gap-4">
+                      <DetailItem label="Annual Income" value={lead.income} icon={TrendingUp} />
+                      <DetailItem label="Occupation" value={lead.occupation} icon={Briefcase} />
+                      <DetailItem label="Education" value={lead.education} icon={GraduationCap} />
+                    </div>
+                  </section>
+                </div>
+
+                {/* Column 2: Address & Health */}
+                <div className="p-8 md:p-10 space-y-14">
+                  {/* Physical Address */}
+                  <section>
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                        <MapPin size={14} />
+                      </div>
+                      <h2 className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.2em]">Physical Address</h2>
+                    </div>
+                    <div className="grid grid-cols-1 gap-4">
+                      <DetailItem label="Street / Flat" value={lead.address || '—'} icon={MapPin} />
+                      <DetailItem label="Area & Post" value={`${lead.area || ''} ${lead.pincode || ''}`} icon={Building} />
+                      {lead.mapLink && (
+                        <div className="pt-2">
+                          <a href={lead.mapLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full py-3 bg-indigo-600 text-white text-[10px] font-bold uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-sm">
+                            <MapPin size={14} /> View Location
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  </section>
+
+                  {/* Health & Insurance */}
+                  <section>
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center text-rose-600">
+                        <HeartPulse size={16} />
+                      </div>
+                      <h2 className="text-[11px] font-medium text-slate-400 uppercase tracking-[0.2em]">Health & Insurance</h2>
+                    </div>
+                    <div className="space-y-6">
+                      {/* Medeclaim Status */}
+                      <div className="p-6 bg-slate-50/50 rounded-2xl border border-slate-100">
+                        <div className="flex items-center justify-between mb-4">
+                          <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Medeclaim Status</p>
+                          {lead.hasMedeclaim ? (
+                            <span className="px-3 py-1 bg-emerald-500 text-white text-[9px] font-bold uppercase tracking-widest rounded-lg">Active Policy</span>
+                          ) : (
+                            <span className="px-3 py-1 bg-slate-200 text-slate-500 text-[9px] font-bold uppercase tracking-widest rounded-lg">No Policy</span>
+                          )}
+                        </div>
+                        {lead.hasMedeclaim ? (
+                          <div className="grid grid-cols-2 gap-4 mt-2">
+                            <div>
+                              <p className="text-[9px] text-slate-400 uppercase font-medium mb-1">Company</p>
+                              <p className="text-sm font-semibold text-slate-700">{lead.insuranceCompany || '—'}</p>
+                            </div>
+                            <div>
+                              <p className="text-[9px] text-slate-400 uppercase font-medium mb-1">Sum Assured</p>
+                              <p className="text-sm font-semibold text-slate-700">{lead.sumAssured || '—'}</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-slate-400 italic">No insurance information provided.</p>
+                        )}
+                      </div>
+
+                      {/* Health Conditions */}
+                      {lead.healthStatus && (
+                        <div>
+                          <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-4">Known Health Conditions</p>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            {Object.entries(lead.healthStatus).map(([key, val]) => {
+                              const isFit = key.toLowerCase() === 'fit';
+                              return (
+                                <div 
+                                  key={key} 
+                                  className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${
+                                    val 
+                                      ? (isFit ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700')
+                                      : 'bg-white border-slate-100 text-slate-300'
+                                  }`}
+                                >
+                                  <div className={`w-2 h-2 rounded-full ${val ? (isFit ? 'bg-emerald-500' : 'bg-rose-500') : 'bg-slate-200'}`} />
+                                  <span className="text-[11px] font-semibold uppercase tracking-wider">{key}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </section>
+                </div>
+              </div>
+
+              {/* Family Overview - Bottom Row of Main Section */}
+              <div className="border-t border-slate-100 p-8 md:p-10 bg-slate-50/20">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                    <Users size={14} />
                   </div>
-                )}
+                  <h2 className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.2em]">Family Overview (Ages)</h2>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+                  {Object.entries(lead.familyAges || {}).map(([member, age]) => (
+                    <div key={member} className="bg-white border border-slate-100 p-4 rounded-xl text-center shadow-sm">
+                      <p className="text-[8px] font-semibold text-slate-400 uppercase tracking-widest mb-2">{member.replace(/child/i, 'Child ')}</p>
+                      <p className="text-base font-semibold text-indigo-600">{age || '—'}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
-            {/* 5. Family Overview (Ages) */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider">5. Family Overview (Ages)</h2>
-                <Users size={15} className="text-slate-300" />
+            {/* Protocol Info - Compact Row */}
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="flex items-center gap-4">
+                <div className="w-9 h-9 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400">
+                  <Shield size={16} />
+                </div>
+                <div>
+                  <h3 className="text-[10px] font-semibold text-slate-800 uppercase tracking-wider">Assignment Details</h3>
+                  <p className="text-[10px] text-slate-500 mt-0.5">Assigned to: <span className="font-semibold text-slate-700">{lead.tseName}</span> · TL: <span className="font-semibold text-slate-700">{lead.tlName}</span></p>
+                </div>
               </div>
-              <div className="p-6 grid grid-cols-3 sm:grid-cols-6 gap-3">
-                {Object.entries(lead.familyAges || {}).map(([member, age]) => (
-                  <div key={member} className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-center">
-                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-tight mb-1">{member.charAt(0).toUpperCase() + member.slice(1).replace(/child/i, 'Child ')}</p>
-                    <p className="text-base font-bold text-slate-800">{age ? String(age) : '—'}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* 6. Internal Protocol */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider">6. Internal Protocol & Visit Time</h2>
-                <Shield size={15} className="text-slate-300" />
-              </div>
-              <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
-                <DetailItem label="TSE Name" value={lead.tseName} />
-                <DetailItem label="TL Name" value={lead.tlName} />
-                <DetailItem label="Visit Appointment" value={`${lead.dateOfVisit || ''} ${lead.timeOfVisit || ''}`} highlight />
-                <DetailItem label="Record Created" value={lead.visitDate || new Date(lead.createdAt).toLocaleDateString()} />
+              <div className="flex items-center gap-3 px-3 py-1.5 bg-indigo-50 rounded-lg border border-indigo-100">
+                <Calendar size={12} className="text-indigo-500" />
+                <span className="text-[10px] font-semibold text-indigo-600 uppercase tracking-widest">{lead.dateOfVisit || 'No Visit Date'}</span>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-8 text-center space-y-6">
-              <div className="flex flex-col items-center gap-2">
-                <h3 className="text-lg font-bold text-slate-900">Lead Receipt Protocol</h3>
-                <p className="text-xs text-slate-500 max-w-sm mx-auto font-medium">Please confirm you have reviewed the client information above.</p>
+            {/* ── Classic Protocol Action Area ── */}
+            <div className="bg-slate-50 rounded-xl border border-slate-200 p-6 flex flex-col items-center gap-5 text-center">
+              <div className="space-y-1.5">
+                <h3 className="text-base font-semibold text-slate-800 uppercase tracking-wider">Protocol Acknowledgment</h3>
+                <p className="text-xs text-slate-500 max-w-md">Please confirm you have visited the client and reviewed all necessary details.</p>
               </div>
 
               {lead.isReadByVisitor ? (
-                <div className="flex flex-col items-center gap-3 animate-in zoom-in-95">
-                  <div className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-50">
-                    <CheckCircle2 size={24} />
-                  </div>
-                  <div>
-                    <h4 className="text-base font-bold text-emerald-900">Information Acknowledged</h4>
-                    <p className="text-[10px] font-semibold text-emerald-500 uppercase tracking-widest mt-1">
-                      NOTIFIED AT {new Date(lead.readAt!).toLocaleString()}
-                    </p>
-                  </div>
+                <div className="flex items-center gap-2.5 px-4 py-2.5 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-200 animate-in fade-in zoom-in duration-500">
+                  <CheckCircle2 size={16} />
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.2em]">Acknolwedged at {new Date(lead.readAt!).toLocaleTimeString()}</span>
                 </div>
               ) : (
                 <button
                   onClick={markAsRead}
                   disabled={submitting}
-                  className="w-full relative group p-8 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-900 transition-all duration-300"
+                  className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-semibold uppercase tracking-[0.25em] rounded-lg transition-all shadow-md shadow-indigo-100 active:scale-95 disabled:opacity-50 flex items-center gap-2.5"
                 >
-                  <div className="flex flex-col items-center gap-4 group-hover:text-white">
-                    <div className="w-12 h-12 rounded-full bg-white text-slate-600 flex items-center justify-center shadow-md group-hover:bg-slate-800 group-hover:text-white transition-all">
-                      <Send size={20} />
-                    </div>
-                    <div className="space-y-1 text-center">
-                      <span className="block text-lg font-bold uppercase tracking-tight">Mark as Read</span>
-                      <span className="block text-[10px] font-medium opacity-60">Manager will be instantly notified</span>
-                    </div>
-                  </div>
+                  <Send size={12} /> Mark as Visited
                 </button>
               )}
             </div>
@@ -687,39 +738,35 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                 <button
                   onClick={handleSmartCall}
                   disabled={isBrowserCallActive}
-                  className={`w-full flex items-center gap-4 p-5 rounded-2xl border transition-all group ${
-                    isBrowserCallActive
-                      ? 'border-orange-200 bg-orange-50 shadow-orange-100 animate-pulse'
-                      : browserCallResult
+                  className={`w-full flex items-center gap-4 p-5 rounded-2xl border transition-all group ${isBrowserCallActive
+                    ? 'border-orange-200 bg-orange-50 shadow-orange-100 animate-pulse'
+                    : browserCallResult
                       ? 'border-teal-200 bg-teal-50'
                       : 'border-orange-100 bg-white shadow-sm hover:shadow-md hover:-translate-y-0.5'
-                  }`}
+                    }`}
                 >
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform ${
-                    isBrowserCallActive ? 'bg-orange-100 text-orange-600' :
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform ${isBrowserCallActive ? 'bg-orange-100 text-orange-600' :
                     browserCallResult ? 'bg-teal-100 text-teal-600' :
-                    'bg-orange-50 text-orange-500'
-                  }`}>
+                      'bg-orange-50 text-orange-500'
+                    }`}>
                     <Phone className={`w-6 h-6 ${isBrowserCallActive ? 'animate-bounce' : ''}`} />
                   </div>
                   <div className="flex flex-col text-left flex-1">
-                    <span className={`text-[13px] font-black uppercase tracking-tight ${
-                      isBrowserCallActive ? 'text-orange-600' :
+                    <span className={`text-[13px] font-black uppercase tracking-tight ${isBrowserCallActive ? 'text-orange-600' :
                       browserCallResult ? 'text-teal-600' : 'text-orange-600'
-                    }`}>
+                      }`}>
                       {isBrowserCallActive ? '⏱ Call Active — Return When Done' :
-                       browserCallResult ? '✓ Call Logged' :
-                       'Smart Call (No App)'}
+                        browserCallResult ? '✓ Call Logged' :
+                          'Smart Call (No App)'}
                     </span>
-                    <span className={`text-[11px] font-medium tracking-tight ${
-                      isBrowserCallActive ? 'text-orange-400' :
+                    <span className={`text-[11px] font-medium tracking-tight ${isBrowserCallActive ? 'text-orange-400' :
                       browserCallResult ? 'text-teal-500' : 'text-orange-400'
-                    }`}>
+                      }`}>
                       {isBrowserCallActive
                         ? 'Duration auto-saves when you return here'
                         : browserCallResult
-                        ? `${Math.floor(browserCallResult.duration / 60)}m ${browserCallResult.duration % 60}s · ${browserCallResult.trustLabel}`
-                        : '📱 Samsung / No Automate App — Browser Timer'}
+                          ? `${Math.floor(browserCallResult.duration / 60)}m ${browserCallResult.duration % 60}s · ${browserCallResult.trustLabel}`
+                          : '📱 Samsung / No Automate App — Browser Timer'}
                     </span>
                   </div>
                 </button>
@@ -1043,14 +1090,15 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                             scheduledAt: scheduledAt,
                             priority: notePriority
                           });
+                          alert('Note and reminder task saved successfully!');
                           handleLogged();
-                        } catch (err) {
-                          alert('Failed to save note reminder');
+                        } catch (err: any) {
+                          alert(`Failed to save note reminder: ${err.message || 'Unknown error'}`);
                         } finally {
                           setSubmitting(false);
                         }
                       } else {
-                        logActivity('note', { notes: noteText });
+                        await logActivity('note', { notes: noteText });
                       }
                     }}
                     disabled={submitting || !noteText}

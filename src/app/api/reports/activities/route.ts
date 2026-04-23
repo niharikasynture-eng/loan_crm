@@ -34,7 +34,8 @@ export async function GET(req: NextRequest) {
 
     const query: any = { 
       organizationId: new mongoose.Types.ObjectId(auth.organizationId),
-      createdAt: { $gte: startDate }
+      createdAt: { $gte: startDate },
+      type: 'call'
     };
 
     if (userId && userId !== 'all') {

@@ -62,7 +62,8 @@ export async function POST(req: NextRequest) {
         const { sendAdminNewLeadAlert } = await import('@/lib/email');
         const Activity = (await import('@/models/Activity')).default;
         
-        // B. Send Email to Admin (Notification)
+        // B. Send Email to Admin (Notification) - DISABLED AS PER USER REQUEST
+        /* 
         if (organization.email) {
           try {
             await sendAdminNewLeadAlert(organization.email, name, email, phone, organization.name);
@@ -70,6 +71,7 @@ export async function POST(req: NextRequest) {
             console.error('Admin Notification Error:', adminErr);
           }
         }
+        */
         
         // C. Send SMS to Lead
         if (phone) {

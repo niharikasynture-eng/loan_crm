@@ -1,153 +1,173 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { api } from '@/lib/api-client';
-import { CheckCircle2, Circle, AlertCircle, Plus, Lock } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
-
-interface Task {
-  _id: string;
-  title: string;
-  status: string;
-  priority: string;
-  link?: string;
-  dueDate: string;
-  assignedTo: { _id: string; name: string; avatar?: string };
-  leadId?: { name: string; _id: string };
-}
+import * as React from 'react';
+import { Plus, CheckCircle2, Circle, AlertCircle, ExternalLink, Lock } from 'lucide-react';
+import { useTasks } from '@/hooks/useTasks';
+import { useToast } from '@/hooks/useToast';
+import { useAuth } from '@/hooks/useAuth';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 export default function TasksPage() {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
   const { user } = useAuth();
+  const { tasks, loading, updateTask } = useTasks();
 
-  async function loadTasks() {
-    setLoading(true);
-    try {
-      const data = await api.get<{ tasks: Task[] }>('/tasks');
-      setTasks(data.tasks);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    loadTasks();
-  }, []);
-
-  async function toggleComplete(id: string, currentStatus: string) {
+  const handleToggle = async (id: string, currentStatus: string) => {
     const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
-    // Optimistic
-    setTasks(tasks.map(t => t._id === id ? { ...t, status: newStatus } : t));
     try {
-      await api.patch(`/tasks/${id}`, { status: newStatus });
+      await updateTask(id, { status: newStatus });
+      toast('success', `Task marked as ${newStatus}`);
     } catch {
-      loadTasks(); // revert
+      toast('error', 'Failed to update task');
     }
-  }
+  };
 
-  function getPriorityColor(priority: string) {
-    switch (priority) {
-      case 'high': return 'text-red-400 bg-red-400/10 border-red-400/30';
-      case 'medium': return 'text-amber-400 bg-amber-400/10 border-amber-400/30';
-      default: return 'text-blue-400 bg-blue-400/10 border-blue-400/30';
-    }
-  }
+  const pending   = tasks.filter(t => t.status !== 'completed');
+  const completed = tasks.filter(t => t.status === 'completed');
 
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Tasks</h1>
-          <p className="text-[#94a3b8] mt-1 text-sm">Keep track of your follow-ups and to-dos</p>
+    <div className="space-y-5 animate-fade-in">
+      <PageHeader
+        title="Tasks"
+        subtitle="Track and manage your follow-ups and sales activities"
+        action={
+          <button className="btn-primary text-sm">
+            <Plus size={15} /> Add Task
+          </button>
+        }
+      />
+
+      {loading ? (
+        <div className="card py-20 flex items-center justify-center">
+          <div
+            className="w-7 h-7 rounded-full border-2 border-t-transparent animate-spin"
+            style={{ borderColor: 'var(--brand-light)', borderTopColor: 'var(--brand)' }}
+          />
         </div>
-        <button className="btn-primary">
-          <Plus className="w-4 h-4" />
-          Add Task
-        </button>
+      ) : tasks.length === 0 ? (
+        <div
+          className="card py-20 flex flex-col items-center gap-3 text-center"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          <CheckCircle2 size={36} strokeWidth={1.2} />
+          <p className="text-sm font-medium">All caught up! No tasks found.</p>
+        </div>
+      ) : (
+        <div className="space-y-5">
+          {/* Pending */}
+          {pending.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider mb-3 px-1" style={{ color: 'var(--text-muted)' }}>
+                Pending ({pending.length})
+              </p>
+              <div className="card divide-y overflow-hidden" style={{ borderColor: 'var(--border)' }}>
+                {pending.map(task => <TaskRow key={task._id.toString()} task={task} userId={user?.id} onToggle={handleToggle} />)}
+              </div>
+            </div>
+          )}
+
+          {/* Completed */}
+          {completed.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider mb-3 px-1" style={{ color: 'var(--text-muted)' }}>
+                Completed ({completed.length})
+              </p>
+              <div className="card divide-y overflow-hidden opacity-60">
+                {completed.map(task => <TaskRow key={task._id.toString()} task={task} userId={user?.id} onToggle={handleToggle} />)}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TaskRow({ task, userId, onToggle }: { task: any; userId?: string; onToggle: (id: string, status: string) => void }) {
+  const isCompleted = task.status === 'completed';
+  const isOverdue   = !isCompleted && new Date(task.dueDate) < new Date();
+  const canComplete = task.assignedTo?._id === userId || task.assignedTo === userId;
+
+  const PRIORITY_STYLE: Record<string, { bg: string; color: string }> = {
+    high:   { bg: '#fef2f2', color: '#dc2626' },
+    medium: { bg: '#fffbeb', color: '#d97706' },
+    low:    { bg: '#eff6ff', color: '#2563eb' },
+  };
+  const ps = PRIORITY_STYLE[task.priority?.toLowerCase()] ?? PRIORITY_STYLE.medium;
+
+  return (
+    <div className="flex items-center gap-3.5 px-4 py-3.5 transition-colors hover:bg-gray-50">
+      {/* Toggle */}
+      <button
+        onClick={() => canComplete && onToggle(task._id.toString(), task.status)}
+        disabled={!canComplete}
+        className="shrink-0 transition-transform"
+        style={{ transform: 'none', cursor: canComplete ? 'pointer' : 'not-allowed' }}
+      >
+        {isCompleted
+          ? <CheckCircle2 size={20} style={{ color: 'var(--success)' }} />
+          : canComplete
+            ? <Circle size={20} style={{ color: 'var(--border-strong)' }} />
+            : <Lock size={16} style={{ color: 'var(--text-disabled)' }} />
+        }
+      </button>
+
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <p
+            className="text-sm font-medium truncate"
+            style={{
+              color: isCompleted ? 'var(--text-muted)' : 'var(--text-primary)',
+              textDecoration: isCompleted ? 'line-through' : 'none',
+            }}
+          >
+            {task.title}
+          </p>
+          <span
+            className="text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0"
+            style={ps}
+          >
+            {task.priority}
+          </span>
+        </div>
+        <div className="flex items-center gap-4 mt-0.5 flex-wrap">
+          <span
+            className="text-xs flex items-center gap-1"
+            style={{ color: isOverdue ? 'var(--danger)' : 'var(--text-muted)' }}
+          >
+            {isOverdue && <AlertCircle size={11} />}
+            Due {new Date(task.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+          </span>
+          {task.leadId?.name && (
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              Lead: <span style={{ color: 'var(--brand)' }}>{task.leadId.name}</span>
+            </span>
+          )}
+          {task.link && (
+            <a
+              href={task.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs flex items-center gap-1"
+              style={{ color: 'var(--brand)' }}
+              onClick={e => e.stopPropagation()}
+            >
+              Join Meeting <ExternalLink size={10} />
+            </a>
+          )}
+        </div>
       </div>
 
-      <div className="card divide-y divide-[#334155]">
-        {loading ? (
-          <div className="p-8 text-center text-[#64748b]">Loading tasks...</div>
-        ) : tasks.length === 0 ? (
-          <div className="p-12 text-center">
-            <div className="w-16 h-16 bg-[#0f172a] rounded-full flex items-center justify-center mx-auto mb-4 border border-[#334155]">
-              <CheckCircle2 className="w-6 h-6 text-[#64748b]" />
-            </div>
-            <h3 className="text-white font-medium mb-1">No tasks yet</h3>
-            <p className="text-[#64748b] text-sm">Create tasks to stay organized and follow up with leads.</p>
-          </div>
-        ) : (
-          tasks.map((task) => {
-            const isCompleted = task.status === 'completed';
-            const isOverdue = task.status !== 'completed' && new Date(task.dueDate) < new Date();
-
-            return (
-              <div key={task._id} className={`p-4 flex items-center gap-4 transition-colors hover:bg-[rgba(30,41,59,0.5)] ${isCompleted ? 'opacity-60' : ''}`}>
-                <button
-                  onClick={() => {
-                    if (task.assignedTo._id !== user?.id) return;
-                    toggleComplete(task._id, task.status);
-                  }}
-                  disabled={task.assignedTo._id !== user?.id}
-                  className={`mt-1 flex-shrink-0 transition-colors ${task.assignedTo._id === user?.id ? 'text-[#64748b] hover:text-indigo-400' : 'text-[#334155] cursor-not-allowed'}`}
-                  title={task.assignedTo._id !== user?.id ? 'Only the assigned user can complete this' : ''}
-                >
-                  {isCompleted ? (
-                    <CheckCircle2 className={`w-6 h-6 ${task.assignedTo._id === user?.id ? 'text-emerald-500' : 'text-emerald-900'}`} />
-                  ) : (
-                    task.assignedTo._id === user?.id ? <Circle className="w-6 h-6" /> : <Lock className="w-4 h-4" />
-                  )}
-                </button>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className={`font-medium ${isCompleted ? 'text-[#94a3b8] line-through' : 'text-white'} truncate`}>
-                      {task.title}
-                    </p>
-                    <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded border ${getPriorityColor(task.priority)}`}>
-                      {task.priority}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-4 text-xs">
-                    <span className={`flex items-center gap-1 ${isOverdue ? 'text-red-400' : 'text-[#64748b]'}`}>
-                      {isOverdue && <AlertCircle className="w-3 h-3" />}
-                      Due {new Date(task.dueDate).toLocaleDateString()}
-                    </span>
-                    {task.leadId && (
-                      <span className="text-[#94a3b8]">Lead: {task.leadId.name}</span>
-                    )}
-                    {task.link && (
-                      <a
-                        href={task.link.startsWith('http') ? task.link : `https://${task.link}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-semibold"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        Join Meeting 🔗
-                      </a>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <div className="hidden sm:block text-xs text-right text-[#94a3b8]">
-                    <p className="font-medium text-[#cbd5e1]">{task.assignedTo.name}</p>
-                    <p>Assignee</p>
-                  </div>
-                  <div className="w-8 h-8 rounded-full bg-[#0f172a] border border-[#334155] flex items-center justify-center text-xs font-bold text-white flex-shrink-0" title={task.assignedTo.name}>
-                    {task.assignedTo.name.charAt(0)}
-                  </div>
-                </div>
-              </div>
-            );
-          })
-        )}
+      {/* Assignee */}
+      <div className="flex items-center gap-2 shrink-0">
+        <div
+          className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white"
+          style={{ background: 'var(--brand)' }}
+          title={task.assignedTo?.name}
+        >
+          {task.assignedTo?.name?.charAt(0)?.toUpperCase() ?? '?'}
+        </div>
       </div>
     </div>
   );

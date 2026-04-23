@@ -162,20 +162,65 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
           </div>
         )}
 
-        {/* Administration Section */}
-        {showAdminSection && (
+        {/* Super Admin: 3 direct org tabs only */}
+        {isSuperAdmin && (
           <div className="mb-8">
             {!isCollapsed && (
-              <p className={isSuperAdmin ? "text-[11px] font-bold uppercase tracking-[0.2em] text-[#94a3b8] mb-3 px-6 mt-10" : ""} style={isSuperAdmin ? {} : sectionLabel}>
-                {isSuperAdmin ? 'PLATFORM' : (isSalesAgent ? 'Account' : 'Control Center')}
-              </p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#94a3b8] mb-3 px-6 mt-4">Organizations</p>
             )}
             <div className={`px-4 space-y-2 ${isCollapsed ? 'flex flex-col items-center px-0' : ''}`}>
-              
+              {([
+                { tab: 'pending', label: 'Pending Approval', icon: Clock,         count: counts.pending },
+                { tab: 'active',  label: 'Active',           icon: CheckCircle,   count: counts.active  },
+                { tab: 'all',     label: 'All Organizations', icon: Building2,    count: counts.all     },
+              ] as const).map(({ tab, label, icon: Icon, count }) => {
+                const active = pathname === '/super-admin' && (currentTab === tab || (!currentTab && tab === 'pending'));
+                return (
+                  <Link
+                    key={tab}
+                    href={`/super-admin?tab=${tab}`}
+                    title={isCollapsed ? label : ''}
+                    className={`flex items-center gap-3 rounded-2xl transition-all duration-200 border-2 ${
+                      isCollapsed ? 'w-12 h-12 justify-center p-0' : 'px-4 py-3'
+                    } ${
+                      active
+                        ? 'bg-blue-50/50 border-blue-200 text-blue-600 shadow-sm'
+                        : 'bg-transparent border-transparent text-gray-500 hover:bg-gray-50 group'
+                    }`}
+                  >
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
+                      active ? 'bg-blue-600 shadow-md shadow-blue-100' : 'bg-gray-100 group-hover:bg-indigo-50'
+                    }`}>
+                      <Icon size={isCollapsed ? 20 : 18} className={active ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600'} />
+                    </div>
+                    {!isCollapsed && (
+                      <div className="flex items-center justify-between flex-1 min-w-0 animate-fade-in">
+                        <span className="text-sm font-bold tracking-tight truncate">{label}</span>
+                        {count > 0 && (
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ml-2 flex-shrink-0 ${
+                            active ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'
+                          }`}>{count}</span>
+                        )}
+                      </div>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Administration Section (non-super-admin only) */}
+        {!isSuperAdmin && showAdminSection && (
+          <div className="mb-8">
+            {!isCollapsed && (
+              <p style={sectionLabel}>{isSalesAgent ? 'Account' : 'Control Center'}</p>
+            )}
+            <div className={`px-4 space-y-2 ${isCollapsed ? 'flex flex-col items-center px-0' : ''}`}>
               {isOrgAdmin && (
-                <Link 
-                  href="/users" 
-                  title={isCollapsed ? 'Team Members' : ''} 
+                <Link
+                  href="/users"
+                  title={isCollapsed ? 'Team Members' : ''}
                   className={`flex items-center gap-3 rounded-2xl transition-all duration-200 border-2 ${isCollapsed ? 'w-12 h-12 justify-center p-0' : 'px-4 py-3'} ${isActive('/users') ? 'bg-blue-50/50 border-blue-200 text-blue-600 shadow-sm' : 'bg-transparent border-transparent text-gray-500 hover:bg-gray-50 group'}`}
                 >
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${isActive('/users') ? 'bg-blue-600 shadow-md shadow-blue-100' : 'bg-gray-100 group-hover:bg-indigo-50'}`}>
@@ -184,51 +229,9 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                   {!isCollapsed && <span className="text-sm font-bold tracking-tight animate-fade-in">Team</span>}
                 </Link>
               )}
-
-              {/* Organizations (Super Admin only expansion) */}
-              {isSuperAdmin && !isCollapsed && (
-                <div className="pt-0.5">
-                   <button 
-                     onClick={() => setIsOrgsOpen(!isOrgsOpen)}
-                     className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-bold transition-all border-2 ${isOrgsOpen ? 'bg-blue-50/50 border-blue-200 text-blue-600 shadow-sm' : 'bg-transparent border-transparent text-gray-400 hover:bg-gray-50 group'}`}
-                   >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${isOrgsOpen ? 'bg-blue-600 shadow-md shadow-blue-100' : 'bg-gray-100 group-hover:bg-indigo-50'}`}>
-                          <Building2 size={18} className={isOrgsOpen ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600'} />
-                        </div>
-                        <span>Organizations</span>
-                      </div>
-                      <ChevronDown size={16} className={`transition-transform duration-300 ${isOrgsOpen ? 'text-blue-600 rotate-180' : 'text-gray-400'}`} />
-                   </button>
-                   
-                   {isOrgsOpen && (
-                     <div className="mt-2 ml-10 space-y-1 animate-slide-down pr-2">
-                        {[
-                          { id: 'all',     label: 'All Organizations' },
-                          { id: 'active',  label: 'Active Only'       },
-                          { id: 'pending', label: 'Pending Review'    }
-                        ].map((tab) => (
-                          <Link 
-                            key={tab.id}
-                            href={`/super-admin?tab=${tab.id}`}
-                            className={`flex items-center h-10 px-4 rounded-xl text-sm font-bold transition-all ${
-                              currentTab === tab.id || (!currentTab && tab.id === 'all' && pathname === '/super-admin')
-                                ? 'bg-blue-50/50 text-blue-600'
-                                : 'text-gray-500 hover:bg-gray-50 hover:text-indigo-600'
-                            }`}
-                          >
-                            <span>{tab.label}</span>
-                          </Link>
-                        ))}
-                     </div>
-                   )}
-                </div>
-              )}
-
-              {/* Settings */}
-              <Link 
-                href="/settings" 
-                title={isCollapsed ? 'Settings' : ''} 
+              <Link
+                href="/settings"
+                title={isCollapsed ? 'Settings' : ''}
                 className={`flex items-center gap-3 rounded-2xl transition-all duration-200 border-2 ${isCollapsed ? 'w-12 h-12 justify-center p-0' : 'px-4 py-3'} ${isActive('/settings') ? 'bg-blue-50/50 border-blue-200 text-blue-600 shadow-sm' : 'bg-transparent border-transparent text-gray-500 hover:bg-gray-50 group'}`}
               >
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${isActive('/settings') ? 'bg-blue-600 shadow-md shadow-blue-100' : 'bg-gray-100 group-hover:bg-indigo-50'}`}>
@@ -236,13 +239,6 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                 </div>
                 {!isCollapsed && <span className="text-sm font-bold tracking-tight animate-fade-in">Settings</span>}
               </Link>
-              {isSuperAdmin && isCollapsed && (
-                 <Link href="/super-admin" title="Organizations" className={`flex items-center gap-3 rounded-2xl transition-all duration-200 border-2 ${isCollapsed ? 'w-12 h-12 justify-center p-0' : 'px-4 py-3'} ${isActive('/super-admin') ? 'bg-blue-50/50 border-blue-200 text-blue-600 shadow-sm' : 'bg-transparent border-transparent text-gray-500 hover:bg-gray-50 group'}`}>
-                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${isActive('/super-admin') ? 'bg-blue-600 shadow-md shadow-blue-100' : 'bg-gray-100 group-hover:bg-indigo-50'}`}>
-                     <Building2 size={20} className={isActive('/super-admin') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600'} />
-                   </div>
-                 </Link>
-              )}
             </div>
           </div>
         )}

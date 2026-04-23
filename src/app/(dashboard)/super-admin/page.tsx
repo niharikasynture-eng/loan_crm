@@ -80,6 +80,7 @@ export default function SuperAdminPage() {
   const filtered = orgs.filter((o) => {
     if (activeTab === 'pending') return o.status === 'pending';
     if (activeTab === 'active') return o.status === 'active' || o.status === 'approved';
+    // "All" tab = every organization (including inactive/rejected, excluding deleted)
     return o.status !== 'deleted';
   });
 
@@ -188,9 +189,9 @@ export default function SuperAdminPage() {
       {/* Filter Tabs — simple pill style */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
         {([
-          { id: 'pending', label: 'Pending', count: counts.pending },
-          { id: 'active',  label: 'Active',  count: counts.active },
-          { id: 'all',     label: 'All',      count: counts.all },
+          { id: 'pending', label: 'Pending Approval', count: counts.pending },
+          { id: 'active',  label: 'Active',           count: counts.active },
+          { id: 'all',     label: 'All Decisions',    count: counts.all },
         ] as const).map(tab => (
           <button
             key={tab.id}
@@ -228,8 +229,12 @@ export default function SuperAdminPage() {
             <div style={{ width: 60, height: 60, borderRadius: 16, background: '#f0f4f9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
               <Building2 size={28} style={{ color: '#a0aec0' }} />
             </div>
-            <p style={{ fontSize: 15, fontWeight: 600, color: '#4a5568' }}>No {activeTab === 'pending' ? 'pending' : activeTab === 'active' ? 'active' : ''} organizations</p>
-            <p style={{ fontSize: 13, color: '#a0aec0', marginTop: 6 }}>Organizations will appear here when they register</p>
+            <p style={{ fontSize: 15, fontWeight: 600, color: '#4a5568' }}>
+              {activeTab === 'pending' ? 'No pending approvals' : activeTab === 'active' ? 'No active organizations' : 'No approved or rejected organizations'}
+            </p>
+            <p style={{ fontSize: 13, color: '#a0aec0', marginTop: 6 }}>
+              {activeTab === 'pending' ? 'New registrations will appear here for review' : activeTab === 'active' ? 'Approved organizations will appear here' : 'Approved and rejected organizations will appear here'}
+            </p>
           </div>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>

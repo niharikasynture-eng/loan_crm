@@ -1,182 +1,168 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import * as React from 'react';
+import { Users, TrendingUp, PhoneCall, CheckSquare, Link2, Copy, CheckCircle } from 'lucide-react';
 import { api } from '@/lib/api-client';
-import { useAuth } from '@/context/AuthContext';
-import { Users, TrendingUp, PhoneCall, CheckSquare, Link2, Copy, CheckCircle, ArrowUpRight, Search, Bell } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/useToast';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { MetricCard } from '@/components/features/MetricCard';
+import { RecentActivityList } from '@/components/features/RecentActivityList';
+import { Badge } from '@/components/ui/Badge';
 
 interface DashboardMetrics {
   totalLeads: number; newLeads: number; wonLeads: number; lostLeads: number;
   totalDeals: number; wonDeals: number; wonDealValue: number;
   totalActivities: number; callsThisMonth: number; pendingTasks: number; conversionRate: number;
 }
-interface Activity {
-  _id: string; type: string; notes: string; createdAt: string;
-  createdBy: { name: string; avatar?: string }; leadId: { name: string };
-}
-interface Task {
-  _id: string; title: string; dueDate: string; priority: string;
-  assignedTo: { name: string; avatar?: string }; leadId?: { name: string };
-}
-
-const TYPE_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
-  email: { bg: 'bg-indigo-50/50', text: 'text-indigo-600', dot: 'bg-indigo-500' },
-  call: { bg: 'bg-emerald-50/50', text: 'text-emerald-600', dot: 'bg-emerald-500' },
-  whatsapp: { bg: 'bg-green-50/50', text: 'text-green-600', dot: 'bg-green-500' },
-  note: { bg: 'bg-orange-50/50', text: 'text-orange-600', dot: 'bg-orange-500' },
-  meeting: { bg: 'bg-purple-50/50', text: 'text-purple-600', dot: 'bg-purple-500' },
-};
 
 export default function DashboardPage() {
   const { user, organization } = useAuth();
-  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [copied, setCopied] = useState(false);
+  const { toast } = useToast();
+
+  const [metrics, setMetrics] = React.useState<DashboardMetrics | null>(null);
+  const [activities, setActivities] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [copied, setCopied] = React.useState(false);
 
   const publicLeadUrl = typeof window !== 'undefined' && user?.role !== 'super_admin'
     ? `${window.location.protocol}//${window.location.host}/form/${organization?.slug || 'org'}`
     : '';
 
-  const copyToClipboard = () => {
+  const copyLink = () => {
     navigator.clipboard.writeText(publicLeadUrl);
     setCopied(true);
+    toast('success', 'Lead form link copied!');
     setTimeout(() => setCopied(false), 2000);
   };
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const data = await api.get<{ metrics: DashboardMetrics; recentActivities: Activity[]; upcomingTasks: Task[] }>('/dashboard');
-        setMetrics(data.metrics);
-        setActivities(data.recentActivities);
-        setTasks(data.upcomingTasks);
-      } catch (err) { console.error(err); }
-      finally { setLoading(false); }
-    }
-    load();
+  React.useEffect(() => {
+    api.get<{ metrics: DashboardMetrics; recentActivities: any[] }>('/dashboard')
+      .then((d) => { setMetrics(d.metrics); setActivities(d.recentActivities); })
+      .catch(() => toast('error', 'Failed to load dashboard'))
+      .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <div className="w-6 h-6 border-2 border-gray-100 border-t-indigo-600 rounded-full animate-spin" />
-    </div>
-  );
-
-  const metricCards = [
-    { label: 'Total Leads', value: metrics?.totalLeads, sub: `${metrics?.newLeads ?? 0} new this period`, subColor: 'text-blue-500', icon: Users, iconBg: 'bg-blue-50/50', iconColor: 'text-blue-600' },
-    { label: 'Won Deals', value: metrics?.wonDeals, sub: `₹${(metrics?.wonDealValue ?? 0).toLocaleString()} total value`, subColor: 'text-emerald-500', icon: TrendingUp, iconBg: 'bg-emerald-50/50', iconColor: 'text-emerald-600' },
-    { label: 'Calls (30d)', value: metrics?.callsThisMonth, sub: `${metrics?.totalActivities ?? 0} total activities`, subColor: 'text-gray-400', icon: PhoneCall, iconBg: 'bg-sky-50/50', iconColor: 'text-sky-600' },
-    { label: 'Pending Tasks', value: metrics?.pendingTasks, sub: 'Requires your attention', subColor: 'text-orange-500', icon: CheckSquare, iconBg: 'bg-orange-50/50', iconColor: 'text-orange-600' },
-  ];
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] gap-3">
+        <div
+          className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin"
+          style={{ borderColor: 'var(--brand-light)', borderTopColor: 'var(--brand)' }}
+        />
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Loading dashboard...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-screen-2xl mx-auto p-4 sm:p-6 flex flex-col gap-4 sm:gap-6">
+    <div className="animate-fade-in pb-10">
+      <PageHeader
+        title="Dashboard"
+        subtitle={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+      />
 
-      {/* ── Dashboard Header ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900 tracking-tight">Dashboard Overview</h1>
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mt-1">
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-          </p>
-        </div>
-      </div>
+      <div className="h-8" /> {/* Gap after header */}
 
-      {/* Public Lead Form Banner */}
+      {/* Lead Capture Banner */}
       {(user?.role === 'org_admin' || user?.role === 'manager') && (
-        <div className="bg-white border border-gray-100 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0 text-indigo-600">
-              <Link2 size={18} />
+        <>
+          <div
+            className="rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5"
+            style={{ background: 'var(--brand-soft)', borderColor: 'rgba(124,58,237,0.15)' }}
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+                style={{ background: 'var(--brand)', color: '#fff' }}
+              >
+                <Link2 size={17} />
+              </div>
+              <div>
+                <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  Public Lead Form
+                </p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                  Share this link to automatically capture new leads
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-bold text-gray-900">Public Lead Capture</p>
-              <p className="text-[11px] font-medium text-gray-400">Capture leads automatically</p>
+            <div
+              className="flex items-center gap-2 bg-white rounded-lg border p-1 shrink-0"
+              style={{ borderColor: 'var(--border)' }}
+            >
+              <span
+                className="px-3 text-[12px] font-mono truncate max-w-[220px]"
+                style={{ color: 'var(--brand)' }}
+              >
+                {publicLeadUrl}
+              </span>
+              <button
+                onClick={copyLink}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold text-white transition-all shrink-0"
+                style={{ background: copied ? 'var(--success)' : 'var(--brand)' }}
+              >
+                {copied ? <CheckCircle size={13} /> : <Copy size={13} />}
+                {copied ? 'Copied' : 'Copy'}
+              </button>
             </div>
           </div>
           
-          <div className="flex items-center w-full sm:w-auto p-1 bg-gray-50 border border-gray-100 rounded-lg">
-            <div className="flex-1 px-3 py-2 text-[10px] sm:text-[11px] text-indigo-600 font-medium font-mono truncate min-w-0">
-              {publicLeadUrl}
-            </div>
-            <button
-              onClick={copyToClipboard}
-              className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-md text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-white transition-all flex-shrink-0 ${copied ? 'bg-emerald-500' : 'bg-indigo-600 hover:bg-indigo-700'}`}
-            >
-              {copied ? <CheckCircle size={12} /> : <Copy size={12} />}
-              {copied ? 'Copied' : 'Copy'}
-            </button>
-          </div>
-        </div>
+          <div className="h-4" /> {/* Minimal gap between banner and stats */}
+        </>
       )}
 
-      {/* ── Metric Cards ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {metricCards.map(({ label, value, sub, subColor, icon: Icon, iconBg, iconColor }) => (
-          <div key={label} className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm hover:border-gray-200 transition-all group overflow-hidden">
-            <div className="flex items-center justify-between mb-6">
-              <span className={`p-2 rounded-lg ${iconBg} ${iconColor}`}>
-                <Icon size={18} />
-              </span>
-              <p className="text-[9px] font-bold text-gray-400 text-right uppercase tracking-wider leading-tight min-w-0 flex-1 truncate ml-2 break-normal">{label}</p>
-            </div>
-            <p className="text-2xl sm:text-3xl font-bold text-gray-900 leading-none mb-2 tabular-nums">{value ?? 0}</p>
-            <p className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wide truncate ${subColor}`}>{sub}</p>
-          </div>
-        ))}
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard
+          label="Total Leads"
+          value={metrics?.totalLeads ?? 0}
+          subValue={`${metrics?.newLeads ?? 0} new this month`}
+          icon={Users}
+          iconBg="#eff6ff"
+          iconColor="#2563eb"
+        />
+        <MetricCard
+          label="Revenue Won"
+          value={`₹${((metrics?.wonDealValue ?? 0) / 100000).toFixed(1)}L`}
+          subValue={`${metrics?.wonDeals ?? 0} deals closed`}
+          icon={TrendingUp}
+          iconBg="#ecfdf5"
+          iconColor="#059669"
+        />
+        <MetricCard
+          label="Calls (30d)"
+          value={metrics?.callsThisMonth ?? 0}
+          subValue={`${metrics?.totalActivities ?? 0} total activities`}
+          icon={PhoneCall}
+          iconBg="var(--brand-soft)"
+          iconColor="var(--brand)"
+        />
+        <MetricCard
+          label="Pending Tasks"
+          value={metrics?.pendingTasks ?? 0}
+          subValue="Needs your attention"
+          icon={CheckSquare}
+          iconBg="#fffbeb"
+          iconColor="#d97706"
+        />
       </div>
 
-      {/* ── Recent Activity Section ── */}
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between px-2">
-          <h2 className="text-sm font-bold text-gray-700 uppercase tracking-widest">Recent Activity</h2>
-          {activities.length > 0 && (
-            <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-md uppercase tracking-wider">
-              {activities.length} Recorded
-            </span>
-          )}
-        </div>
+      <div className="h-6" /> {/* Minimal gap between stats and activity */}
 
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col divide-y divide-gray-50">
-          {activities.length === 0 ? (
-            <div className="py-20 text-center">
-              <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">No activity reported</p>
-            </div>
-          ) : activities.map((act) => {
-            const t = TYPE_COLORS[act.type?.toLowerCase()] ?? { bg: 'bg-gray-50', text: 'text-gray-500', dot: 'bg-gray-400' };
-            return (
-              <div key={act._id} className="flex items-start gap-4 sm:gap-6 p-5 sm:p-8 hover:bg-gray-50/50 transition-colors group overflow-hidden">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-indigo-50 border border-indigo-100/50 flex items-center justify-center text-indigo-600 text-sm sm:text-lg font-bold flex-shrink-0">
-                  {act.createdBy?.name?.charAt(0).toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 sm:gap-4 flex-wrap mb-3 text-sm sm:text-base">
-                    <span className="font-bold text-gray-900 truncate max-w-[120px] sm:max-w-none">{act.createdBy?.name}</span>
-                    <span className={`inline-flex items-center gap-2 text-[11px] font-bold px-3 py-1 rounded-md ${t.bg} ${t.text} uppercase tracking-wider border border-current opacity-70`}>
-                      {act.type}
-                    </span>
-                    <span className="text-[11px] font-semibold text-gray-300 uppercase tracking-wider">to</span>
-                    <span className="font-bold text-blue-600 hover:underline cursor-pointer truncate max-w-[250px]">{act.leadId?.name}</span>
-                  </div>
-                  {act.notes && (
-                    <div className="bg-gray-50/50 rounded-xl sm:rounded-2xl px-4 py-3 sm:px-6 sm:py-4 border border-gray-100/50 mb-3 shadow-inner">
-                      <p className="text-sm sm:text-base font-medium text-gray-700 leading-relaxed italic break-words">
-                        &ldquo;{act.notes}&rdquo;
-                      </p>
-                    </div>
-                  )}
-                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest opacity-80 leading-none">
-                    {new Date(act.createdAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
+      {/* Bottom Split */}
+      <div className="grid grid-cols-1 gap-8">
+        {/* Activity Feed */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+              Recent Activity
+            </h2>
+            <Badge variant="info">LIVE</Badge>
+          </div>
+          <RecentActivityList activities={activities} />
         </div>
       </div>
     </div>
   );
 }
-

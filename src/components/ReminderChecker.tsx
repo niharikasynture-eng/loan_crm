@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { api } from '@/lib/api-client';
 import { useAuth } from '@/context/AuthContext';
-import { useToast } from './Toast';
+import { useToast } from '@/hooks/useToast';
 
 export function ReminderChecker() {
   const { user } = useAuth();
