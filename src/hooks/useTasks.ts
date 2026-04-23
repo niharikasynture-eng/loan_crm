@@ -29,7 +29,7 @@ export function useTasks(options: { status?: string; leadId?: string } = {}) {
   const updateTask = async (id: string, updates: Partial<ITask>) => {
     try {
       await api.patch(`/tasks/${id}`, updates);
-      setTasks(prev => prev.map(t => (t._id.toString() === id ? { ...t, ...updates } : t)));
+      setTasks(prev => prev.map(t => (t._id.toString() === id ? { ...t, ...updates } as any : t)));
     } catch (err: any) {
       throw new Error(err.message || 'Failed to update task');
     }

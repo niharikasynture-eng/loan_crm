@@ -27,7 +27,6 @@ export function useDeals(options: { stage?: string; pipelineId?: string } = {}) 
   }, [options.stage, options.pipelineId]);
 
   useEffect(() => {
-    fetchLeads(); // Wait, typo in the previous name
     fetchDeals();
   }, [fetchDeals]);
 
