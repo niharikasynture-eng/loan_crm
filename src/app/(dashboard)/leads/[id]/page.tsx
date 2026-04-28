@@ -1076,8 +1076,10 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                           if (notePeriod === 'AM' && hour === 12) hour = 0;
                           const timeStr = `${hour.toString().padStart(2, '0')}:${noteMinute}:00`;
 
-                          // Combine date and time
-                          const scheduledAt = `${noteDateOnly}T${timeStr}`;
+                          // Convert to UTC ISO string using the BROWSER's local timezone.
+                          // Without .toISOString(), a bare string like '2026-04-28T08:00:00'
+                          // gets stored as 8:00 AM UTC by the server (= 1:30 PM IST — 5.5 hrs late!).
+                          const scheduledAt = new Date(`${noteDateOnly}T${timeStr}`).toISOString();
 
                           await api.post('/tasks', {
                             leadId,
@@ -1340,7 +1342,8 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                         if (meetingData.timePeriod === 'PM' && hour !== 12) hour += 12;
                         if (meetingData.timePeriod === 'AM' && hour === 12) hour = 0;
                         const timeStr = `${hour.toString().padStart(2, '0')}:${meetingData.timeMinute}:00`;
-                        const scheduledAt = `${meetingData.date}T${timeStr}`;
+                        // Convert to UTC ISO using browser's local timezone (avoids 5.5hr IST offset error)
+                        const scheduledAt = new Date(`${meetingData.date}T${timeStr}`).toISOString();
 
                         await api.post('/tasks', {
                           leadId,
@@ -1646,7 +1649,8 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                         if (reminderData.timePeriod === 'PM' && hour !== 12) hour += 12;
                         if (reminderData.timePeriod === 'AM' && hour === 12) hour = 0;
                         const timeStr = `${hour.toString().padStart(2, '0')}:${reminderData.timeMinute}:00`;
-                        const scheduledAt = `${reminderData.date}T${timeStr}`;
+                        // Convert to UTC ISO using browser's local timezone (avoids 5.5hr IST offset error)
+                        const scheduledAt = new Date(`${reminderData.date}T${timeStr}`).toISOString();
 
                         await api.post('/activities', {
                           leadId,

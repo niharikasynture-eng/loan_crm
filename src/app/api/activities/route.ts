@@ -25,20 +25,25 @@ export async function GET(req: NextRequest) {
     const query: Record<string, unknown> = { organizationId: auth.organizationId };
 
     if (remindersOnly) {
-      // Only get activities scheduled for TODAY that are still pending
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
-      const todayEnd = new Date();
-      todayEnd.setHours(23, 59, 59, 999);
-      query.scheduledAt = { $gte: todayStart, $lte: todayEnd };
-      query.status = { $in: ['pending', null] };
+      // Fetch activities scheduled within a wide window to handle any server timezone.
+      // The client (ReminderChecker) does the precise time check.
+      // Window: yesterday 00:00 UTC → tomorrow 23:59 UTC (covers IST +5:30 and other zones)
+      const windowStart = new Date();
+      windowStart.setUTCDate(windowStart.getUTCDate() - 1);
+      windowStart.setUTCHours(0, 0, 0, 0);
+      const windowEnd = new Date();
+      windowEnd.setUTCDate(windowEnd.getUTCDate() + 1);
+      windowEnd.setUTCHours(23, 59, 59, 999);
+
+      query.scheduledAt = { $gte: windowStart, $lte: windowEnd };
+      // NOTE: Do NOT filter by status — activities default to 'completed', not 'pending'
       query.type = { $in: ['note', 'call'] };
-      // Scope to this user's leads
+      // Scope to this user's leads (for sales agents)
       if (auth.role === ROLES.SALES_AGENT || auth.role === ROLES.ONSITE_VISITOR) {
         const myLeads = await Lead.find({ assignedTo: auth.userId, organizationId: auth.organizationId }).select('_id').lean();
         query.leadId = { $in: myLeads.map(l => l._id) };
       }
-      // Filter to only this user's created activities
+      // Filter to this user's created activities
       query.createdBy = auth.userId;
     } else {
       if (isScheduled) query.scheduledAt = { $exists: true, $ne: null };

@@ -5,113 +5,123 @@ import { api } from '@/lib/api-client';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/useToast';
 
-// How often to check (ms) — 30s is enough; scheduled times are set in advance
+// Poll every 30 seconds — accurate enough for reminders set in advance
 const POLL_INTERVAL_MS = 30_000;
-// How long after scheduled time we still fire (catchup window — handles tab sleep, deploys)
+
+// How long AFTER the scheduled time we still fire the reminder.
+// Handles: page refresh, tab sleep, Vercel cold starts, 30s polling gap.
 const CATCHUP_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 
 export function ReminderChecker() {
   const { user } = useAuth();
   const { showToast } = useToast();
 
-  // In-memory set for this session — avoids stale localStorage entries across days
+  // Ref-based fired set — prevents double-fire across rapid re-renders
   const firedRef = useRef<Set<string>>(new Set());
 
-  // Seed from localStorage on mount (so page refresh doesn't re-fire today's alerts)
+  // On mount: seed from localStorage so page refresh doesn't re-fire today's alerts
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
-      const today = new Date().toDateString();
+      const today = new Date().toDateString(); // e.g. "Mon Apr 28 2025"
       const raw = localStorage.getItem('crm_reminders_fired');
       if (raw) {
-        const { date, ids } = JSON.parse(raw) as { date: string; ids: string[] };
-        // Only restore if the stored date is today — prevents carrying over old IDs
-        if (date === today) {
-          ids.forEach(id => firedRef.current.add(id));
+        const parsed = JSON.parse(raw) as { date: string; ids: string[] };
+        if (parsed.date === today) {
+          // Restore today's fired IDs
+          parsed.ids.forEach((id: string) => firedRef.current.add(id));
         } else {
-          // New day — clear stale entries
+          // New day — wipe old entries
           localStorage.removeItem('crm_reminders_fired');
         }
       }
-    } catch { /* ignore */ }
+    } catch { /* ignore parse errors */ }
   }, []);
 
   const markFired = useCallback((id: string) => {
     firedRef.current.add(id);
-    // Persist to localStorage
-    if (typeof window !== 'undefined') {
-      try {
-        const today = new Date().toDateString();
-        const raw = localStorage.getItem('crm_reminders_fired');
-        let ids: string[] = [];
-        if (raw) {
-          const parsed = JSON.parse(raw) as { date: string; ids: string[] };
-          if (parsed.date === today) ids = parsed.ids;
-        }
-        ids.push(id);
-        localStorage.setItem('crm_reminders_fired', JSON.stringify({ date: today, ids }));
-      } catch { /* ignore */ }
-    }
+    if (typeof window === 'undefined') return;
+    try {
+      const today = new Date().toDateString();
+      const raw = localStorage.getItem('crm_reminders_fired');
+      let ids: string[] = [];
+      if (raw) {
+        const parsed = JSON.parse(raw) as { date: string; ids: string[] };
+        if (parsed.date === today) ids = parsed.ids;
+      }
+      if (!ids.includes(id)) ids.push(id);
+      localStorage.setItem('crm_reminders_fired', JSON.stringify({ date: today, ids }));
+    } catch { /* ignore */ }
   }, []);
 
   const checkReminders = useCallback(async () => {
     if (!user || user.role === 'super_admin') return;
 
+    let activities: any[] = [];
     try {
       const res = await api.get<{ activities: any[] }>('/activities?remindersOnly=true');
-      const activities = res.activities || [];
-
-      const nowMs = Date.now();
-
-      for (const activity of activities) {
-        if (!activity.scheduledAt) continue;
-        if (firedRef.current.has(activity._id)) continue;
-
-        const scheduledMs = new Date(activity.scheduledAt).getTime();
-
-        // Only fire if:
-        //   1. The scheduled time has already passed (scheduledMs <= nowMs)
-        //   2. But not more than CATCHUP_WINDOW_MS ago (prevents firing very old reminders)
-        const isPast = scheduledMs <= nowMs;
-        const isWithinCatchup = (nowMs - scheduledMs) <= CATCHUP_WINDOW_MS;
-
-        if (!isPast || !isWithinCatchup) continue;
-
-        // Mark fired BEFORE showing toast to prevent double-fire on rapid re-renders
-        markFired(activity._id);
-
-        const priority = (activity.priority || 'medium') as 'high' | 'medium' | 'low';
-        const leadName = activity.leadId?.name || 'Lead';
-        const leadIdRaw = activity.leadId?._id || activity.leadId;
-        const leadLink = leadIdRaw ? `/leads/${leadIdRaw.toString()}` : undefined;
-
-        const title =
-          activity.type === 'note'
-            ? `📝 NOTE REMINDER — ${leadName}`
-            : `📞 CALL REMINDER — ${leadName}`;
-
-        const message =
-          activity.notes?.trim()
-            ? activity.notes.trim()
-            : activity.type === 'note'
-            ? `You have a note reminder for ${leadName}`
-            : `Time to follow up with ${leadName}`;
-
-        showToast(message, 'reminder', title, priority, leadLink, leadName);
-      }
+      activities = res.activities || [];
     } catch (err) {
       if (api.isNetworkError(err)) {
         console.warn('[ReminderChecker] Skipped: network unreachable');
       } else {
-        console.error('[ReminderChecker] Failed:', err);
+        console.error('[ReminderChecker] Failed to fetch reminders:', err);
       }
+      return;
+    }
+
+    const nowMs = Date.now();
+
+    for (const activity of activities) {
+      if (!activity.scheduledAt) continue;
+
+      // Already fired this session or persisted from localStorage
+      if (firedRef.current.has(String(activity._id))) continue;
+
+      const scheduledMs = new Date(activity.scheduledAt).getTime();
+
+      // STRICT timing: the reminder time must have passed (not future)
+      if (scheduledMs > nowMs) continue;
+
+      // But not more than CATCHUP_WINDOW_MS ago (don't fire very old reminders)
+      if ((nowMs - scheduledMs) > CATCHUP_WINDOW_MS) continue;
+
+      // Mark as fired BEFORE showing toast to prevent duplicate on next tick
+      markFired(String(activity._id));
+
+      // Determine priority — default to medium if not set
+      const priority = (['high', 'medium', 'low'].includes(activity.priority)
+        ? activity.priority
+        : 'medium') as 'high' | 'medium' | 'low';
+
+      const leadName = activity.leadId?.name || 'Lead';
+      const leadIdStr = activity.leadId?._id
+        ? String(activity.leadId._id)
+        : activity.leadId
+        ? String(activity.leadId)
+        : null;
+      const leadLink = leadIdStr ? `/leads/${leadIdStr}` : undefined;
+
+      const title =
+        activity.type === 'note'
+          ? `📝 NOTE REMINDER — ${leadName}`
+          : `📞 CALL REMINDER — ${leadName}`;
+
+      const message =
+        activity.notes?.trim()
+          ? activity.notes.trim().slice(0, 120) // cap length for readability
+          : activity.type === 'note'
+          ? `You have a note reminder for ${leadName}`
+          : `Time to follow up with ${leadName}`;
+
+      showToast(message, 'reminder', title, priority, leadLink, leadName);
     }
   }, [user, showToast, markFired]);
 
   useEffect(() => {
     if (!user) return;
 
-    // Run immediately on mount, then on interval
+    // Immediate check on mount, then poll
     checkReminders();
     const timer = setInterval(checkReminders, POLL_INTERVAL_MS);
     return () => clearInterval(timer);
