@@ -77,7 +77,7 @@ export function Sidebar({ items, isCollapsed, onToggle, className }: SidebarProp
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-3 px-2.5 flex flex-col gap-0.5 overflow-y-auto no-scrollbar">
+      <nav className="flex-1 py-4 px-4 flex flex-col gap-2 overflow-y-auto no-scrollbar">
         {items.map((item) => {
           const active = isActive(item.href);
           return (
@@ -86,7 +86,7 @@ export function Sidebar({ items, isCollapsed, onToggle, className }: SidebarProp
               href={item.href}
               title={isCollapsed ? item.label : undefined}
               className={cn(
-                'flex items-center gap-3 px-2.5 py-2.5 rounded-lg transition-all duration-150 group/item',
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 group/item',
                 isCollapsed ? 'justify-center' : '',
               )}
               style={{

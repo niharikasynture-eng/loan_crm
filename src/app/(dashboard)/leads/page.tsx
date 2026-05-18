@@ -252,7 +252,7 @@ export default function LeadsPage() {
   };
 
   return (
-    <div className="max-w-[1280px] mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="animate-fade-in pb-10 flex flex-col gap-8">
       <PageHeader 
         title="Lead Intelligence" 
         subtitle="Global view of all inbound and qualified opportunities"
@@ -271,7 +271,6 @@ export default function LeadsPage() {
         onAddLead={() => router.push('/leads/new')}
       />
 
-      <div className="h-10" /> {/* Spacer added for visual separation */}
 
       <LeadTable 
         leads={leads}

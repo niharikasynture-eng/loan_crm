@@ -84,7 +84,7 @@ export function LeadFilters({
             {selectedCount > 0 && (
               <Button
                 onClick={onBulkAssign}
-                className="h-11 px-5 bg-brand-600 hover:bg-brand-700 shadow-sm animate-in fade-in slide-in-from-left-2 duration-300"
+                className="h-11 px-6 sm:px-10 bg-brand-600 hover:bg-brand-700 shadow-sm animate-in fade-in slide-in-from-left-2 duration-300"
               >
                 <UserCheck size={16} />
                 <span className="ml-2 font-bold">Assign {selectedCount}</span>

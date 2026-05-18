@@ -75,27 +75,29 @@ thead th {
 
 /* ─────────────────────────────────────────────────────────
    GLOBAL RESET & BASE
+   Wrapped in @layer base so Tailwind utilities can override
 ───────────────────────────────────────────────────────── */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-}
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+  }
 
-html,
-body {
-  height: 100%;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-size: 15px;
-  background-color: #F2F3F8;
-  color: #1a202c;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  line-height: 1.6;
-  padding: 0;
-  margin: 0;
+  html,
+  body {
+    height: 100%;
+    font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 15px;
+    background-color: #F2F3F8;
+    color: #1a202c;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.6;
+    padding: 0;
+    margin: 0;
+  }
 }
 
 /* ─────────────────────────────────────────────────────────
