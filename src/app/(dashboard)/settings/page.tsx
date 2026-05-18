@@ -7,20 +7,20 @@ import {
   User, Mail, Phone, Shield,
   Copy, Check, Smartphone, Camera
 } from 'lucide-react';
-import { styleText } from 'util';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 /* ---------- Small UI Primitives ---------- */
 
 const Field = ({ label, icon: Icon, children }: any) => (
-  <div className="space-y-2">
-    <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+  <div className="space-y-2.5">
+    <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest ml-1">
       {label}
     </label>
-    <div className="relative">
+    <div className="relative group">
       {children}
       <Icon
-        size={17}
-        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300"
+        size={18}
+        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-indigo-500"
       />
     </div>
   </div>
@@ -29,9 +29,9 @@ const Field = ({ label, icon: Icon, children }: any) => (
 const Input = (props: any) => (
   <input
     {...props}
-    className="w-full h-12 rounded-xl border border-slate-200 bg-white px-4 pr-12
-    text-[14px] text-slate-700 outline-none transition
-    focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 shadow-sm"
+    className="w-full h-13 rounded-2xl border border-slate-200 bg-white px-5 pr-12
+    text-[14px] font-medium text-slate-700 outline-none transition-all
+    focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/5 shadow-sm placeholder:text-slate-300"
   />
 );
 
@@ -67,11 +67,16 @@ export default function SettingsPage() {
 
   const saveProfile = async () => {
     setSaving(true);
-    await api.patch(`/users/${user.id}`, { name, email, phone });
-    await refreshUser();
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    try {
+      await api.patch(`/users/${user.id}`, { name, email, phone });
+      await refreshUser();
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const copyUrl = () => {
@@ -81,98 +86,106 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="bg-[#f6f8fc] min-h-screen px-6 py-10">
-      <div className="max-w-5xl mx-auto space-y-8">
+    <div className="animate-fade-in space-y-10 pb-20">
+      <PageHeader
+        title="Settings"
+        subtitle="Manage your profile and device sync settings"
+      />
 
-        {/* ---------- Profile Banner ---------- */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-5">
-            <div className="relative">
-              <div className="w-16 h-16 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-xl font-semibold">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+        {/* Left Column: Profile Card */}
+        <div className="lg:col-span-1 space-y-8">
+          <div className="card p-12 rounded-3xl border border-slate-100 bg-white shadow-sm flex flex-col items-center text-center">
+            <div className="relative mb-8">
+              <div className="w-24 h-24 rounded-3xl bg-indigo-600 text-white flex items-center justify-center text-3xl font-bold shadow-xl shadow-indigo-100">
                 {initials}
               </div>
-              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white border flex items-center justify-center text-slate-400">
-                <Camera size={12} />
+              <button className="absolute -bottom-2 -right-2 w-10 h-10 rounded-2xl bg-white border border-slate-100 shadow-md flex items-center justify-center text-slate-600 hover:text-indigo-600 transition-colors">
+                <Camera size={18} />
+              </button>
+            </div>
+            
+            <h2 className="text-2xl font-bold text-slate-800 tracking-tight">{user.name}</h2>
+            <p className="text-sm font-medium text-slate-400 mt-2 mb-8">{user.email}</p>
+
+            <div className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border
+              ${isAdmin
+                ? 'bg-rose-50 text-rose-500 border-rose-100 shadow-sm shadow-rose-50'
+                : 'bg-indigo-50 text-indigo-600 border-indigo-100 shadow-sm shadow-indigo-50'
+              }`}>
+              {user.role.replace('_', ' ')}
+            </div>
+          </div>
+
+          {/* Android Sync Card */}
+          {syncUrl && (
+            <div className="card p-12 rounded-3xl border border-indigo-50 bg-gradient-to-br from-indigo-50/50 to-white shadow-sm space-y-8">
+              <div className="flex items-center gap-5">
+                <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-100/50">
+                  <Smartphone size={28} />
+                </div>
+                <div>
+                  <p className="text-base font-bold text-slate-800">
+                    Call Sync
+                  </p>
+                  <p className="text-xs font-medium text-slate-500">
+                    Android field sync active
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="w-full h-12 flex items-center px-4 rounded-xl border border-slate-100 bg-white/80 text-[11px] font-mono text-slate-400 overflow-hidden shadow-inner">
+                  <span className="truncate">{syncUrl}</span>
+                </div>
+                <button
+                  onClick={copyUrl}
+                  className="w-full h-12 flex items-center justify-center gap-2 rounded-xl bg-white border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95 shadow-sm"
+                >
+                  {copied ? <Check size={16} className="text-emerald-500" /> : <Copy size={16} />}
+                  {copied ? 'Copied' : 'Copy Sync URL'}
+                </button>
               </div>
             </div>
+          )}
+        </div>
+
+        {/* Right Column: Personal Information */}
+        <div className="lg:col-span-2">
+          <div className="card p-12 rounded-3xl border border-slate-100 bg-white shadow-sm space-y-12">
             <div>
-              <p className="text-[17px] font-semibold text-slate-800">{user.name}</p>
-              <p className="text-[13px] text-slate-400">{user.email}</p>
-            </div>
-          </div>
-
-          <div className={`px-3 py-1 rounded-lg text-[11px] font-semibold border
-            ${isAdmin
-              ? 'bg-red-50 text-red-500 border-red-100'
-              : 'bg-indigo-50 text-indigo-600 border-indigo-100'
-            }`}>
-            {user.role.replace('_', ' ')}
-          </div>
-        </div>
-
-        {/* ---------- Personal Info Card ---------- */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
-          <h2 className="text-[15px] font-semibold text-slate-800 mb-6">
-            Personal Information
-          </h2>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            <Field label="Full Name" icon={User}>
-              <Input value={name} onChange={(e: any) => setName(e.target.value)} />
-            </Field>
-
-            <Field label="Email Address" icon={Mail}>
-              <Input type="email" value={email} onChange={(e: any) => setEmail(e.target.value)} />
-            </Field>
-
-            <Field label="Phone Number" icon={Phone}>
-              <Input value={phone} onChange={(e: any) => setPhone(e.target.value)} />
-            </Field>
-
-            <Field label="Authorization" icon={Shield}>
-              <Input value={user.role} readOnly className="bg-slate-50 text-slate-500" />
-            </Field>
-          </div>
-        </div>
-
-        {/* ---------- Android Sync Card ---------- */}
-        {syncUrl && (
-          <div className="bg-gradient-to-br from-indigo-50 to-white border border-indigo-100 rounded-2xl p-8 shadow-sm">
-            <div className="flex items-center gap-3 mb-5">
-              <Smartphone size={20} className="text-indigo-600" />
-              <div>
-                <p className="text-[15px] font-semibold text-slate-800">
-                  Android Call Sync
-                </p>
-                <p className="text-[12px] text-slate-500">
-                  Connect MacroDroid to stream call logs in real-time
-                </p>
-              </div>
+              <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Personal Information</h2>
+              <p className="text-sm font-medium text-slate-400 mt-1">Update your account details and contact info</p>
             </div>
 
-            <div className="flex gap-3">
-              <div className="flex-1 h-12 flex items-center px-4 rounded-xl border bg-white text-[12px] font-mono text-slate-500 overflow-hidden">
-                <span className="truncate">{syncUrl}</span>
-              </div>
+            <div className="grid sm:grid-cols-2 gap-10">
+              <Field label="Full Name" icon={User}>
+                <Input value={name} onChange={(e: any) => setName(e.target.value)} placeholder="Enter your full name" />
+              </Field>
+
+              <Field label="Email Address" icon={Mail}>
+                <Input type="email" value={email} onChange={(e: any) => setEmail(e.target.value)} placeholder="name@example.com" />
+              </Field>
+
+              <Field label="Phone Number" icon={Phone}>
+                <Input value={phone} onChange={(e: any) => setPhone(e.target.value)} placeholder="+91 XXXXX XXXXX" />
+              </Field>
+
+              <Field label="System Access" icon={Shield}>
+                <Input value={user.role.toUpperCase()} readOnly className="bg-slate-50 text-slate-400 border-dashed cursor-not-allowed font-bold" />
+              </Field>
+            </div>
+
+            <div className="pt-6 flex justify-end">
               <button
-                onClick={copyUrl}
-                className="h-12 px-4 rounded-xl border bg-white hover:bg-indigo-50 transition"
+                onClick={saveProfile}
+                disabled={saving}
+                className="h-13 px-12 rounded-2xl bg-indigo-600 text-white text-sm font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-[0.98] disabled:opacity-50"
               >
-                {copied ? <Check size={16} /> : <Copy size={16} />}
+                {saving ? 'Saving...' : saved ? '✓ Changes Saved' : 'Save Profile'}
               </button>
             </div>
           </div>
-        )}
-
-        {/* ---------- Sticky Save Footer ---------- */}
-        <div className="sticky bottom-6 flex justify-end mt-16">
-          <button
-            onClick={saveProfile}
-            disabled={saving}
-            className="h-12 px-10 rounded-xl bg-indigo-600 border border-indigo-600 text-[#ffffff] shadow-lg hover:bg-indigo-700 transition active:scale-[0.98]"
-          >
-            {saving ? 'Saving...' : saved ? '✓ Saved' : 'Save Changes'}
-          </button>
         </div>
       </div>
     </div>

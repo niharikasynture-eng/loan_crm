@@ -62,10 +62,7 @@ export function RecentActivityList({ activities }: RecentActivityListProps) {
   }
 
   return (
-    <div
-      className="rounded-xl overflow-hidden"
-      style={{ border: '1px solid #e9eaf0', background: '#fff' }}
-    >
+    <div className="flex flex-col gap-4">
       {activities.map((act, idx) => {
         const cfg = TYPE_CONFIG[act.type?.toLowerCase()] ?? TYPE_CONFIG.note;
         const Icon = cfg.icon;
@@ -75,10 +72,8 @@ export function RecentActivityList({ activities }: RecentActivityListProps) {
         return (
           <div
             key={act._id}
-            className="flex items-start gap-5 px-6 py-5 transition-colors"
-            style={{
-              borderBottom: idx < activities.length - 1 ? '1px solid #f3f4f6' : 'none',
-            }}
+            className="flex items-start gap-5 px-6 py-5 transition-colors bg-white rounded-xl border hover:shadow-sm"
+            style={{ borderColor: '#e9eaf0' }}
             onMouseEnter={e => (e.currentTarget.style.background = '#fafafa')}
             onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
           >

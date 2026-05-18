@@ -5,6 +5,7 @@ import { api } from '@/lib/api-client';
 import { Phone, Calendar, Mail, MessageCircle, FileText, CheckCircle2, Clock, Filter, User as UserIcon, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 interface Activity {
   _id: string;
@@ -90,17 +91,17 @@ export default function ActivitiesPage() {
   }, [page, typeFilter, userFilter]);
 
   return (
-    <div className="min-h-screen bg-[#f7f8fa] -m-8 p-8 sm:p-12">
-      <div className="max-w-4xl mx-auto">
-        {/* Header & Stats */}
-        <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div>
-            <h1 className="text-3xl font-black text-gray-900 uppercase tracking-tighter mb-2">Activities Feed</h1>
-            <p className="text-sm text-gray-500 font-medium">Monitoring the pulse of your sales operations.</p>
-          </div>
+    <div className="animate-fade-in space-y-10">
+      <PageHeader
+        title="Activities Feed"
+        subtitle="Monitoring the pulse of your sales operations"
+      />
 
-          {/* Filter Bar */}
-          <div className="flex flex-wrap items-center gap-2 bg-white p-2 rounded-2xl border border-[#e6e8ec] shadow-sm">
+      <div className="h-8" /> {/* Guaranteed spacer */}
+
+      <div className="w-full">
+        {/* Filter Bar */}
+        <div className="flex flex-wrap items-center gap-2 bg-white p-2 rounded-2xl border border-[#e6e8ec] shadow-sm mb-12">
             <select
               value={typeFilter}
               onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
@@ -125,7 +126,7 @@ export default function ActivitiesPage() {
               </select>
             )}
           </div>
-        </div>
+        {/* Note: max-w-4xl continues below to wrap the feed */}
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-32 gap-6">
@@ -141,14 +142,14 @@ export default function ActivitiesPage() {
             <p className="text-sm text-gray-500 max-w-xs mx-auto">Try adjusting your filters or wait for your team to log new interactions.</p>
           </div>
         ) : (
-          <div className="relative space-y-10 group/timeline">
+          <div className="relative flex flex-col gap-8 group/timeline">
             {/* The Spine Line */}
             <div className="absolute left-6 top-10 bottom-10 w-0.5 bg-[#e6e8ec] z-0 hidden sm:block" />
 
             {activities.map((act) => {
               const meta = TYPE_META[act.type] ?? TYPE_META['note'];
               return (
-                <div key={act._id} className="relative flex items-start gap-8 z-10 group">
+                <div key={act._id} className="relative flex items-start gap-10 z-10 group">
                   {/* Icon Node */}
                   <div className="hidden sm:flex flex-shrink-0">
                     <div className={`w-12 h-12 rounded-full ${meta.bg} ${meta.text} flex items-center justify-center shadow-lg shadow-white border border-white ring-4 ring-[#f7f8fa] z-20 group-hover:scale-110 transition-transform duration-300`}>
@@ -157,10 +158,10 @@ export default function ActivitiesPage() {
                   </div>
 
                   {/* Activity Card */}
-                  <div className="flex-1 bg-white p-6 sm:p-7 rounded-[24px] border border-[#e6e8ec] shadow-sm hover:shadow-lg hover:shadow-gray-200/40 transition-all duration-300">
+                  <div className="flex-1 bg-white p-10 sm:p-12 rounded border border-[#e6e8ec] shadow-sm hover:shadow-lg hover:shadow-gray-200/40 transition-all duration-300">
                     
                     {/* LINE 1: HEADER (Sentence Template) */}
-                    <div className="flex items-center justify-between gap-4 mb-2">
+                    <div className="flex items-center justify-between gap-6 mb-4">
                       <div className="text-[15px] text-gray-900 leading-tight">
                         <span className="font-semibold">{toTitleCase(act.createdBy?.name || 'System')}</span>
                         {act.type === 'call' && (
@@ -197,7 +198,7 @@ export default function ActivitiesPage() {
                     </div>
 
                     {/* LINE 2: SUMMARY / PREVIEW */}
-                    <div className="mb-2">
+                    <div className="mb-4">
                        <p className="text-[14px] text-gray-500 font-normal">
                           {act.type === 'call' && act.outcome === 'connected' && 'Call completed successfully'}
                           {act.type === 'call' && act.outcome !== 'connected' && ('Started a call with ' + toTitleCase(act.leadId?.name || 'lead'))}

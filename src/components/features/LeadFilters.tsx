@@ -94,22 +94,22 @@ export function LeadFilters({
         )}
 
         {/* Buttons Group */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
           {canImportExport && (
             <>
-              <Button variant="secondary" onClick={onImport} className="h-11 px-4 sm:px-8">
+              <Button variant="secondary" onClick={onImport} className="h-11 px-6 py-2 sm:px-10">
                 <Upload size={15} /> <span className="ml-2">Import</span>
               </Button>
-              <Button variant="secondary" onClick={onExport} className="h-11 px-4 sm:px-8">
+              <Button variant="secondary" onClick={onExport} className="h-11 px-6 py-2 sm:px-10">
                 <Download size={15} /> <span className="ml-2">Export</span>
               </Button>
             </>
           )}
 
           {canAddLead && (
-            <Button onClick={onAddLead} className="h-11 px-3 shadow-md shrink-0 relative flex items-center justify-center min-w-[100px]">
+            <Button onClick={onAddLead} className="h-11 pl-6 pr-10 shadow-md shrink-0 relative flex items-center justify-center min-w-[120px]">
               <span>Add Lead</span>
-              <Plus size={14} strokeWidth={2.5} className="absolute right-2.5" />
+              <Plus size={14} strokeWidth={2.5} className="absolute right-3.5" />
             </Button>
           )}
         </div>

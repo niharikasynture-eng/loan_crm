@@ -31,7 +31,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
 
   return (
     <header
-      className="h-14 flex items-center pl-4 pr-2 md:pl-6 md:pr-3 gap-4 shrink-0 sticky top-0 z-30"
+      className="h-16 flex items-center px-6 gap-4 shrink-0 sticky top-0 z-30"
       style={{
         background: '#fff',
         borderBottom: '1px solid var(--border)',
@@ -48,14 +48,14 @@ export function Topbar({ onMenuClick }: TopbarProps) {
       )}
 
       {/* Brand - hidden on desktop */}
-      <div className="lg:hidden flex items-center">
+      <div className="lg:hidden flex items-center ">
         <span className="text-base font-extrabold tracking-tight" style={{ color: 'var(--brand)' }}>
           DealByte
         </span>
       </div>
 
       {/* Search & Org Info (Left aligned) */}
-      <div className="flex items-center gap-4 flex-1">
+      <div className="flex  items-center gap-4 flex-1">
 
 
         {/* Org badge - desktop only */}

@@ -32,7 +32,7 @@ export function Table<T>({
   className,
 }: TableProps<T>) {
   return (
-    <div className={cn("w-full overflow-x-auto rounded-card border border-gray-100", className)}>
+    <div className={cn("w-full overflow-x-auto rounded-card border border-gray-100 my-6 shadow-sm", className)}>
       <table className="w-full text-left border-collapse min-w-[640px]">
         <thead>
           <tr className="bg-gray-50/50 border-b border-gray-100">
@@ -40,7 +40,7 @@ export function Table<T>({
               <th
                 key={col.key.toString()}
                 className={cn(
-                  "px-6 py-4 text-xs font-black uppercase tracking-widest text-gray-500",
+                  "px-8 py-5 text-xs font-black uppercase tracking-widest text-gray-500",
                   col.sortable && "cursor-pointer hover:text-brand-600 transition-colors",
                   col.className
                 )}
@@ -63,7 +63,7 @@ export function Table<T>({
             Array.from({ length: 5 }).map((_, i) => (
               <tr key={i} className="animate-pulse">
                 {columns.map((col) => (
-                  <td key={col.key.toString()} className="px-6 py-4">
+                  <td key={col.key.toString()} className="px-8 py-5">
                     <div className="h-4 bg-gray-100 rounded-md w-3/4" />
                   </td>
                 ))}
@@ -78,7 +78,7 @@ export function Table<T>({
                 {columns.map((col) => (
                   <td 
                     key={col.key.toString()} 
-                    className={cn("px-6 py-4 text-sm font-semibold text-gray-700", col.className)}
+                    className={cn("px-8 py-5 text-sm font-semibold text-gray-700", col.className)}
                   >
                     {col.render ? col.render(item) : (item[col.key as keyof T] as any)}
                   </td>

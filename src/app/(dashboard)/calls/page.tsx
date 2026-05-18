@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Phone, Search, Download } from 'lucide-react';
+import { Phone, Search, Download, Clock, Shield } from 'lucide-react';
 import { useCalls } from '@/hooks/useCalls';
 import { useToast } from '@/hooks/useToast';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -31,32 +31,43 @@ export default function CallLogsPage() {
       />
 
       {/* Stat Matrix */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
         {[
-          { label: 'Total Calls', value: calls.length, color: 'var(--brand)' },
-          { label: 'Total Duration', value: `${totalMins}m`, color: 'var(--success)' },
-          { label: 'Sync Accuracy', value: '99.9%', color: '#2563eb' },
+          { label: 'Total Calls', value: calls.length, color: 'var(--brand)', icon: Phone },
+          { label: 'Total Duration', value: `${totalMins}m`, color: 'var(--success)', icon: Clock },
+          { label: 'Sync Accuracy', value: '99.9%', color: '#2563eb', icon: Shield },
         ].map((s) => (
           <div
             key={s.label}
-            className="card p-6 sm:p-10 flex flex-col items-center justify-center text-center transition-all hover:shadow-lg cursor-default border border-[#f1f5f9] bg-white relative overflow-hidden"
+            className="card p-14 flex flex-col items-start gap-8 transition-all hover:shadow-xl hover:-translate-y-1 cursor-default border border-[#f1f5f9] bg-white group overflow-hidden rounded-2xl"
             style={{ 
-              borderRadius: '24px',
-              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05)'
+              boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.04), 0 4px 6px -4px rgb(0 0 0 / 0.04)'
             }}
           >
-            <div className="absolute top-0 left-0 w-1 h-full opacity-70" style={{ background: s.color }} />
-            <p className="text-3xl sm:text-4xl font-medium tabular-nums tracking-tight mb-2" style={{ color: s.color }}>
-              {s.value}
-            </p>
-            <p className="text-xs sm:text-sm font-semibold uppercase tracking-widest text-[#94a3b8]">
-              {s.label}
-            </p>
+            <div className="flex items-center justify-between w-full">
+              <div 
+                className="w-14 h-14 rounded-2xl flex items-center justify-center transition-colors group-hover:scale-110 duration-300"
+                style={{ background: `${s.color}15`, color: s.color }}
+              >
+                <s.icon size={26} strokeWidth={2.5} />
+              </div>
+              <span className="text-3xl font-bold tracking-tight" style={{ color: s.color }}>
+                {s.value}
+              </span>
+            </div>
+            <div className="mt-6 space-y-2">
+              <p className="text-sm font-bold uppercase tracking-widest text-[#94a3b8]">
+                {s.label}
+              </p>
+              <p className="text-xs text-[#64748b] leading-relaxed">Real-time field activity</p>
+            </div>
           </div>
         ))}
       </div>
 
-      <CallLogTable logs={calls} isLoading={loading} />
+      <div className="pt-4">
+        <CallLogTable logs={calls} isLoading={loading} />
+      </div>
     </div>
   );
 }

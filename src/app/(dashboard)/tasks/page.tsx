@@ -60,7 +60,7 @@ export default function TasksPage() {
               <p className="text-xs font-semibold uppercase tracking-wider mb-3 px-1" style={{ color: 'var(--text-muted)' }}>
                 Pending ({pending.length})
               </p>
-              <div className="card divide-y overflow-hidden" style={{ borderColor: 'var(--border)' }}>
+              <div className="flex flex-col gap-4">
                 {pending.map(task => <TaskRow key={task._id.toString()} task={task} userId={user?.id} onToggle={handleToggle} />)}
               </div>
             </div>
@@ -72,7 +72,7 @@ export default function TasksPage() {
               <p className="text-xs font-semibold uppercase tracking-wider mb-3 px-1" style={{ color: 'var(--text-muted)' }}>
                 Completed ({completed.length})
               </p>
-              <div className="card divide-y overflow-hidden opacity-60">
+              <div className="flex flex-col gap-4 opacity-60">
                 {completed.map(task => <TaskRow key={task._id.toString()} task={task} userId={user?.id} onToggle={handleToggle} />)}
               </div>
             </div>
@@ -96,7 +96,7 @@ function TaskRow({ task, userId, onToggle }: { task: any; userId?: string; onTog
   const ps = PRIORITY_STYLE[task.priority?.toLowerCase()] ?? PRIORITY_STYLE.medium;
 
   return (
-    <div className="flex items-center gap-3.5 px-4 py-3.5 transition-colors hover:bg-gray-50">
+    <div className="flex items-center gap-4 p-4 sm:px-6 sm:py-5 border-b border-gray-100 transition-colors hover:bg-gray-50/80 rounded-2xl">
       {/* Toggle */}
       <button
         onClick={() => canComplete && onToggle(task._id.toString(), task.status)}

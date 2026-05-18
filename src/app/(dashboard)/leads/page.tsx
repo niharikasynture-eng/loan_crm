@@ -90,7 +90,7 @@ export default function LeadsPage() {
 
       return (
         <div className="space-y-6">
-          <div className="bg-brand-50 p-4 rounded-xl border border-brand-100">
+          <div className="bg-brand-50 p-6 rounded-xl border border-brand-100">
             <p className="text-sm text-brand-900 font-bold mb-1">Target Account</p>
             <p className="text-lg font-bold text-gray-900">{lead.name}</p>
           </div>
@@ -145,11 +145,11 @@ export default function LeadsPage() {
       return (
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
-            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+            <div className="p-6 bg-gray-50 rounded-xl border border-gray-200">
               <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Batch Size</p>
               <p className="text-xl font-bold text-gray-900">{selectedLeads.size}</p>
             </div>
-            <div className="p-4 bg-brand-50 rounded-xl border border-brand-100">
+            <div className="p-6 bg-brand-50 rounded-xl border border-brand-100">
               <p className="text-[10px] font-black uppercase tracking-widest text-brand-400 mb-1">Target</p>
               <p className="text-xl font-bold text-brand-900 truncate">Bulk Clients</p>
             </div>

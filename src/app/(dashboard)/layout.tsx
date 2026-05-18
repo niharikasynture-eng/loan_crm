@@ -43,35 +43,35 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isOnsiteVisitor = user.role === 'onsite_visitor';
   const isAdmin = ['org_admin', 'manager'].includes(user.role);
 
-  const navItems: NavItem[] = isSuperAdmin 
+  const navItems: NavItem[] = isSuperAdmin
     ? [
-        { label: 'Pending Approval',   href: '/super-admin?tab=pending', icon: Clock },
-        { label: 'Active Orgs',        href: '/super-admin?tab=active',  icon: CheckCircle },
-        { label: 'All Organizations',   href: '/super-admin?tab=all',     icon: Building2 },
-      ]
+      { label: 'Pending Approval', href: '/super-admin?tab=pending', icon: Clock },
+      { label: 'Active Orgs', href: '/super-admin?tab=active', icon: CheckCircle },
+      { label: 'All Organizations', href: '/super-admin?tab=all', icon: Building2 },
+    ]
     : isOnsiteVisitor
-    ? [
+      ? [
         { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-        { label: 'Leads',     href: '/leads',     icon: Users },
+        { label: 'Leads', href: '/leads', icon: Users },
       ]
-    : [
+      : [
         { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-        { label: 'Leads',     href: '/leads',     icon: Users },
-        { label: 'Timeline',  href: '/activities', icon: Activity },
-        { label: 'Calls',     href: '/calls',     icon: Phone },
-        { label: 'Tasks',     href: '/tasks',     icon: CheckSquare },
-        { label: 'Pipeline',  href: '/deals',     icon: TrendingUp },
+        { label: 'Leads', href: '/leads', icon: Users },
+        { label: 'Timeline', href: '/activities', icon: Activity },
+        { label: 'Calls', href: '/calls', icon: Phone },
+        { label: 'Tasks', href: '/tasks', icon: CheckSquare },
+        { label: 'Pipeline', href: '/deals', icon: TrendingUp },
         ...(isAdmin ? [{ label: 'Reports', href: '/reports', icon: BarChart2 }] : []),
-        ...(isAdmin ? [{ label: 'Team',    href: '/users',   icon: UserCog }] : []),
-        { label: 'Settings',  href: '/settings',  icon: Settings },
+        ...(isAdmin ? [{ label: 'Team', href: '/users', icon: UserCog }] : []),
+        { label: 'Settings', href: '/settings', icon: Settings },
       ];
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg-page)' }}>
+    <div className="flex h-screen overflow-hidden p-4 sm:p-6 lg:p-8 gap-4 sm:gap-6 lg:gap-8" style={{ background: 'var(--bg-page)' }}>
       <ReminderChecker />
 
       {/* ── Desktop sidebar ── */}
-      <div className="hidden lg:block shrink-0" style={{ zIndex: 20 }}>
+      <div className="hidden lg:block shrink-0 rounded-2xl border border-gray-200/50 shadow-sm" style={{ zIndex: 20 }}>
         <Sidebar
           items={navItems}
           isCollapsed={collapsed}
@@ -91,19 +91,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* ── Mobile sidebar ── */}
       <div
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-60 lg:hidden transition-transform duration-300',
+          'fixed inset-y-0 left-0 z-50 w-64 sm:w-72 lg:hidden transition-transform duration-300 p-4 sm:p-6',
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        <Sidebar items={navItems} isCollapsed={false} onToggle={() => setMobileOpen(false)} />
+        <Sidebar items={navItems} isCollapsed={false} onToggle={() => setMobileOpen(false)} className="w-full shadow-2xl h-full border border-gray-200/50" />
       </div>
 
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-white rounded-2xl border border-gray-200/50 shadow-sm">
         {/* Responsive Header */}
         <Topbar onMenuClick={() => setMobileOpen(true)} />
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-6 md:p-10 lg:px-20 lg:py-14">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           <div className="max-w-[1600px] mx-auto">
             {children}
           </div>

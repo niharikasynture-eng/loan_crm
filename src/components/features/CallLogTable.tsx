@@ -69,19 +69,19 @@ export function CallLogTable({ logs, isLoading }: CallLogTableProps) {
   }
 
   return (
-    <div className="table-container">
-      <table>
+    <div className="table-container shadow-sm border-gray-100">
+      <table className="w-full">
         <thead>
-          <tr>
-            <th>Sales Agent</th>
-            <th>Client / Lead</th>
-            <th className="text-center">Duration</th>
-            <th>Status</th>
-            <th>Sync</th>
-            <th className="text-right">Time</th>
+          <tr className="bg-gray-50/50">
+            <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-500">Sales Agent</th>
+            <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-500">Client / Lead</th>
+            <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-500 text-center">Duration</th>
+            <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-500">Status</th>
+            <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-500">Sync Status</th>
+            <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-500 text-right">Timestamp</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-gray-50">
           {uniqueLogs.map((log) => {
             const agentName = (log.salesPersonId as any)?.name ?? 'Unknown Agent';
             const leadName  = (log.leadId as any)?.name  ?? 'Unknown';
@@ -90,67 +90,71 @@ export function CallLogTable({ logs, isLoading }: CallLogTableProps) {
             const isManual = !log.syncId || log.syncId === 'MANUAL';
 
             return (
-              <tr key={log._id.toString()}>
-                <td>
-                  <div className="flex items-center gap-2.5">
+              <tr key={log._id.toString()} className="hover:bg-gray-50/50 transition-colors">
+                <td className="px-6 py-5">
+                  <div className="flex items-center gap-3">
                     <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
+                      className="w-10 h-10 rounded-2xl flex items-center justify-center text-sm font-bold text-white shrink-0 shadow-sm"
                       style={{ background: 'var(--brand)' }}
                     >
                       {agentName.charAt(0).toUpperCase()}
                     </div>
-                    <span className="font-medium" style={{ color: 'var(--text-primary)' }}>
+                    <span className="font-bold text-sm tracking-tight" style={{ color: 'var(--text-primary)' }}>
                       {agentName}
                     </span>
                   </div>
                 </td>
 
-                <td>
-                  <p className="font-medium" style={{ color: 'var(--text-primary)' }}>{leadName}</p>
-                  {leadPhone && <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{leadPhone}</p>}
+                <td className="px-6 py-5">
+                  <div className="flex flex-col">
+                    <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{leadName}</p>
+                    {leadPhone && <p className="text-xs font-medium mt-0.5" style={{ color: 'var(--text-muted)' }}>{leadPhone}</p>}
+                  </div>
                 </td>
 
-                <td className="text-center">
+                <td className="px-6 py-5 text-center">
                   <span
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg"
+                    className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl shadow-sm"
                     style={{ background: '#f3f1ff', color: 'var(--brand)' }}
                   >
-                    <Clock size={12} />
+                    <Clock size={13} />
                     {formatDuration(log.duration || 0)}
                   </span>
                 </td>
 
-                <td>
+                <td className="px-6 py-5">
                   <span
-                    className="text-xs font-semibold px-2.5 py-1 rounded-full"
+                    className="text-[10px] font-extrabold uppercase tracking-widest px-3 py-1.5 rounded-full shadow-sm"
                     style={{ background: s.bg, color: s.color }}
                   >
                     {log.status}
                   </span>
                 </td>
 
-                <td>
+                <td className="px-6 py-5">
                   {isManual ? (
-                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#fef9c3', color: '#854d0e' }}>
-                      Manual
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg border border-amber-100" style={{ background: '#fefce8', color: '#854d0e' }}>
+                      Manual Entry
                     </span>
                   ) : (
                     <span
-                      className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full"
-                      style={{ background: '#ecfdf5', color: 'var(--success)' }}
+                      className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg border border-emerald-100"
+                      style={{ background: '#ecfdf5', color: '#059669' }}
                     >
-                      <Shield size={10} /> HW Verified
+                      <Shield size={11} fill="currentColor" fillOpacity={0.2} /> HW Verified
                     </span>
                   )}
                 </td>
 
-                <td className="text-right">
-                  <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                    {new Date(log.startedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                  </p>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    {new Date(log.startedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
-                  </p>
+                <td className="px-6 py-5 text-right">
+                  <div className="flex flex-col items-end">
+                    <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+                      {new Date(log.startedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </p>
+                    <p className="text-xs font-semibold mt-0.5 uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+                      {new Date(log.startedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
                 </td>
               </tr>
             );

@@ -44,7 +44,7 @@ export function Sidebar({ items, isCollapsed, onToggle, className }: SidebarProp
   return (
     <aside
       className={cn(
-        'flex flex-col h-full relative group transition-all duration-300',
+        'flex flex-col h-full relative transition-all duration-300 rounded-2xl',
         isCollapsed ? 'w-[68px]' : 'w-56',
         className
       )}
@@ -56,8 +56,8 @@ export function Sidebar({ items, isCollapsed, onToggle, className }: SidebarProp
       {/* Brand */}
       <div
         className={cn(
-          'h-14 flex items-center shrink-0',
-          isCollapsed ? 'justify-center px-0' : 'px-4 gap-3'
+          'h-16 flex items-center shrink-0',
+          isCollapsed ? 'justify-center px-0' : 'px-6 gap-3'
         )}
         style={{ borderBottom: '1px solid #e9eaf0' }}
       >
@@ -172,14 +172,14 @@ export function Sidebar({ items, isCollapsed, onToggle, className }: SidebarProp
       {/* Collapse toggle */}
       <button
         onClick={onToggle}
-        className="absolute -right-3 top-16 w-6 h-6 rounded-full border flex items-center justify-center shadow-sm transition-all opacity-0 group-hover:opacity-100 hidden lg:flex"
+        className="absolute -right-3 top-16 w-6 h-6 rounded-full border flex items-center justify-center shadow-md transition-all z-50 hover:scale-110"
         style={{
           background: '#fff',
           borderColor: '#e9eaf0',
-          color: 'var(--text-muted)',
+          color: 'var(--text-primary)',
         }}
       >
-        {isCollapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
+        {isCollapsed ? <ChevronRight size={14} strokeWidth={3} /> : <ChevronLeft size={14} strokeWidth={3} />}
       </button>
     </aside>
   );
