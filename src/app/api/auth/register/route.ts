@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
           userId: sa._id,
           type: 'new_org_request',
           title: 'New Organization Request',
-          message: `${orgName} (${adminEmail}) has requested access to DealByte CRM.`,
+          message: `${orgName} (${adminEmail}) has requested access to R-Life CRM.`,
           link: '/super-admin',
         }))
       );

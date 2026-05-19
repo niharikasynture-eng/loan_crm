@@ -10,16 +10,16 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, subtitle, action, className }: PageHeaderProps) {
   return (
-    <div className={cn('flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6', className)}>
+    <div className={cn('flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8', className)}>
       <div>
         <h1
-          className="text-xl font-bold leading-tight"
-          style={{ color: 'var(--text-primary)' }}
+          className="font-semibold leading-tight"
+          style={{ fontSize: '24px', fontWeight: 600, color: 'var(--text-primary)' }}
         >
           {title}
         </h1>
         {subtitle && (
-          <p className="text-sm mt-0.5 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+          <p className="mt-1 leading-relaxed" style={{ fontSize: '13px', fontWeight: 400, color: 'var(--text-muted)' }}>
             {subtitle}
           </p>
         )}

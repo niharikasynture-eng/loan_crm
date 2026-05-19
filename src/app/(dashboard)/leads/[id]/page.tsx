@@ -123,8 +123,8 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
   const [meetingData, setMeetingData] = useState({ date: '', timeHour: '12', timeMinute: '00', timePeriod: 'AM', notes: '', link: '' });
   const [taskData, setTaskData] = useState({ title: '', dueDate: '', priority: 'medium' });
   const [reminderData, setReminderData] = useState({ date: '', timeHour: '12', timeMinute: '00', timePeriod: 'AM', notes: '' });
-  const [whatsappData, setWhatsappData] = useState({ message: 'Hi, just following up from DealByte CRM!', isTemplate: false });
-  const [emailData, setEmailData] = useState({ subject: 'Follow up from DealByte CRM', message: '', isTemplate: false });
+  const [whatsappData, setWhatsappData] = useState({ message: 'Hi, just following up from R-Life CRM!', isTemplate: false });
+  const [emailData, setEmailData] = useState({ subject: 'Follow up from R-Life CRM', message: '', isTemplate: false });
 
   const emailTemplates = [
     { name: 'Introduction', subject: 'Connecting: [Your Name] & [Lead Name]', body: `Hi ${lead?.name.split(' ')[0] || 'there'},\n\nI'm [Your Name] from [Your Company]. I'm reaching out to introduce myself and see how we can help you with your needs.\n\nBest regards,\n[Your Name]` },
@@ -357,20 +357,20 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
   }
 
   const DetailItem = ({ label, value, isLink, link, highlight, icon: Icon }: { label: string; value?: string | number; isLink?: boolean; link?: string; highlight?: boolean; icon?: any }) => (
-    <div className="flex items-start gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-colors group/item">
+    <div className="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 transition-colors group/item border border-transparent hover:border-slate-100">
       {Icon && (
-        <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover/item:bg-blue-600 group-hover/item:text-white transition-all duration-300">
+        <div className="w-9 h-9 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-500 shrink-0">
           <Icon size={16} />
         </div>
       )}
-      <div className="flex flex-col">
-        <span className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.12em]">{label}</span>
+      <div className="flex flex-col min-w-0">
+        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{label}</span>
         {isLink && value ? (
-          <a href={link} className="text-base font-medium text-blue-600 hover:text-blue-800 transition-colors mt-1">
+          <a href={link} className="text-[14px] font-semibold text-indigo-600 hover:underline truncate">
             {value}
           </a>
         ) : (
-          <span className={`text-base font-medium ${highlight ? 'text-blue-600' : 'text-slate-700'} mt-1`}>
+          <span className={`text-[14px] font-semibold ${highlight ? 'text-indigo-600' : 'text-slate-700'} truncate`}>
             {value || '—'}
           </span>
         )}
@@ -399,53 +399,53 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
 
       <div className={isOnsiteVisitor ? 'w-full' : 'grid grid-cols-1 lg:grid-cols-3 gap-6'}>
         {isOnsiteVisitor ? (
-          <div className="max-w-4xl mx-auto flex flex-col gap-8 pb-20">
+          <div className="w-full flex flex-col gap-6 pb-20">
             {/* ── Premium Profile Header ── */}
-            <div className="relative overflow-hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 group">
-              <div className="relative w-16 h-16 rounded-xl bg-indigo-600 flex items-center justify-center text-xl font-semibold text-white shadow-md ring-4 ring-indigo-50">
+            <div className="relative overflow-hidden bg-white rounded-2xl border shadow-sm p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 group" style={{ borderColor: 'var(--border)' }}>
+              <div className="relative w-16 h-16 rounded-xl flex items-center justify-center text-xl font-semibold text-white shadow-md ring-4" style={{ background: 'var(--brand)', '--tw-ring-color': 'var(--brand-soft)' } as React.CSSProperties}>
                 {lead.name.charAt(0).toUpperCase()}
               </div>
 
               <div className="relative text-center md:text-left flex-1">
                 <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-1.5">
-                  <h1 className="text-xl font-semibold text-slate-900 tracking-tight">{lead.name}</h1>
-                  <span className="px-2.5 py-0.5 bg-indigo-50 text-indigo-600 text-[9px] font-semibold uppercase tracking-widest rounded-md border border-indigo-100">Verified Client</span>
+                  <h1 className="text-xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>{lead.name}</h1>
+                  <span className="px-2.5 py-0.5 text-[9px] font-semibold uppercase tracking-widest rounded-md border" style={{ background: 'var(--brand-soft)', color: 'var(--brand)', borderColor: 'rgba(108,92,231,0.2)' }}>Verified Client</span>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-center md:justify-start gap-5 text-slate-500 font-medium text-sm">
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-5 font-medium text-sm" style={{ color: 'var(--text-muted)' }}>
                   <div className="flex items-center gap-2">
-                    <Building size={16} className="text-slate-400" />
+                    <Building size={16} />
                     {lead.company || 'Private Individual'}
                   </div>
                   <div className="w-1 h-1 rounded-full bg-slate-300 hidden md:block" />
                   <div className="flex items-center gap-2">
-                    <MapPin size={16} className="text-slate-400" />
+                    <MapPin size={16} />
                     {lead.area || 'Pune'}
                   </div>
                 </div>
 
                 <div className="mt-4 flex flex-wrap justify-center md:justify-start gap-2">
-                  <span className="px-2.5 py-1 bg-slate-50 text-slate-600 text-[9px] font-medium uppercase tracking-widest rounded-md border border-slate-200">NEW</span>
-                  <span className="px-2.5 py-1 bg-emerald-50 text-emerald-600 text-[9px] font-medium uppercase tracking-widest rounded-md border border-emerald-100">ONSITE PROTOCOL ACTIVE</span>
+                  <span className="px-2.5 py-1 text-[9px] font-medium uppercase tracking-widest rounded-md border bg-slate-50 border-slate-200 text-slate-600">NEW</span>
+                  <span className="px-2.5 py-1 text-[9px] font-medium uppercase tracking-widest rounded-md border" style={{ background: '#ecfdf5', color: '#059669', borderColor: '#d1fae5' }}>ONSITE PROTOCOL ACTIVE</span>
                 </div>
               </div>
             </div>
 
             {/* ── Unified Information Section ── */}
-            <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-2xl border shadow-sm overflow-hidden" style={{ borderColor: 'var(--border)' }}>
               <div className="grid grid-cols-1 md:grid-cols-2">
 
                 {/* Column 1: Personal & Professional */}
-                <div className="p-8 md:p-10 border-b md:border-b-0 md:border-r border-slate-100 space-y-10">
+                <div className="p-6 md:p-10 border-b md:border-b-0 md:border-r border-slate-100 space-y-10">
                   {/* Contact Info */}
                   <section>
                     <div className="flex items-center gap-3 mb-6">
-                      <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
-                        <User size={14} />
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-indigo-50 text-indigo-600">
+                        <User size={16} />
                       </div>
-                      <h2 className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.2em]">Contact Information</h2>
+                      <h2 className="text-[12px] font-bold uppercase tracking-wider text-slate-500">Contact Information</h2>
                     </div>
-                    <div className="grid grid-cols-1 gap-4">
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-6 gap-y-4">
                       <DetailItem label="Full Name" value={lead.name} icon={User} />
                       <DetailItem label="Email" value={lead.email} isLink link={`mailto:${lead.email}`} icon={Mail} />
                       <DetailItem label="Phone" value={lead.phone} isLink link={`tel:${lead.phone}`} icon={Phone} />
@@ -456,12 +456,12 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                   {/* Professional Info */}
                   <section>
                     <div className="flex items-center gap-3 mb-6">
-                      <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
-                        <Briefcase size={14} />
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-indigo-50 text-indigo-600">
+                        <Briefcase size={16} />
                       </div>
-                      <h2 className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.2em]">Professional Profile</h2>
+                      <h2 className="text-[12px] font-bold uppercase tracking-wider text-slate-500">Professional Profile</h2>
                     </div>
-                    <div className="grid grid-cols-1 gap-4">
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-6 gap-y-4">
                       <DetailItem label="Annual Income" value={lead.income} icon={TrendingUp} />
                       <DetailItem label="Occupation" value={lead.occupation} icon={Briefcase} />
                       <DetailItem label="Education" value={lead.education} icon={GraduationCap} />
@@ -470,67 +470,67 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                 </div>
 
                 {/* Column 2: Address & Health */}
-                <div className="p-8 md:p-10 space-y-14">
+                <div className="p-6 md:p-10 space-y-10">
                   {/* Physical Address */}
                   <section>
                     <div className="flex items-center gap-3 mb-6">
-                      <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
-                        <MapPin size={14} />
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-indigo-50 text-indigo-600">
+                        <MapPin size={16} />
                       </div>
-                      <h2 className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.2em]">Physical Address</h2>
+                      <h2 className="text-[12px] font-bold uppercase tracking-wider text-slate-500">Physical Address</h2>
                     </div>
-                    <div className="grid grid-cols-1 gap-4">
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-6 gap-y-4">
                       <DetailItem label="Street / Flat" value={lead.address || '—'} icon={MapPin} />
                       <DetailItem label="Area & Post" value={`${lead.area || ''} ${lead.pincode || ''}`} icon={Building} />
-                      {lead.mapLink && (
-                        <div className="pt-2">
-                          <a href={lead.mapLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full py-3 bg-indigo-600 text-white text-[10px] font-bold uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-sm">
-                            <MapPin size={14} /> View Location
-                          </a>
-                        </div>
-                      )}
                     </div>
+                    {lead.mapLink && (
+                      <div className="pt-4">
+                        <a href={lead.mapLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full py-3 text-[12px] font-bold uppercase tracking-widest rounded-xl transition-all shadow-sm bg-indigo-600 hover:bg-indigo-700 text-white">
+                          <MapPin size={14} /> View Location
+                        </a>
+                      </div>
+                    )}
                   </section>
 
                   {/* Health & Insurance */}
                   <section>
                     <div className="flex items-center gap-3 mb-6">
-                      <div className="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center text-rose-600">
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-rose-50 text-rose-600">
                         <HeartPulse size={16} />
                       </div>
-                      <h2 className="text-[11px] font-medium text-slate-400 uppercase tracking-[0.2em]">Health & Insurance</h2>
+                      <h2 className="text-[12px] font-bold uppercase tracking-wider text-slate-500">Health & Insurance</h2>
                     </div>
                     <div className="space-y-6">
                       {/* Medeclaim Status */}
-                      <div className="p-6 bg-slate-50/50 rounded-2xl border border-slate-100">
-                        <div className="flex items-center justify-between mb-4">
-                          <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Medeclaim Status</p>
+                      <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200">
+                        <div className="flex items-center justify-between mb-5">
+                          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Medeclaim Status</p>
                           {lead.hasMedeclaim ? (
-                            <span className="px-3 py-1 bg-emerald-500 text-white text-[9px] font-bold uppercase tracking-widest rounded-lg">Active Policy</span>
+                            <span className="px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg bg-emerald-500 text-white">Active Policy</span>
                           ) : (
-                            <span className="px-3 py-1 bg-slate-200 text-slate-500 text-[9px] font-bold uppercase tracking-widest rounded-lg">No Policy</span>
+                            <span className="px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg bg-slate-200 text-slate-500">No Policy</span>
                           )}
                         </div>
                         {lead.hasMedeclaim ? (
-                          <div className="grid grid-cols-2 gap-4 mt-2">
+                          <div className="grid grid-cols-2 gap-6 mt-2">
                             <div>
-                              <p className="text-[9px] text-slate-400 uppercase font-medium mb-1">Company</p>
-                              <p className="text-sm font-semibold text-slate-700">{lead.insuranceCompany || '—'}</p>
+                              <p className="text-[11px] font-bold uppercase tracking-wider mb-1.5 text-slate-400">Company</p>
+                              <p className="text-[15px] font-semibold text-slate-800">{lead.insuranceCompany || '—'}</p>
                             </div>
                             <div>
-                              <p className="text-[9px] text-slate-400 uppercase font-medium mb-1">Sum Assured</p>
-                              <p className="text-sm font-semibold text-slate-700">{lead.sumAssured || '—'}</p>
+                              <p className="text-[11px] font-bold uppercase tracking-wider mb-1.5 text-slate-400">Sum Assured</p>
+                              <p className="text-[15px] font-semibold text-slate-800">{lead.sumAssured || '—'}</p>
                             </div>
                           </div>
                         ) : (
-                          <p className="text-sm text-slate-400 italic">No insurance information provided.</p>
+                          <p className="text-[13px] italic text-slate-500">No insurance information provided.</p>
                         )}
                       </div>
 
                       {/* Health Conditions */}
                       {lead.healthStatus && (
-                        <div>
-                          <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-4">Known Health Conditions</p>
+                        <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200">
+                          <p className="text-[11px] font-bold uppercase tracking-wider mb-5 text-slate-500">Known Health Conditions</p>
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                             {Object.entries(lead.healthStatus).map(([key, val]) => {
                               const isFit = key.toLowerCase() === 'fit';
@@ -540,11 +540,11 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                                   className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${
                                     val 
                                       ? (isFit ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700')
-                                      : 'bg-white border-slate-100 text-slate-300'
+                                      : 'bg-white border-slate-200 text-slate-400'
                                   }`}
                                 >
                                   <div className={`w-2 h-2 rounded-full ${val ? (isFit ? 'bg-emerald-500' : 'bg-rose-500') : 'bg-slate-200'}`} />
-                                  <span className="text-[11px] font-semibold uppercase tracking-wider">{key}</span>
+                                  <span className="text-[12px] font-bold uppercase tracking-wider">{key}</span>
                                 </div>
                               );
                             })}
@@ -557,18 +557,18 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
               </div>
 
               {/* Family Overview - Bottom Row of Main Section */}
-              <div className="border-t border-slate-100 p-8 md:p-10 bg-slate-50/20">
+              <div className="border-t p-8 md:p-10 bg-slate-50/50" style={{ borderColor: 'var(--border)' }}>
                 <div className="flex items-center gap-3 mb-8">
-                  <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
-                    <Users size={14} />
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-indigo-50 text-indigo-600">
+                    <Users size={16} />
                   </div>
-                  <h2 className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.2em]">Family Overview (Ages)</h2>
+                  <h2 className="text-[12px] font-bold uppercase tracking-wider text-slate-500">Family Overview (Ages)</h2>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
                   {Object.entries(lead.familyAges || {}).map(([member, age]) => (
-                    <div key={member} className="bg-white border border-slate-100 p-4 rounded-xl text-center shadow-sm">
-                      <p className="text-[8px] font-semibold text-slate-400 uppercase tracking-widest mb-2">{member.replace(/child/i, 'Child ')}</p>
-                      <p className="text-base font-semibold text-indigo-600">{age || '—'}</p>
+                    <div key={member} className="bg-white border p-4 rounded-2xl text-center shadow-sm hover:border-indigo-100 transition-colors" style={{ borderColor: 'var(--border)' }}>
+                      <p className="text-[10px] font-bold uppercase tracking-widest mb-2 text-slate-400">{member.replace(/child/i, 'Child ')}</p>
+                      <p className="text-[18px] font-bold text-indigo-600">{age || '—'}</p>
                     </div>
                   ))}
                 </div>
@@ -576,41 +576,42 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
             </div>
 
             {/* Protocol Info - Compact Row */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="bg-white rounded-2xl border shadow-sm p-5 flex flex-col md:flex-row items-center justify-between gap-6" style={{ borderColor: 'var(--border)' }}>
               <div className="flex items-center gap-4">
                 <div className="w-9 h-9 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400">
                   <Shield size={16} />
                 </div>
                 <div>
-                  <h3 className="text-[10px] font-semibold text-slate-800 uppercase tracking-wider">Assignment Details</h3>
-                  <p className="text-[10px] text-slate-500 mt-0.5">Assigned to: <span className="font-semibold text-slate-700">{lead.tseName}</span> · TL: <span className="font-semibold text-slate-700">{lead.tlName}</span></p>
+                  <h3 className="text-[12px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-primary)' }}>Assignment Details</h3>
+                  <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Assigned to: <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{lead.tseName}</span> · TL: <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{lead.tlName}</span></p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 px-3 py-1.5 bg-indigo-50 rounded-lg border border-indigo-100">
-                <Calendar size={12} className="text-indigo-500" />
-                <span className="text-[10px] font-semibold text-indigo-600 uppercase tracking-widest">{lead.dateOfVisit || 'No Visit Date'}</span>
+              <div className="flex items-center gap-3 px-3 py-1.5 rounded-lg border" style={{ background: 'var(--brand-soft)', borderColor: 'rgba(108,92,231,0.2)' }}>
+                <Calendar size={12} style={{ color: 'var(--brand)' }} />
+                <span className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--brand)' }}>{lead.dateOfVisit || 'No Visit Date'}</span>
               </div>
             </div>
 
             {/* ── Classic Protocol Action Area ── */}
-            <div className="bg-slate-50 rounded-xl border border-slate-200 p-6 flex flex-col items-center gap-5 text-center">
+            <div className="rounded-2xl border p-6 flex flex-col items-center gap-5 text-center" style={{ background: 'var(--bg-row-hover)', borderColor: 'var(--border)' }}>
               <div className="space-y-1.5">
-                <h3 className="text-base font-semibold text-slate-800 uppercase tracking-wider">Protocol Acknowledgment</h3>
-                <p className="text-xs text-slate-500 max-w-md">Please confirm you have visited the client and reviewed all necessary details.</p>
+                <h3 className="text-[15px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-primary)' }}>Protocol Acknowledgment</h3>
+                <p className="text-[13px] max-w-md" style={{ color: 'var(--text-muted)' }}>Please confirm you have visited the client and reviewed all necessary details.</p>
               </div>
 
               {lead.isReadByVisitor ? (
-                <div className="flex items-center gap-2.5 px-4 py-2.5 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-200 animate-in fade-in zoom-in duration-500">
+                <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-lg border" style={{ background: '#ecfdf5', color: '#059669', borderColor: '#a7f3d0' }}>
                   <CheckCircle2 size={16} />
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.2em]">Acknolwedged at {new Date(lead.readAt!).toLocaleTimeString()}</span>
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.2em]">Acknolwedged at {new Date(lead.readAt!).toLocaleTimeString()}</span>
                 </div>
               ) : (
                 <button
                   onClick={markAsRead}
                   disabled={submitting}
-                  className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-semibold uppercase tracking-[0.25em] rounded-lg transition-all shadow-md shadow-indigo-100 active:scale-95 disabled:opacity-50 flex items-center gap-2.5"
+                  className="px-8 py-3 text-[12px] font-semibold uppercase tracking-[0.2em] rounded-lg transition-all shadow-md active:scale-95 disabled:opacity-50 flex items-center gap-2.5"
+                  style={{ background: 'var(--brand)', color: '#fff' }}
                 >
-                  <Send size={12} /> Mark as Visited
+                  <Send size={14} /> Mark as Visited
                 </button>
               )}
             </div>
@@ -618,7 +619,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
         ) : (
           /* Original View: Left Column (Lead Info) */
           <div className="lg:col-span-1 space-y-6">
-            <div className="card p-4 sm:p-6 md:p-8 relative overflow-hidden group">
+            <div className="card relative overflow-hidden group" style={{ padding: '20px' }}>
               {/* Decorative background element */}
               <div className="absolute -right-6 -top-6 w-24 h-24 bg-indigo-50 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
 
@@ -704,12 +705,12 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
               </div>
             </div>
 
-            <div className="card p-4 sm:p-6 md:p-8 bg-gray-50/50">
-              <h3 className="font-bold text-gray-800 mb-5 flex items-center justify-between">
+            <div className="card" style={{ padding: '20px', background: 'linear-gradient(145deg, #ffffff, var(--bg-page))' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 Quick Actions
-                <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
+                <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--brand)' }} />
               </h3>
-              <div className="space-y-3">
+              <div className="flex flex-col gap-2.5">
                 {/* ── Button 1: Automate App Call (existing hardware-verified method) ── */}
                 <button
                   onClick={() => {
@@ -721,17 +722,17 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                       showToast('No phone number available for this lead.', 'error', 'Error');
                     }
                   }}
-                  className={`w-full flex items-center gap-4 p-5 rounded-2xl border ${isDialing ? 'border-emerald-200 bg-emerald-50' : 'border-indigo-100 bg-white shadow-sm'} hover:shadow-md hover:-translate-y-0.5 transition-all group`}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all group ${isDialing ? 'bg-[#ecfdf5] border-[rgba(16,185,129,0.3)]' : 'bg-white border-[var(--border-strong)] hover:border-[var(--brand)] hover:shadow-[0_4px_12px_rgba(108,92,231,0.08)]'}`}
                 >
-                  <div className={`w-12 h-12 rounded-xl ${isDialing ? 'bg-emerald-100 text-emerald-600' : 'bg-indigo-50 text-indigo-500'} flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                    <Phone className={`w-6 h-6 ${isDialing ? 'animate-pulse' : ''}`} />
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform shrink-0 ${isDialing ? 'bg-[#10b981] text-white' : 'bg-[var(--brand-soft)] text-[var(--brand)]'}`}>
+                    <Phone size={16} className={isDialing ? 'animate-pulse' : ''} />
                   </div>
                   <div className="flex flex-col text-left">
-                    <span className={`text-[13px] font-black uppercase tracking-tight ${isDialing ? 'text-emerald-600' : 'text-indigo-600'}`}>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: isDialing ? '#059669' : 'var(--text-primary)' }}>
                       {isDialing ? 'Initiating Dialer...' : 'Call Client'}
                     </span>
-                    <span className={`text-[11px] ${isDialing ? 'text-emerald-400' : 'text-indigo-400'} font-medium tracking-tight`}>
-                      {isDialing ? 'Automate app will sync duration' : '✅ With Automate App — Hardware Verified'}
+                    <span style={{ fontSize: '11px', color: isDialing ? '#10b981' : 'var(--text-muted)' }}>
+                      {isDialing ? 'Automate app will sync duration' : 'Hardware Verified (App)'}
                     </span>
                   </div>
                 </button>
@@ -740,76 +741,70 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                 <button
                   onClick={handleSmartCall}
                   disabled={isBrowserCallActive}
-                  className={`w-full flex items-center gap-4 p-5 rounded-2xl border transition-all group ${isBrowserCallActive
-                    ? 'border-orange-200 bg-orange-50 shadow-orange-100 animate-pulse'
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all group ${isBrowserCallActive
+                    ? 'bg-[#fffbeb] border-[rgba(245,158,11,0.3)]'
                     : browserCallResult
-                      ? 'border-teal-200 bg-teal-50'
-                      : 'border-orange-100 bg-white shadow-sm hover:shadow-md hover:-translate-y-0.5'
+                      ? 'bg-[#eff6ff] border-[rgba(59,130,246,0.3)]'
+                      : 'bg-white border-[var(--border-strong)] hover:border-[#f59e0b] hover:shadow-[0_4px_12px_rgba(245,158,11,0.08)]'
                     }`}
                 >
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform ${isBrowserCallActive ? 'bg-orange-100 text-orange-600' :
-                    browserCallResult ? 'bg-teal-100 text-teal-600' :
-                      'bg-orange-50 text-orange-500'
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform shrink-0 ${isBrowserCallActive ? 'bg-[#f59e0b] text-white' :
+                    browserCallResult ? 'bg-[#3b82f6] text-white' : 'bg-[#fffbeb] text-[#f59e0b]'
                     }`}>
-                    <Phone className={`w-6 h-6 ${isBrowserCallActive ? 'animate-bounce' : ''}`} />
+                    <Phone size={16} className={isBrowserCallActive ? 'animate-bounce' : ''} />
                   </div>
-                  <div className="flex flex-col text-left flex-1">
-                    <span className={`text-[13px] font-black uppercase tracking-tight ${isBrowserCallActive ? 'text-orange-600' :
-                      browserCallResult ? 'text-teal-600' : 'text-orange-600'
-                      }`}>
-                      {isBrowserCallActive ? '⏱ Call Active — Return When Done' :
-                        browserCallResult ? '✓ Call Logged' :
-                          'Smart Call (No App)'}
+                  <div className="flex flex-col text-left flex-1 min-w-0">
+                    <span className="truncate" style={{ fontSize: '13px', fontWeight: 600, color: isBrowserCallActive ? '#d97706' : browserCallResult ? '#2563eb' : 'var(--text-primary)' }}>
+                      {isBrowserCallActive ? 'Call Active (Return Here)' :
+                        browserCallResult ? '✓ Call Logged' : 'Smart Call (Browser)'}
                     </span>
-                    <span className={`text-[11px] font-medium tracking-tight ${isBrowserCallActive ? 'text-orange-400' :
-                      browserCallResult ? 'text-teal-500' : 'text-orange-400'
-                      }`}>
+                    <span className="truncate" style={{ fontSize: '11px', color: isBrowserCallActive ? '#f59e0b' : browserCallResult ? '#3b82f6' : 'var(--text-muted)' }}>
                       {isBrowserCallActive
-                        ? 'Duration auto-saves when you return here'
+                        ? 'Auto-saves duration on return'
                         : browserCallResult
                           ? `${Math.floor(browserCallResult.duration / 60)}m ${browserCallResult.duration % 60}s · ${browserCallResult.trustLabel}`
-                          : '📱 Samsung / No Automate App — Browser Timer'}
+                          : 'No App Required'}
                     </span>
                   </div>
                 </button>
 
-                <div className="grid grid-cols-1 gap-3">
+                <div className="grid grid-cols-2 gap-2.5 mt-1">
                   <button
                     onClick={() => setActiveModal('whatsapp')}
-                    className="flex items-center gap-4 p-4 rounded-2xl border border-emerald-100 bg-white shadow-sm hover:shadow-md hover:shadow-emerald-100 hover:-translate-y-0.5 transition-all group"
+                    className="flex flex-col gap-2 px-3 py-3 rounded-xl border border-[var(--border-strong)] bg-white hover:border-[#10b981] hover:shadow-[0_4px_12px_rgba(16,185,129,0.08)] transition-all group"
                   >
-                    <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
-                      <MessageCircle className="w-5 h-5" />
+                    <div className="w-8 h-8 rounded-lg bg-[#ecfdf5] flex items-center justify-center text-[#10b981] group-hover:scale-105 transition-transform">
+                      <MessageCircle size={14} />
                     </div>
                     <div className="flex flex-col text-left">
-                      <span className="text-[11px] font-black uppercase tracking-tight text-emerald-600">WhatsApp Client</span>
-                      <span className="text-[10px] text-emerald-400 font-medium tracking-tight">Send instant message</span>
+                      <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>WhatsApp</span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Instant message</span>
                     </div>
                   </button>
                   <button
                     onClick={() => setActiveModal('email')}
-                    className="flex items-center gap-4 p-4 rounded-2xl border border-sky-100 bg-white shadow-sm hover:shadow-md hover:shadow-sky-100 hover:-translate-y-0.5 transition-all group"
+                    className="flex flex-col gap-2 px-3 py-3 rounded-xl border border-[var(--border-strong)] bg-white hover:border-[#0ea5e9] hover:shadow-[0_4px_12px_rgba(14,165,233,0.08)] transition-all group"
                   >
-                    <div className="w-10 h-10 rounded-xl bg-sky-50 flex items-center justify-center text-sky-500 group-hover:scale-110 transition-transform">
-                      <Mail className="w-5 h-5" />
+                    <div className="w-8 h-8 rounded-lg bg-[#f0f9ff] flex items-center justify-center text-[#0ea5e9] group-hover:scale-105 transition-transform">
+                      <Mail size={14} />
                     </div>
                     <div className="flex flex-col text-left">
-                      <span className="text-[11px] font-black uppercase tracking-tight text-sky-600">Send Email</span>
-                      <span className="text-[10px] text-sky-400 font-medium tracking-tight">Professional outreach</span>
+                      <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>Email</span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Send an email</span>
                     </div>
                   </button>
                 </div>
 
                 <button
                   onClick={() => setActiveModal('note')}
-                  className="w-full flex items-center gap-4 p-4 rounded-2xl border border-amber-100 bg-white shadow-sm hover:shadow-md hover:shadow-amber-100 hover:-translate-y-0.5 transition-all group"
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-[var(--border-strong)] bg-white hover:border-[#f59e0b] hover:shadow-[0_4px_12px_rgba(245,158,11,0.08)] transition-all group mt-1"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform">
-                    <FileText className="w-5 h-5" />
+                  <div className="w-9 h-9 rounded-lg bg-[#fffbeb] flex items-center justify-center text-[#f59e0b] group-hover:scale-105 transition-transform shrink-0">
+                    <FileText size={16} />
                   </div>
                   <div className="flex flex-col text-left">
-                    <span className="text-[11px] font-black uppercase tracking-tight text-amber-600">Add Activity Note</span>
-                    <span className="text-[10px] text-amber-400 font-medium tracking-tight">Log updates & details</span>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Add Note</span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Log manual updates</span>
                   </div>
                 </button>
               </div>
@@ -820,10 +815,10 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
         {/* Right Column: Timeline / Activities (Hidden for Onsite Visitors) */}
         {!isOnsiteVisitor && (
           <div className="lg:col-span-2">
-            <div className="card p-4 sm:p-6 md:p-8 h-full min-h-[400px] flex flex-col">
-              <div className="flex items-center justify-between mb-8">
-                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                  <div className="w-1.5 h-6 bg-indigo-500 rounded-full" />
+            <div className="card h-full min-h-[400px] flex flex-col" style={{ padding: '24px' }}>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                  <div className="w-1.5 h-5 rounded-full" style={{ background: 'var(--brand)' }} />
                   Activity Timeline
                 </h2>
                 <div className="flex -space-x-2">

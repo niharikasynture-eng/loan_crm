@@ -26,19 +26,19 @@ export default function TasksPage() {
   const completed = tasks.filter(t => t.status === 'completed');
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
       <PageHeader
         title="Tasks"
         subtitle="Track and manage your follow-ups and sales activities"
         action={
-          <button className="btn-primary text-sm">
+          <button className="btn-primary" style={{ fontSize: '14px' }}>
             <Plus size={15} /> Add Task
           </button>
         }
       />
 
       {loading ? (
-        <div className="card py-20 flex items-center justify-center">
+        <div className="card" style={{ padding: '80px 24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div
             className="w-7 h-7 rounded-full border-2 border-t-transparent animate-spin"
             style={{ borderColor: 'var(--brand-light)', borderTopColor: 'var(--brand)' }}
@@ -46,21 +46,21 @@ export default function TasksPage() {
         </div>
       ) : tasks.length === 0 ? (
         <div
-          className="card py-20 flex flex-col items-center gap-3 text-center"
-          style={{ color: 'var(--text-muted)' }}
+          className="card"
+          style={{ padding: '80px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', textAlign: 'center', color: 'var(--text-muted)' }}
         >
-          <CheckCircle2 size={36} strokeWidth={1.2} />
-          <p className="text-sm font-medium">All caught up! No tasks found.</p>
+          <CheckCircle2 size={40} strokeWidth={1.2} />
+          <p style={{ fontSize: '14px', fontWeight: 500 }}>All caught up! No tasks found.</p>
         </div>
       ) : (
-        <div className="space-y-5">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {/* Pending */}
           {pending.length > 0 && (
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider mb-3 px-1" style={{ color: 'var(--text-muted)' }}>
+              <p className="mb-3" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 Pending ({pending.length})
               </p>
-              <div className="card divide-y overflow-hidden" style={{ borderColor: 'var(--border)' }}>
+              <div className="card-no-pad" style={{ overflow: 'hidden' }}>
                 {pending.map(task => <TaskRow key={task._id.toString()} task={task} userId={user?.id} onToggle={handleToggle} />)}
               </div>
             </div>
@@ -68,11 +68,11 @@ export default function TasksPage() {
 
           {/* Completed */}
           {completed.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider mb-3 px-1" style={{ color: 'var(--text-muted)' }}>
+            <div style={{ opacity: 0.7 }}>
+              <p className="mb-3" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 Completed ({completed.length})
               </p>
-              <div className="card divide-y overflow-hidden opacity-60">
+              <div className="card-no-pad" style={{ overflow: 'hidden' }}>
                 {completed.map(task => <TaskRow key={task._id.toString()} task={task} userId={user?.id} onToggle={handleToggle} />)}
               </div>
             </div>
@@ -96,13 +96,22 @@ function TaskRow({ task, userId, onToggle }: { task: any; userId?: string; onTog
   const ps = PRIORITY_STYLE[task.priority?.toLowerCase()] ?? PRIORITY_STYLE.medium;
 
   return (
-    <div className="flex items-center gap-3.5 px-4 py-3.5 transition-colors hover:bg-gray-50">
+    <div
+      className="flex items-center gap-3.5 px-5 transition-colors"
+      style={{
+        minHeight: '56px',
+        borderBottom: '1px solid var(--border)',
+        background: 'transparent',
+      }}
+      onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-row-hover)')}
+      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+    >
       {/* Toggle */}
       <button
         onClick={() => canComplete && onToggle(task._id.toString(), task.status)}
         disabled={!canComplete}
         className="shrink-0 transition-transform"
-        style={{ transform: 'none', cursor: canComplete ? 'pointer' : 'not-allowed' }}
+        style={{ cursor: canComplete ? 'pointer' : 'not-allowed' }}
       >
         {isCompleted
           ? <CheckCircle2 size={20} style={{ color: 'var(--success)' }} />
@@ -116,8 +125,9 @@ function TaskRow({ task, userId, onToggle }: { task: any; userId?: string; onTog
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <p
-            className="text-sm font-medium truncate"
             style={{
+              fontSize: '14px',
+              fontWeight: 500,
               color: isCompleted ? 'var(--text-muted)' : 'var(--text-primary)',
               textDecoration: isCompleted ? 'line-through' : 'none',
             }}
@@ -125,22 +135,22 @@ function TaskRow({ task, userId, onToggle }: { task: any; userId?: string; onTog
             {task.title}
           </p>
           <span
-            className="text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0"
-            style={ps}
+            className="px-2 py-0.5 rounded-full shrink-0"
+            style={{ fontSize: '12px', fontWeight: 600, ...ps }}
           >
             {task.priority}
           </span>
         </div>
         <div className="flex items-center gap-4 mt-0.5 flex-wrap">
           <span
-            className="text-xs flex items-center gap-1"
-            style={{ color: isOverdue ? 'var(--danger)' : 'var(--text-muted)' }}
+            className="flex items-center gap-1"
+            style={{ fontSize: '13px', color: isOverdue ? 'var(--danger)' : 'var(--text-muted)' }}
           >
             {isOverdue && <AlertCircle size={11} />}
             Due {new Date(task.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
           </span>
           {task.leadId?.name && (
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+            <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
               Lead: <span style={{ color: 'var(--brand)' }}>{task.leadId.name}</span>
             </span>
           )}
@@ -149,8 +159,8 @@ function TaskRow({ task, userId, onToggle }: { task: any; userId?: string; onTog
               href={task.link}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs flex items-center gap-1"
-              style={{ color: 'var(--brand)' }}
+              className="flex items-center gap-1"
+              style={{ fontSize: '13px', color: 'var(--brand)' }}
               onClick={e => e.stopPropagation()}
             >
               Join Meeting <ExternalLink size={10} />
@@ -162,7 +172,7 @@ function TaskRow({ task, userId, onToggle }: { task: any; userId?: string; onTog
       {/* Assignee */}
       <div className="flex items-center gap-2 shrink-0">
         <div
-          className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white"
+          className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
           style={{ background: 'var(--brand)' }}
           title={task.assignedTo?.name}
         >

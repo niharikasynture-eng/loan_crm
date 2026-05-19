@@ -1,111 +1,38 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
-@keyframes toastSlideIn {
-  from { opacity: 0; transform: translateX(110%); }
-  to   { opacity: 1; transform: translateX(0);    }
-}
-.animate-toast-in {
-  animation: toastSlideIn 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
-}
-
 /* ─────────────────────────────────────────────────────────
-   LEGACY DARK OVERRIDES — neutralise slate colors from old pages
-───────────────────────────────────────────────────────── */
-.bg-\[\#0f172a\], .bg-\[\#1e293b\], .bg-\[\#111827\], .bg-\[\#1a2332\] { background-color: #ffffff !important; }
-.text-white { color: #1a202c !important; }
-.text-\[\#f1f5f9\], .text-\[\#e2e8f0\], .text-\[\#cbd5e1\] { color: #4a5568 !important; }
-.text-\[\#94a3b8\], .text-\[\#64748b\] { color: #64748b !important; }
-.border-\[\#334155\], .border-\[\#1e293b\] { border-color: #e9eaf0 !important; }
-.hover\:bg-\[\#0f172a\]:hover, .hover\:bg-\[\#1e293b\]:hover { background-color: #f5f6fa !important; }
-tbody tr:hover { background: #f8f9fc !important; }
-tbody td { color: #374151 !important; }
-thead th { color: #6b7280 !important; }
-
-/* ─────────────────────────────────────────────────────────
-   GLOBAL RESET & BASE
-───────────────────────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; padding: 0; margin: 0; }
-
-html, body {
-  height: 100%;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-size: 15px;
-  background-color: #F2F3F8;
-  color: #1a202c;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  line-height: 1.6;
-}
-
-/* ─────────────────────────────────────────────────────────
-   SCROLLBARS
-───────────────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-/* ─────────────────────────────────────────────────────────
-   ANIMATIONS
-───────────────────────────────────────────────────────── */
-@keyframes fadeIn      { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes slideInLeft { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
-@keyframes slideDown   { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes toastSlide  { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
-@keyframes spin        { to { transform: rotate(360deg); } }
-@keyframes pulse       { 0%,100%{ opacity:1 } 50%{ opacity:.5 } }
-@keyframes shake       { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
-@keyframes toastProgress { from{width:100%} to{width:0%} }
-@keyframes pulseBlink {
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.2); opacity: 0.7; }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-.animate-fade-in    { animation: fadeIn 0.22s ease-out both; }
-.animate-slide-in   { animation: slideInLeft 0.22s ease-out both; }
-.animate-slide-down { animation: slideDown 0.18s ease-out both; }
-.animate-spin       { animation: spin 0.8s linear infinite; }
-.animate-pulse      { animation: pulse 2s cubic-bezier(0.4,0,0.6,1) infinite; }
-.animate-shake      { animation: shake 0.35s ease both; }
-.animate-toast-in   { animation: toastSlide 0.3s cubic-bezier(0.25,0.46,0.45,0.94) both; }
-.animate-toast-progress-10 { animation: toastProgress 10s linear forwards; }
-.animate-pulse-blink { animation: pulseBlink 0.8s ease-in-out infinite; }
-
-/* ─────────────────────────────────────────────────────────
-   CSS VARIABLES
+   CSS VARIABLES — Design System Tokens
 ───────────────────────────────────────────────────────── */
 :root {
-  /* TeleCRM Purple */
-  --brand:        #7c3aed;
-  --brand-dark:   #5b21b6;
-  --brand-light:  #a78bfa;
-  --brand-soft:   #f3f1ff;
+  /* Brand */
+  --brand:        #6C5CE7;
+  --brand-dark:   #5849c2;
+  --brand-light:  #a29bfe;
+  --brand-soft:   #f0eeff;
 
   /* Sidebar */
-  --sidebar-bg:     #2D1B69;
-  --sidebar-hover:  rgba(255,255,255,0.06);
-  --sidebar-active: rgba(124,58,237,0.85);
-  --sidebar-text:   #BDB5D4;
-  --sidebar-icon:   #8B7BBE;
+  --sidebar-bg:     #FFFFFF;
+  --sidebar-border: #E2E8F0;
+  --sidebar-hover:  rgba(108,92,231,0.06);
+  --sidebar-active: rgba(108,92,231,0.10);
+  --sidebar-text:   #64748B;
+  --sidebar-active-text: #6C5CE7;
 
   /* Surface */
-  --bg-page:        #F2F3F8;
+  --bg-page:        #F7F8FC;
   --bg-card:        #FFFFFF;
-  --bg-row-hover:   #F8F9FC;
+  --bg-row-hover:   #F8FAFC;
 
   /* Text */
-  --text-primary:   #111827;
-  --text-secondary: #374151;
-  --text-muted:     #6B7280;
-  --text-disabled:  #9CA3AF;
+  --text-primary:   #1E293B;
+  --text-secondary: #334155;
+  --text-muted:     #64748B;
+  --text-disabled:  #94A3B8;
 
   /* Borders */
-  --border:         #E5E7EB;
-  --border-strong:  #D1D5DB;
+  --border:         #E2E8F0;
+  --border-strong:  #CBD5E1;
 
   /* Semantic */
   --success:      #10b981;
@@ -119,17 +46,110 @@ html, body {
 }
 
 /* ─────────────────────────────────────────────────────────
-   CARDS
+   GLOBAL RESET & BASE
+───────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; padding: 0; margin: 0; }
+
+html, body {
+  height: 100%;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  background-color: var(--bg-page);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
+}
+
+/* ─────────────────────────────────────────────────────────
+   LEGACY DARK OVERRIDES — neutralise old dark-mode classes
+───────────────────────────────────────────────────────── */
+.bg-\[\#0f172a\], .bg-\[\#1e293b\], .bg-\[\#111827\], .bg-\[\#1a2332\] { background-color: #ffffff !important; }
+.text-white { color: var(--text-primary) !important; }
+.text-\[\#f1f5f9\], .text-\[\#e2e8f0\], .text-\[\#cbd5e1\] { color: var(--text-secondary) !important; }
+.text-\[\#94a3b8\], .text-\[\#64748b\] { color: var(--text-muted) !important; }
+.border-\[\#334155\], .border-\[\#1e293b\] { border-color: var(--border) !important; }
+.hover\:bg-\[\#0f172a\]:hover, .hover\:bg-\[\#1e293b\]:hover { background-color: var(--bg-row-hover) !important; }
+tbody tr:hover { background: var(--bg-row-hover) !important; }
+tbody td { color: var(--text-secondary) !important; }
+thead th { color: var(--text-muted) !important; }
+
+/* ─────────────────────────────────────────────────────────
+   SCROLLBARS
+───────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ─────────────────────────────────────────────────────────
+   ANIMATIONS
+───────────────────────────────────────────────────────── */
+@keyframes fadeIn      { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideInLeft { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes slideDown   { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes toastSlide  { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+@keyframes toastSlideIn { from { opacity: 0; transform: translateX(110%); } to { opacity: 1; transform: translateX(0); } }
+@keyframes spin        { to { transform: rotate(360deg); } }
+@keyframes pulse       { 0%,100%{ opacity:1 } 50%{ opacity:.5 } }
+@keyframes shake       { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
+@keyframes toastProgress { from{width:100%} to{width:0%} }
+@keyframes pulseBlink {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.7; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  20%       { transform: rotate(-12deg); }
+  40%       { transform: rotate(12deg); }
+  60%       { transform: rotate(-8deg); }
+  80%       { transform: rotate(8deg); }
+}
+
+.animate-fade-in    { animation: fadeIn 0.22s ease-out both; }
+.animate-slide-in   { animation: slideInLeft 0.22s ease-out both; }
+.animate-slide-down { animation: slideDown 0.18s ease-out both; }
+.animate-spin       { animation: spin 0.8s linear infinite; }
+.animate-pulse      { animation: pulse 2s cubic-bezier(0.4,0,0.6,1) infinite; }
+.animate-shake      { animation: shake 0.35s ease both; }
+.animate-toast-in   { animation: toastSlideIn 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
+.animate-toast-progress-10 { animation: toastProgress 10s linear forwards; }
+.animate-pulse-blink { animation: pulseBlink 0.8s ease-in-out infinite; }
+
+/* ─────────────────────────────────────────────────────────
+   CARDS — Core design component
 ───────────────────────────────────────────────────────── */
 .card {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 .card:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.07);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
 }
+.card-no-pad {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+/* ─────────────────────────────────────────────────────────
+   TYPOGRAPHY SCALE — strict
+───────────────────────────────────────────────────────── */
+.text-page-title  { font-size: 24px; font-weight: 600; color: var(--text-primary); }
+.text-card-title  { font-size: 18px; font-weight: 600; color: var(--text-primary); }
+.text-normal      { font-size: 14px; font-weight: 400; color: var(--text-secondary); }
+.text-table       { font-size: 13px; font-weight: 400; color: var(--text-secondary); }
+.text-stat        { font-size: 28px; font-weight: 700; color: var(--text-primary); }
+.text-subtitle    { font-size: 13px; font-weight: 400; color: var(--text-muted); }
 
 /* ─────────────────────────────────────────────────────────
    INPUTS
@@ -139,16 +159,16 @@ html, body {
   background: #fff;
   border: 1px solid var(--border-strong);
   border-radius: 8px;
-  padding: 11px 14px;
+  padding: 10px 14px;
   color: var(--text-primary);
-  font-size: 15px;
+  font-size: 14px;
   font-family: inherit;
   transition: border-color 0.15s, box-shadow 0.15s;
   outline: none;
 }
 .input-field:focus {
   border-color: var(--brand);
-  box-shadow: 0 0 0 3px rgba(124,58,237,0.12);
+  box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.12);
 }
 .input-field::placeholder { color: var(--text-disabled); }
 
@@ -157,36 +177,36 @@ html, body {
 ───────────────────────────────────────────────────────── */
 .btn-primary {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 10px 20px;
+  padding: 9px 18px;
   background: var(--brand);
   color: #fff;
   border: none; border-radius: 8px;
-  font-size: 14.5px; font-weight: 600; font-family: inherit;
+  font-size: 14px; font-weight: 600; font-family: inherit;
   cursor: pointer;
   transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
   white-space: nowrap;
 }
-.btn-primary:hover { background: var(--brand-dark); box-shadow: 0 4px 14px rgba(124,58,237,0.35); transform: translateY(-1px); }
+.btn-primary:hover { background: var(--brand-dark); box-shadow: 0 4px 14px rgba(108, 92, 231, 0.35); transform: translateY(-1px); }
 .btn-primary:active { transform: translateY(0); }
 .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
 
 .btn-secondary {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 9px 18px;
+  padding: 9px 16px;
   background: #fff;
   color: var(--text-secondary);
   border: 1px solid var(--border-strong); border-radius: 8px;
-  font-size: 14.5px; font-weight: 500; font-family: inherit;
+  font-size: 14px; font-weight: 500; font-family: inherit;
   cursor: pointer; transition: all 0.15s; white-space: nowrap;
 }
-.btn-secondary:hover { background: #f5f6fa; border-color: var(--brand); color: var(--brand); }
+.btn-secondary:hover { background: var(--bg-row-hover); border-color: var(--brand); color: var(--brand); }
 
 .btn-danger {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 9px 18px;
+  padding: 9px 16px;
   background: var(--danger-soft); color: var(--danger);
   border: 1px solid rgba(239,68,68,0.2); border-radius: 8px;
-  font-size: 14.5px; font-weight: 500; font-family: inherit;
+  font-size: 14px; font-weight: 500; font-family: inherit;
   cursor: pointer; transition: all 0.15s;
 }
 .btn-danger:hover { background: #fecaca; border-color: var(--danger); }
@@ -196,10 +216,10 @@ html, body {
 ───────────────────────────────────────────────────────── */
 .badge {
   display: inline-flex; align-items: center;
-  padding: 2px 9px; border-radius: 99px;
+  padding: 3px 10px; border-radius: 99px;
   font-size: 12px; font-weight: 600; letter-spacing: 0.01em;
 }
-.badge-new       { background: #f3f1ff; color: #7c3aed; }
+.badge-new       { background: var(--brand-soft); color: var(--brand); }
 .badge-contacted { background: #eff6ff; color: #2563eb; }
 .badge-qualified { background: #ecfdf5; color: #059669; }
 .badge-won       { background: #ecfdf5; color: #059669; }
@@ -213,70 +233,72 @@ html, body {
 ───────────────────────────────────────────────────────── */
 .table-container {
   overflow-x: auto;
-  border-radius: 10px;
+  border-radius: 12px;
   border: 1px solid var(--border);
-  background: #fff;
+  background: var(--bg-card);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 table { width: 100%; border-collapse: collapse; }
-thead tr { background: #FAFAFA; border-bottom: 1px solid var(--border); }
+thead tr { background: #F8FAFC; border-bottom: 1px solid var(--border); }
 thead th {
-  padding: 12px 18px;
+  padding: 14px 18px;
   text-align: left;
-  font-size: 12.5px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.08em;
+  font-size: 12px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.06em;
   color: var(--text-muted);
 }
-tbody tr { border-bottom: 1px solid #f3f4f6; transition: background 0.1s; }
-tbody tr:hover { background: #FAFAFA; }
-tbody td { padding: 14px 18px; font-size: 14.5px; color: var(--text-secondary); }
+tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; height: 56px; }
+tbody tr:hover { background: var(--bg-row-hover); }
+tbody td { padding: 0 18px; font-size: 13px; color: var(--text-secondary); }
 tbody tr:last-child { border-bottom: none; }
 
 /* ─────────────────────────────────────────────────────────
-   SIDEBAR — TELECRM STYLE
+   SIDEBAR
 ───────────────────────────────────────────────────────── */
 .sidebar {
   width: 100%;
   height: 100%;
   background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
   display: flex; flex-direction: column;
-  transition: all 0.28s cubic-bezier(0.4,0,0.2,1);
+  transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .sidebar-link {
-  display: flex; align-items: center; gap: 10px;
-  padding: 11px 14px; border-radius: 8px;
-  font-size: 14.5px; font-weight: 500;
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border-radius: 8px;
+  font-size: 14px; font-weight: 500;
   color: var(--sidebar-text);
   text-decoration: none;
   transition: all 0.15s;
-  margin: 1px 8px;
+  margin: 2px 8px;
 }
-.sidebar-link:hover   { background: var(--sidebar-hover); color: #fff; }
-.sidebar-link.active  { background: var(--sidebar-active); color: #fff; font-weight: 600; }
+.sidebar-link:hover   { background: var(--sidebar-hover); color: var(--brand); }
+.sidebar-link.active  { background: var(--sidebar-active); color: var(--sidebar-active-text); font-weight: 600; }
 
 /* ─────────────────────────────────────────────────────────
    KANBAN
 ───────────────────────────────────────────────────────── */
 .kanban-column {
   min-width: 272px;
-  background: #F8F9FC;
+  background: var(--bg-page);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
   display: flex; flex-direction: column;
   max-height: calc(100vh - 200px);
 }
 .kanban-card {
-  background: #fff; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
   padding: 12px; margin: 5px 8px;
   cursor: grab; transition: all 0.15s;
 }
-.kanban-card:hover { border-color: var(--brand-light); box-shadow: 0 4px 12px rgba(124,58,237,0.1); transform: translateY(-2px); }
+.kanban-card:hover { border-color: var(--brand-light); box-shadow: 0 4px 12px rgba(108, 92, 231, 0.1); transform: translateY(-2px); }
 .kanban-card:active { cursor: grabbing; }
 
 /* ─────────────────────────────────────────────────────────
    GLASS (modals / overlays only)
 ───────────────────────────────────────────────────────── */
 .glass-card {
-  background: rgba(255,255,255,0.92);
+  background: rgba(255,255,255,0.95);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255,255,255,0.6);
   border-radius: 14px;
@@ -290,6 +312,6 @@ tbody tr:last-child { border-bottom: none; }
 
 @media (max-width: 640px) {
   .kanban-column { min-width: 240px; }
-  tbody td { padding: 10px 12px; font-size: 13px; }
-  thead th { padding: 10px 12px; }
+  tbody td { padding: 0 12px; font-size: 12px; }
+  thead th { padding: 12px 12px; }
 }

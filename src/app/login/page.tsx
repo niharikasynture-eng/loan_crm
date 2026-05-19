@@ -6,21 +6,21 @@ import { useAuth } from '@/context/AuthContext';
 import { Eye, EyeOff, BarChart2, Users, TrendingUp, CheckSquare, ChevronDown, Check } from 'lucide-react';
 
 const ROLE_OPTIONS = [
-  { value: 'super_admin',  label: 'Super Admin',  desc: 'Full platform control', color: '#7c3aed' },
-  { value: 'org_admin',   label: 'Org Admin',     desc: 'Manage your organization', color: '#1a73e8' },
-  { value: 'manager',     label: 'Manager',        desc: 'Team & pipeline oversight', color: '#0f9d58' },
-  { value: 'sales_agent', label: 'Sales Person',   desc: 'Leads & deals access', color: '#f29900' },
+  { value: 'super_admin', label: 'Super Admin', desc: 'Full platform control', color: '#7c3aed' },
+  { value: 'org_admin', label: 'Org Admin', desc: 'Manage your organization', color: '#1a73e8' },
+  { value: 'manager', label: 'Manager', desc: 'Team & pipeline oversight', color: '#0f9d58' },
+  { value: 'sales_agent', label: 'Sales Person', desc: 'Leads & deals access', color: '#f29900' },
   { value: 'onsite_visitor', label: 'Onsite Visitor', desc: 'Assigned leads view only', color: '#0ea5e9' },
 ];
 
 export default function LoginPage() {
-  const [email, setEmail]               = useState('');
-  const [password, setPassword]         = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [selectedRole, setSelectedRole] = useState('org_admin');
   const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
-  const [error, setError]               = useState('');
-  const [isLoading, setIsLoading]       = useState(false);
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -70,16 +70,11 @@ export default function LoginPage() {
       >
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-          <div style={{
-            width: 30, height: 30,
-            background: 'linear-gradient(135deg, #1a73e8, #4285f4)',
-            borderRadius: 8,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <BarChart2 size={15} color="#fff" />
+          <div style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <img src="/R-life.png" alt="R-Life Logo" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }} />
           </div>
           <span style={{ fontSize: 17, fontWeight: 800, color: '#1a202c', letterSpacing: '-0.5px' }}>
-            DealByte CRM
+            R-Life CRM
           </span>
         </div>
 
@@ -281,7 +276,7 @@ export default function LoginPage() {
         </form>
 
         <p style={{ marginTop: 16, fontSize: 13, color: '#718096', textAlign: 'center' }}>
-          New to DealByte CRM?{' '}
+          New to R-Life CRM?{' '}
           <Link href="/register" style={{ color: '#1a73e8', fontWeight: 600, textDecoration: 'none' }}>
             Create an organization
           </Link>
@@ -329,10 +324,10 @@ export default function LoginPage() {
           {/* Feature Highlights */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {[
-              { icon: <Users size={18} />,       text: 'Manage leads and customers in one place' },
-              { icon: <TrendingUp size={18} />,  text: 'Track your pipeline and close more deals' },
+              { icon: <Users size={18} />, text: 'Manage leads and customers in one place' },
+              { icon: <TrendingUp size={18} />, text: 'Track your pipeline and close more deals' },
               { icon: <CheckSquare size={18} />, text: 'Assign tasks and monitor team performance' },
-              { icon: <BarChart2 size={18} />,   text: 'Get real-time reports and analytics' },
+              { icon: <BarChart2 size={18} />, text: 'Get real-time reports and analytics' },
             ].map((item, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                 <div style={{
@@ -365,7 +360,7 @@ export default function LoginPage() {
                   borderRadius: 8, padding: '10px 12px',
                 }}>
                   <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginBottom: 4 }}>{label}</div>
-                  <div style={{ height: 8, background: 'rgba(255,255,255,0.25)', borderRadius: 4, width: ['80%','60%','45%'][i] }} />
+                  <div style={{ height: 8, background: 'rgba(255,255,255,0.25)', borderRadius: 4, width: ['80%', '60%', '45%'][i] }} />
                 </div>
               ))}
             </div>

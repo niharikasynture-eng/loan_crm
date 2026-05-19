@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
             <div style="margin-bottom: 24px; white-space: pre-wrap;">${message}</div>
             <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
             <p style="font-size: 12px; color: #94a3b8;">
-              Sent via ${process.env.NEXT_PUBLIC_APP_NAME || 'DealByte CRM'}
+              Sent via ${process.env.NEXT_PUBLIC_APP_NAME || 'R-Life CRM'}
             </p>
           </div>
         `

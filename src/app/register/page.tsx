@@ -54,7 +54,7 @@ export default function RegisterPage() {
                 <li>Our team will review your application</li>
                 <li>You'll receive an email at <strong>{form.adminEmail}</strong></li>
                 <li>Click the link to set your password</li>
-                <li>Login and start using DealByte CRM!</li>
+                <li>Login and start using R-Life CRM!</li>
               </ol>
             </div>
             <p style={{ fontSize: 12, color: '#a0aec0' }}>This usually takes a few hours. Check your spam folder too.</p>
@@ -84,15 +84,15 @@ export default function RegisterPage() {
       }}>
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 40 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 9, background: 'linear-gradient(135deg, #1a73e8, #4285f4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <BarChart2 size={18} color="#fff" />
+          <div style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <img src="/R-life.png" alt="R-Life Logo" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 9 }} />
           </div>
-          <span style={{ fontSize: 20, fontWeight: 800, color: '#1a202c', letterSpacing: '-0.5px' }}>DealByte CRM</span>
+          <span style={{ fontSize: 20, fontWeight: 800, color: '#1a202c', letterSpacing: '-0.5px' }}>R-Life CRM</span>
         </div>
 
         <h1 style={{ fontSize: 26, fontWeight: 700, color: '#1a202c', marginBottom: 6 }}>Register your organization</h1>
         <p style={{ fontSize: 14, color: '#718096', marginBottom: 28 }}>
-          Submit a request to join DealByte CRM — approved by our team.
+          Submit a request to join R-Life CRM — approved by our team.
         </p>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>

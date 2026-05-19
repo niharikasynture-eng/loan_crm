@@ -81,16 +81,44 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      // Find Lead by Matching Last 10 Digits
-      const leads = await Lead.find({ organizationId: user.organizationId });
-      let lead = leads.find(l => {
+      // Android Doze mode can delay Automate syncs by 10-30 minutes. Use a wide window.
+      const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+
+      // Find Leads by Matching Last 10 Digits
+      const allLeads = await Lead.find({ organizationId: user.organizationId });
+      const matchingLeads = allLeads.filter(l => {
         if (!l.phone) return false;
         const normalizedLead = l.phone.replace(/\D/g, '');
         return normalizedLead.endsWith(normalizedIncoming.slice(-10)) || 
                normalizedIncoming.endsWith(normalizedLead.slice(-10));
       });
 
-      if (!lead) {
+      let lead = null;
+
+      if (matchingLeads.length > 0) {
+        // SMART LEAD DISAMBIGUATION
+        // If multiple leads share a phone number, pick the one the user just called
+        for (const mLead of matchingLeads) {
+          const recentLog = await CallLog.findOne({
+            leadId: mLead._id,
+            salesPersonId: user._id,
+            createdAt: { $gte: thirtyMinutesAgo },
+            $or: [
+              { syncId: 'BROWSER_TIMER' },
+              { status: 'initiated' }
+            ]
+          });
+          if (recentLog) {
+            lead = mLead;
+            console.log(`[SYNC] Disambiguated lead based on recent call: ${lead.name}`);
+            break;
+          }
+        }
+        
+        if (!lead) {
+          lead = matchingLeads[0];
+        }
+      } else {
         // PREDICTIVE MATCHING (Fix for Samsung bug)
         const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
         const pendingCall = await CallLog.findOne({
@@ -128,8 +156,6 @@ export async function POST(req: NextRequest) {
       }
 
       // ────── SMART CORRECTION (Overwrite Browser Timer if Smart Method was used) ──────
-      // Android Doze mode can delay Automate syncs by 10-30 minutes. Use a wide window.
-      const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
 
       // Find existing browser-placeholder Activity (any BROWSER_TIMER within 30 min for this lead+user)
       const activityToUpdate = await Activity.findOne({

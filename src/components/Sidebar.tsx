@@ -122,7 +122,7 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
           </div>
           {!isCollapsed && (
             <div className="min-w-0 animate-fade-in">
-              <p className="text-sm font-bold text-gray-900 tracking-tight uppercase leading-none">DealByte CRM</p>
+              <p className="text-sm font-bold text-gray-900 tracking-tight uppercase leading-none">R-Life CRM</p>
               <p className="text-[10px] font-medium text-gray-400 mt-1 truncate">
                 {isSuperAdmin ? 'Platform Admin' : (organization?.name || 'Synture Solutions')}
               </p>

@@ -252,27 +252,29 @@ export default function LeadsPage() {
   };
 
   return (
-    <div className="max-w-[1280px] mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
       <PageHeader 
         title="Lead Intelligence" 
         subtitle="Global view of all inbound and qualified opportunities"
       />
 
-      <LeadFilters 
-        search={search}
-        onSearchChange={setSearch}
-        onSearchSubmit={handleSearchSubmit}
-        selectedCount={selectedLeads.size}
-        bulkSelectCount={bulkSelectCount}
-        onBulkSelectChange={handleBulkSelectChange}
-        onBulkAssign={handleBulkAssign}
-        onImport={() => setIsImportOpen(true)}
-        onExport={handleExport}
-        onAddLead={() => router.push('/leads/new')}
-      />
+      {/* Filters Card */}
+      <div className="card">
+        <LeadFilters 
+          search={search}
+          onSearchChange={setSearch}
+          onSearchSubmit={handleSearchSubmit}
+          selectedCount={selectedLeads.size}
+          bulkSelectCount={bulkSelectCount}
+          onBulkSelectChange={handleBulkSelectChange}
+          onBulkAssign={handleBulkAssign}
+          onImport={() => setIsImportOpen(true)}
+          onExport={handleExport}
+          onAddLead={() => router.push('/leads/new')}
+        />
+      </div>
 
-      <div className="h-10" /> {/* Spacer added for visual separation */}
-
+      {/* Leads Table */}
       <LeadTable 
         leads={leads}
         loading={loading}
@@ -285,12 +287,12 @@ export default function LeadsPage() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between py-6">
+        <div className="flex items-center justify-between py-4">
           <Button variant="secondary" onClick={() => setPage(p => p - 1)} disabled={page === 1}>
             Previous
           </Button>
-          <span className="text-xs font-black uppercase tracking-widest text-gray-400">
-            Page <span className="text-gray-900">{page}</span> of {totalPages}
+          <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500 }}>
+            Page <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{page}</span> of {totalPages}
           </span>
           <Button variant="secondary" onClick={() => setPage(p => p + 1)} disabled={page === totalPages}>
             Next

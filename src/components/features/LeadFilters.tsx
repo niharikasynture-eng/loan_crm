@@ -46,7 +46,7 @@ export function LeadFilters({
   ];
 
   return (
-    <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 pb-2">
+    <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
       {/* Search Bar */}
       <div className="flex-1 max-w-xl">
         <form onSubmit={onSearchSubmit}>
@@ -55,7 +55,7 @@ export function LeadFilters({
             placeholder="Filter by name or company..."
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="h-11 shadow-sm"
+            className="h-10 shadow-sm"
           />
         </form>
       </div>
@@ -78,16 +78,17 @@ export function LeadFilters({
                   { label: 'Select', value: 0 },
                   ...[10, 20, 30, 40, 50].map(n => ({ label: `${n}`, value: n }))
                 ]}
-                className="h-11 shadow-sm"
+                className="h-10 shadow-sm"
               />
             </div>
             {selectedCount > 0 && (
               <Button
                 onClick={onBulkAssign}
-                className="h-11 px-5 bg-brand-600 hover:bg-brand-700 shadow-sm animate-in fade-in slide-in-from-left-2 duration-300"
+                className="h-10 px-5 shadow-sm animate-in fade-in slide-in-from-left-2 duration-300"
+                style={{ fontSize: '14px' }}
               >
                 <UserCheck size={16} />
-                <span className="ml-2 font-bold">Assign {selectedCount}</span>
+                <span className="ml-2 font-semibold">Assign {selectedCount}</span>
               </Button>
             )}
           </div>
@@ -97,23 +98,23 @@ export function LeadFilters({
         <div className="flex items-center gap-2">
           {canImportExport && (
             <>
-              <Button variant="secondary" onClick={onImport} className="h-11 px-4 sm:px-8">
+              <Button variant="secondary" onClick={onImport} className="h-10 px-4 sm:px-6">
                 <Upload size={15} /> <span className="ml-2">Import</span>
               </Button>
-              <Button variant="secondary" onClick={onExport} className="h-11 px-4 sm:px-8">
+              <Button variant="secondary" onClick={onExport} className="h-10 px-4 sm:px-6">
                 <Download size={15} /> <span className="ml-2">Export</span>
               </Button>
             </>
           )}
 
           {canAddLead && (
-            <Button onClick={onAddLead} className="h-11 px-3 shadow-md shrink-0 relative flex items-center justify-center min-w-[100px]">
+            <Button onClick={onAddLead} className="h-10 px-4 shrink-0 relative flex items-center justify-center min-w-[100px]">
               <span>Add Lead</span>
               <Plus size={14} strokeWidth={2.5} className="absolute right-2.5" />
             </Button>
           )}
         </div>
       </div>
-    </div >
+    </div>
   );
 }

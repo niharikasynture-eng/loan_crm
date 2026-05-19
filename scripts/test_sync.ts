@@ -8,7 +8,7 @@ async function testSync() {
   await connectDB();
   
   // Find Mayur
-  const user = await User.findOne({ email: 'sales@dealbyte.com' }); // or find by name Mayur Shinde
+  const user = await User.findOne({ email: 'sales@r-life.com' }); // or find by name Mayur Shinde
   if (!user) {
     console.log('User not found');
     return;

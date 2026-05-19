@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Bell, Clock, CheckCircle2, MessageSquare, UserPlus, Zap } from 'lucide-react';
+import { Bell, UserPlus, MessageSquare, CheckCheck } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/useToast';
 import { api } from '@/lib/api-client';
@@ -18,45 +18,52 @@ interface Notification {
   createdAt: string;
 }
 
+function timeAgo(date: string) {
+  const diff = Date.now() - new Date(date).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return new Date(date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
 export default function NotificationCenter() {
-  const { token, user } = useAuth();
+  const { token } = useAuth();
   const { showToast } = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [isBlinking, setIsBlinking] = useState(false);
-  
+  const [hasNew, setHasNew] = useState(false);
+
   const prevUnreadCount = useRef(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const loadNotifications = useCallback(async (isInitial = false) => {
     if (!token) return;
     try {
-      const data = await api.get<{ notifications: Notification[], unreadCount: number }>('/notifications?limit=10');
+      const data = await api.get<{ notifications: Notification[]; unreadCount: number }>('/notifications?limit=10');
       const newNotifs = data.notifications || [];
       const newCount = data.unreadCount || 0;
 
-      // Trigger Toast for new notifications
       if (!isInitial && newCount > prevUnreadCount.current) {
         const latest = newNotifs.find(n => !n.read);
         if (latest) {
           const isLead = latest.type === 'new_lead' || latest.type === 'lead_assigned';
           showToast(
-            latest.type === 'lead_assigned' ? `A manager has assigned a new lead to you: "${latest.message.split(': "')[1]?.replace('"', '') || 'New Lead'}"` : latest.message, 
-            isLead ? 'success' : 'info', 
+            latest.type === 'lead_assigned'
+              ? `A manager has assigned a new lead to you: "${latest.message.split(': "')[1]?.replace('"', '') || 'New Lead'}"`
+              : latest.message,
+            isLead ? 'success' : 'info',
             isLead ? '🚀 Lead Assigned' : latest.title
           );
         }
+        setHasNew(true);
       }
 
       setNotifications(newNotifs);
       setUnreadCount(newCount);
-      
-      if (!isInitial && newCount > prevUnreadCount.current) {
-        setIsBlinking(true);
-      }
-      
       prevUnreadCount.current = newCount;
     } catch (err) {
       if (api.isNetworkError(err)) {
@@ -69,32 +76,24 @@ export default function NotificationCenter() {
 
   useEffect(() => {
     loadNotifications(true);
-    const interval = setInterval(() => loadNotifications(), 10000); // Poll every 10s for immediate feedback
+    const interval = setInterval(() => loadNotifications(), 10000);
     return () => clearInterval(interval);
   }, [loadNotifications]);
-  
-  // Stop blinking after 8 seconds
+
+  // Stop new indicator after opening
   useEffect(() => {
-    if (isBlinking) {
-      const timer = setTimeout(() => setIsBlinking(false), 8000);
-      return () => clearTimeout(timer);
-    }
-  }, [isBlinking]);
-  
-  // Open panel stops blinking
-  useEffect(() => {
-    if (isOpen) setIsBlinking(false);
+    if (isOpen) setHasNew(false);
   }, [isOpen]);
 
-  // Handle click outside to close
+  // Click outside
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setIsOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, []);
 
   const markAllRead = async () => {
@@ -120,104 +119,220 @@ export default function NotificationCenter() {
     } catch (err) {}
   };
 
+  const hasUnread = unreadCount > 0;
+
   return (
     <div className="relative" ref={dropdownRef}>
-      {/* Clean Bell Trigger */}
-      <button 
+      {/* Bell Button */}
+      <button
         onClick={() => setIsOpen(!isOpen)}
-        className={cn(
-          "relative p-2 rounded-lg transition-all duration-200",
-          isOpen ? "text-blue-600 bg-blue-50 shadow-sm" : "text-gray-400 hover:text-blue-600 hover:bg-blue-50 active:scale-95"
-        )}
+        className="relative w-9 h-9 flex items-center justify-center rounded-xl transition-all duration-200 active:scale-95"
+        style={{
+          background: isOpen
+            ? 'var(--brand-soft)'
+            : hasUnread
+            ? 'rgba(108,92,231,0.08)'
+            : 'transparent',
+          color: isOpen || hasUnread ? 'var(--brand)' : 'var(--text-muted)',
+        }}
+        onMouseEnter={e => {
+          if (!isOpen) (e.currentTarget as HTMLElement).style.background = 'var(--brand-soft)';
+          (e.currentTarget as HTMLElement).style.color = 'var(--brand)';
+        }}
+        onMouseLeave={e => {
+          if (!isOpen) {
+            (e.currentTarget as HTMLElement).style.background = hasUnread ? 'rgba(108,92,231,0.08)' : 'transparent';
+            (e.currentTarget as HTMLElement).style.color = isOpen || hasUnread ? 'var(--brand)' : 'var(--text-muted)';
+          }
+        }}
       >
-        <Bell 
-          size={20} 
-          strokeWidth={2.2} 
-          className={cn(isBlinking ? "animate-bounce" : "")}
-          style={isBlinking ? { animationDuration: '1.2s' } : {}}
+        {/* Outer glow ring when new notifications */}
+        {hasNew && (
+          <span
+            className="absolute inset-0 rounded-xl animate-ping"
+            style={{ background: 'rgba(108,92,231,0.2)' }}
+          />
+        )}
+
+        <Bell
+          size={18}
+          strokeWidth={hasUnread ? 2.4 : 2}
+          className={cn(hasNew ? 'animate-[wiggle_0.6s_ease-in-out_3]' : '')}
         />
-        {unreadCount > 0 && (
-          <span className={cn(
-            "absolute top-1 right-1 w-4 h-4 bg-blue-600 text-white text-[9px] font-bold flex items-center justify-center rounded-full border border-white shadow-sm transition-transform",
-            isBlinking ? "animate-pulse-blink scale-110" : ""
-          )}>
+
+        {/* Badge */}
+        {hasUnread && (
+          <span
+            className={cn(
+              'absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full text-white border-2 border-white font-bold',
+              hasNew ? 'animate-bounce' : ''
+            )}
+            style={{
+              fontSize: '10px',
+              background: 'linear-gradient(135deg, #6C5CE7, #a29bfe)',
+              boxShadow: '0 2px 8px rgba(108,92,231,0.5)',
+            }}
+          >
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
 
-      {/* Minimalist Square Panel */}
+      {/* Dropdown Panel */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 md:w-96 bg-white rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] border border-gray-100 z-50 overflow-hidden animate-in fade-in zoom-in duration-200 origin-top-right">
-          {/* Simple Header */}
-          <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between bg-white">
-            <div className="flex items-center gap-3">
-              <h3 className="text-[13px] font-bold text-gray-900 uppercase tracking-wider">Notifications</h3>
-              {unreadCount > 0 && (
-                <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-full">
-                  {unreadCount} New
+        <div
+          className="absolute right-0 mt-2 w-80 md:w-[360px] rounded-2xl z-50 overflow-hidden animate-slide-down"
+          style={{
+            background: '#fff',
+            border: '1px solid var(--border)',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.12)',
+          }}
+        >
+          {/* Header */}
+          <div
+            className="px-5 py-4 flex items-center justify-between"
+            style={{ borderBottom: '1px solid var(--border)' }}
+          >
+            <div className="flex items-center gap-2.5">
+              <div
+                className="w-7 h-7 rounded-lg flex items-center justify-center"
+                style={{ background: 'var(--brand-soft)' }}
+              >
+                <Bell size={14} style={{ color: 'var(--brand)' }} />
+              </div>
+              <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                Notifications
+              </span>
+              {hasUnread && (
+                <span
+                  className="px-2 py-0.5 rounded-full font-bold"
+                  style={{ fontSize: '11px', background: 'var(--brand-soft)', color: 'var(--brand)' }}
+                >
+                  {unreadCount} new
                 </span>
               )}
             </div>
-            {unreadCount > 0 && (
-              <button 
+            {hasUnread && (
+              <button
                 onClick={markAllRead}
                 disabled={loading}
-                className="text-[10px] font-bold text-gray-400 hover:text-blue-600 transition-colors uppercase tracking-widest"
+                className="flex items-center gap-1.5 transition-colors"
+                style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)' }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'var(--brand)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
               >
-                Clear All
+                <CheckCheck size={13} />
+                Mark all read
               </button>
             )}
           </div>
 
-          {/* Activity List */}
-          <div className="max-h-[380px] overflow-y-auto custom-scrollbar">
+          {/* Notification List */}
+          <div className="max-h-[360px] overflow-y-auto">
             {notifications.length === 0 ? (
-              <div className="py-12 text-center flex flex-col items-center">
-                <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center text-gray-200 mb-3">
-                  <Bell size={24} />
+              <div className="py-12 flex flex-col items-center gap-3">
+                <div
+                  className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                  style={{ background: 'var(--bg-page)' }}
+                >
+                  <Bell size={22} style={{ color: 'var(--text-disabled)' }} />
                 </div>
-                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">No activities</p>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500 }}>
+                  You're all caught up!
+                </p>
               </div>
             ) : (
-              notifications.map((n) => (
-                <Link 
+              notifications.map((n, idx) => (
+                <Link
                   key={n._id}
                   href={n.link || '#'}
                   onClick={() => { markAsRead(n._id); setIsOpen(false); }}
-                  className={`flex items-start gap-4 p-5 transition-all border-b border-gray-50 hover:bg-gray-50/50 ${!n.read ? 'bg-blue-50/30' : ''}`}
+                  className="flex items-start gap-3 px-5 py-3.5 transition-colors"
+                  style={{
+                    borderBottom: idx < notifications.length - 1 ? '1px solid var(--border)' : 'none',
+                    background: !n.read ? 'rgba(108,92,231,0.03)' : 'transparent',
+                    textDecoration: 'none',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-row-hover)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = !n.read ? 'rgba(108,92,231,0.03)' : 'transparent')}
                 >
-                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${!n.read ? 'bg-blue-600 text-white shadow-md shadow-blue-100' : 'bg-gray-100 text-gray-400'}`}>
-                    {n.type === 'new_lead' || n.type === 'lead_assigned' ? <UserPlus size={16} /> : <MessageSquare size={16} />}
+                  {/* Icon */}
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
+                    style={{
+                      background: !n.read ? 'var(--brand-soft)' : 'var(--bg-page)',
+                      color: !n.read ? 'var(--brand)' : 'var(--text-disabled)',
+                    }}
+                  >
+                    {n.type === 'new_lead' || n.type === 'lead_assigned'
+                      ? <UserPlus size={14} />
+                      : <MessageSquare size={14} />
+                    }
                   </div>
+
+                  {/* Content */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className={`text-[12px] font-bold truncate ${!n.read ? 'text-gray-900' : 'text-gray-500'}`}>
+                    <div className="flex items-center justify-between gap-2 mb-0.5">
+                      <span
+                        className="truncate"
+                        style={{
+                          fontSize: '13px',
+                          fontWeight: !n.read ? 600 : 400,
+                          color: !n.read ? 'var(--text-primary)' : 'var(--text-muted)',
+                        }}
+                      >
                         {n.title}
                       </span>
-                      <span className="text-[9px] font-bold text-gray-300 whitespace-nowrap uppercase">
-                        {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      <span style={{ fontSize: '11px', color: 'var(--text-disabled)', whiteSpace: 'nowrap' }}>
+                        {timeAgo(n.createdAt)}
                       </span>
                     </div>
-                    <p className={`text-[11px] leading-relaxed ${!n.read ? 'text-gray-600 font-medium' : 'text-gray-400 font-normal'} line-clamp-2`}>
+                    <p
+                      className="line-clamp-2"
+                      style={{
+                        fontSize: '12px',
+                        color: !n.read ? 'var(--text-secondary)' : 'var(--text-muted)',
+                        lineHeight: 1.5,
+                      }}
+                    >
                       {n.message}
                     </p>
                   </div>
+
+                  {/* Unread dot */}
                   {!n.read && (
-                    <div className="w-1.5 h-1.5 rounded-full bg-blue-600 mt-2 flex-shrink-0" />
+                    <div
+                      className="w-2 h-2 rounded-full shrink-0 mt-2"
+                      style={{ background: 'var(--brand)' }}
+                    />
                   )}
                 </Link>
               ))
             )}
           </div>
 
-          {/* Footer View All */}
-          <Link 
-            href="/activities" 
-            className="block w-full py-3 text-center text-[10px] font-bold text-gray-400 hover:text-blue-600 hover:bg-gray-50 transition-all border-t border-gray-50 uppercase tracking-widest"
+          {/* Footer */}
+          <Link
+            href="/activities"
+            className="flex items-center justify-center gap-2 w-full py-3 transition-colors"
+            style={{
+              fontSize: '12px',
+              fontWeight: 500,
+              color: 'var(--text-muted)',
+              borderTop: '1px solid var(--border)',
+              textDecoration: 'none',
+            }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLElement).style.color = 'var(--brand)';
+              (e.currentTarget as HTMLElement).style.background = 'var(--bg-row-hover)';
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)';
+              (e.currentTarget as HTMLElement).style.background = 'transparent';
+            }}
             onClick={() => setIsOpen(false)}
           >
-            History Preview
+            View all activity
           </Link>
         </div>
       )}

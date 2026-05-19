@@ -57,21 +57,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     : [
         { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
         { label: 'Leads',     href: '/leads',     icon: Users },
-        { label: 'Timeline',  href: '/activities', icon: Activity },
         { label: 'Calls',     href: '/calls',     icon: Phone },
         { label: 'Tasks',     href: '/tasks',     icon: CheckSquare },
         { label: 'Pipeline',  href: '/deals',     icon: TrendingUp },
-        ...(isAdmin ? [{ label: 'Reports', href: '/reports', icon: BarChart2 }] : []),
+        ...(isAdmin ? [{ label: 'Reports', href: '/reports', icon: BarChart2, dividerBefore: true }] : []),
         ...(isAdmin ? [{ label: 'Team',    href: '/users',   icon: UserCog }] : []),
-        { label: 'Settings',  href: '/settings',  icon: Settings },
+        { label: 'Settings',  href: '/settings',  icon: Settings, dividerBefore: true },
       ];
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg-page)' }}>
+    <div className="flex h-screen overflow-hidden p-0 lg:p-4 lg:gap-4" style={{ background: '#F1F5F9' }}>
       <ReminderChecker />
 
       {/* ── Desktop sidebar ── */}
-      <div className="hidden lg:block shrink-0" style={{ zIndex: 20 }}>
+      <div className="hidden lg:block shrink-0 h-full shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-slate-200/60 overflow-hidden" style={{ zIndex: 20 }}>
         <Sidebar
           items={navItems}
           isCollapsed={collapsed}
@@ -82,8 +81,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* ── Mobile overlay ── */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-40 lg:hidden"
-          style={{ background: 'rgba(0,0,0,0.45)' }}
+          className="fixed inset-0 z-40 lg:hidden backdrop-blur-sm transition-opacity"
+          style={{ background: 'rgba(15,23,42,0.4)' }}
           onClick={() => setMobileOpen(false)}
         />
       )}
@@ -91,19 +90,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* ── Mobile sidebar ── */}
       <div
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-60 lg:hidden transition-transform duration-300',
+          'fixed inset-y-0 left-0 z-50 w-[220px] lg:hidden transition-transform duration-300',
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
         <Sidebar items={navItems} isCollapsed={false} onToggle={() => setMobileOpen(false)} />
       </div>
 
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden h-full lg:shadow-[0_4px_20px_rgba(0,0,0,0.04)] lg:border border-slate-200/60" style={{ background: 'var(--bg-page)' }}>
         {/* Responsive Header */}
         <Topbar onMenuClick={() => setMobileOpen(true)} />
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-6 md:p-10 lg:px-20 lg:py-14">
+        <main className="flex-1 overflow-y-auto py-8 px-8 lg:px-16 xl:px-24">
           <div className="max-w-[1600px] mx-auto">
             {children}
           </div>

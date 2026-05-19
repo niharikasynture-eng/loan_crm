@@ -9,28 +9,28 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // TeleCRM-inspired Purple Brand
+        // Design System Primary — #6C5CE7
         brand: {
-          50:  '#f3f1ff',
-          100: '#ede9fe',
-          200: '#ddd6fe',
-          300: '#c4b5fd',
-          400: '#a78bfa',
-          500: '#7c3aed',
-          600: '#6d28d9',
-          700: '#5b21b6',
-          800: '#4c1d95',
-          900: '#3b0764',
-          950: '#2e1065',
+          50:  '#f0eeff',
+          100: '#e5e0ff',
+          200: '#cdc5ff',
+          300: '#a99bf7',
+          400: '#8b79f0',
+          500: '#6C5CE7',
+          600: '#5849c2',
+          700: '#4739a0',
+          800: '#382e80',
+          900: '#2a2263',
+          950: '#1a1540',
         },
-        // Sidebar accent color
+        // Sidebar — light theme
         sidebar: {
-          DEFAULT: '#2D1B69',
-          hover:   '#3D2B85',
-          active:  '#4C35A0',
-          text:    '#BDB5D4',
-          muted:   '#7B6FA0',
-          border:  'rgba(255,255,255,0.08)',
+          DEFAULT: '#FFFFFF',
+          hover:   'rgba(108,92,231,0.06)',
+          active:  'rgba(108,92,231,0.10)',
+          text:    '#64748B',
+          muted:   '#94A3B8',
+          border:  '#E2E8F0',
         },
         // Content area
         surface: {
@@ -85,10 +85,10 @@ const config: Config = {
         '2xl': '16px',
       },
       boxShadow: {
-        card:  '0 1px 3px 0 rgba(0,0,0,0.06), 0 1px 2px -1px rgba(0,0,0,0.04)',
-        'card-hover': '0 4px 12px 0 rgba(0,0,0,0.08)',
+        card:  '0 4px 12px rgba(0,0,0,0.06)',
+        'card-hover': '0 6px 20px rgba(0,0,0,0.08)',
         modal: '0 20px 40px rgba(0,0,0,0.12)',
-        input: '0 0 0 3px rgba(124,58,237,0.12)',
+        input: '0 0 0 3px rgba(108,92,231,0.12)',
       },
     },
   },

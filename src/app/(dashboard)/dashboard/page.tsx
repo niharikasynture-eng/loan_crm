@@ -47,73 +47,74 @@ export default function DashboardPage() {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] gap-3">
         <div
-          className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin"
+          className="w-7 h-7 rounded-full border-2 border-t-transparent animate-spin"
           style={{ borderColor: 'var(--brand-light)', borderTopColor: 'var(--brand)' }}
         />
-        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Loading dashboard...</p>
+        <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Loading dashboard...</p>
       </div>
     );
   }
 
   return (
-    <div className="animate-fade-in pb-10">
+    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <PageHeader
         title="Dashboard"
         subtitle={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
       />
 
-      <div className="h-8" /> {/* Gap after header */}
-
-      {/* Lead Capture Banner */}
+      {/* Lead Capture Banner — compact */}
       {(user?.role === 'org_admin' || user?.role === 'manager') && (
-        <>
-          <div
-            className="rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5"
-            style={{ background: 'var(--brand-soft)', borderColor: 'rgba(124,58,237,0.15)' }}
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                style={{ background: 'var(--brand)', color: '#fff' }}
-              >
-                <Link2 size={17} />
-              </div>
-              <div>
-                <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                  Public Lead Form
-                </p>
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                  Share this link to automatically capture new leads
-                </p>
-              </div>
-            </div>
+        <div
+          className="rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3"
+          style={{ background: 'var(--brand-soft)', borderColor: 'rgba(108,92,231,0.15)' }}
+        >
+          <div className="flex items-center gap-2.5">
             <div
-              className="flex items-center gap-2 bg-white rounded-lg border p-1 shrink-0"
-              style={{ borderColor: 'var(--border)' }}
+              className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+              style={{ background: 'var(--brand)', color: '#fff' }}
             >
-              <span
-                className="px-3 text-[12px] font-mono truncate max-w-[220px]"
-                style={{ color: 'var(--brand)' }}
-              >
-                {publicLeadUrl}
-              </span>
-              <button
-                onClick={copyLink}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold text-white transition-all shrink-0"
-                style={{ background: copied ? 'var(--success)' : 'var(--brand)' }}
-              >
-                {copied ? <CheckCircle size={13} /> : <Copy size={13} />}
-                {copied ? 'Copied' : 'Copy'}
-              </button>
+              <Link2 size={15} />
+            </div>
+            <div>
+              <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                Public Lead Form
+              </p>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                Share this link to capture new leads automatically
+              </p>
             </div>
           </div>
-          
-          <div className="h-4" /> {/* Minimal gap between banner and stats */}
-        </>
+          <div
+            className="flex items-center gap-3 bg-white rounded-lg border p-1.5 shrink-0"
+            style={{ borderColor: 'var(--border)' }}
+          >
+            <span
+              className="px-2 font-mono truncate max-w-[150px] sm:max-w-[250px] md:max-w-[350px]"
+              style={{ fontSize: '12px', color: 'var(--text-muted)' }}
+            >
+              {publicLeadUrl}
+            </span>
+            <button
+              onClick={copyLink}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md font-bold text-white transition-all shrink-0 shadow-sm"
+              style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em', background: copied ? 'var(--success)' : 'var(--brand)' }}
+            >
+              {copied ? <CheckCircle size={14} /> : <Copy size={14} />}
+              {copied ? 'Copied' : 'Copy'}
+            </button>
+          </div>
+        </div>
       )}
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* KPI Stats Grid — fully responsive */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: '16px',
+        }}
+        className="sm:grid-cols-2 lg:grid-cols-4"
+      >
         <MetricCard
           label="Total Leads"
           value={metrics?.totalLeads ?? 0}
@@ -148,20 +149,15 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="h-6" /> {/* Minimal gap between stats and activity */}
-
-      {/* Bottom Split */}
-      <div className="grid grid-cols-1 gap-8">
-        {/* Activity Feed */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-              Recent Activity
-            </h2>
-            <Badge variant="info">LIVE</Badge>
-          </div>
-          <RecentActivityList activities={activities} />
+      {/* Recent Activity */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
+            Recent Activity
+          </h2>
+          <Badge variant="info">LIVE</Badge>
         </div>
+        <RecentActivityList activities={activities} />
       </div>
     </div>
   );

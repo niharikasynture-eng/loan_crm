@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
           organizationId: user.organizationId,
         },
       },
-      'Password set successfully. Welcome to DealByte CRM!'
+      'Password set successfully. Welcome to R-Life CRM!'
     );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Failed to set password';

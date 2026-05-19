@@ -83,7 +83,7 @@ export default function SetPasswordPage() {
           </div>
           <h1 className="text-2xl font-bold text-white">Set Your Password</h1>
           <p className="text-[#94a3b8] mt-1 text-sm">
-            Create a secure password for your DealByte CRM account
+            Create a secure password for your R-Life CRM account
           </p>
         </div>
 

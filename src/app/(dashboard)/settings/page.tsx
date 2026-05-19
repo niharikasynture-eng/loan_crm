@@ -7,35 +7,42 @@ import {
   User, Mail, Phone, Shield,
   Copy, Check, Smartphone, Camera
 } from 'lucide-react';
-import { styleText } from 'util';
 
-/* ---------- Small UI Primitives ---------- */
-
-const Field = ({ label, icon: Icon, children }: any) => (
-  <div className="space-y-2">
-    <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-      {label}
-    </label>
-    <div className="relative">
-      {children}
-      <Icon
-        size={17}
-        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300"
-      />
-    </div>
-  </div>
+const FieldLabel = ({ children }: { children: React.ReactNode }) => (
+  <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>
+    {children}
+  </label>
 );
 
-const Input = (props: any) => (
+const InputField = (props: any) => (
   <input
     {...props}
-    className="w-full h-12 rounded-xl border border-slate-200 bg-white px-4 pr-12
-    text-[14px] text-slate-700 outline-none transition
-    focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 shadow-sm"
+    style={{
+      width: '100%',
+      height: '38px',
+      borderRadius: '8px',
+      border: '1px solid var(--border-strong)',
+      background: props.readOnly ? 'var(--bg-page)' : '#FFFFFF',
+      padding: '0 12px',
+      fontSize: '13px',
+      color: props.readOnly ? 'var(--text-muted)' : 'var(--text-primary)',
+      outline: 'none',
+      fontFamily: 'inherit',
+      transition: 'border-color 0.15s, box-shadow 0.15s',
+      ...props.style,
+    }}
+    onFocus={e => {
+      if (!props.readOnly) {
+        e.target.style.borderColor = 'var(--brand)';
+        e.target.style.boxShadow = '0 0 0 3px rgba(108, 92, 231, 0.12)';
+      }
+    }}
+    onBlur={e => {
+      e.target.style.borderColor = 'var(--border-strong)';
+      e.target.style.boxShadow = 'none';
+    }}
   />
 );
-
-/* ---------- Page ---------- */
 
 export default function SettingsPage() {
   const { user, refreshUser, isAdmin } = useAuth();
@@ -62,8 +69,7 @@ export default function SettingsPage() {
 
   if (!user) return null;
 
-  const initials =
-    name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
+  const initials = name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
 
   const saveProfile = async () => {
     setSaving(true);
@@ -81,100 +87,150 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="bg-[#f6f8fc] min-h-screen px-6 py-10">
-      <div className="max-w-5xl mx-auto space-y-8">
+    <div style={{ maxWidth: '720px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
-        {/* ---------- Profile Banner ---------- */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-5">
+      {/* Page Title */}
+      <div>
+        <h1 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '2px' }}>
+          Settings
+        </h1>
+        <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+          Manage your personal profile and integration settings
+        </p>
+      </div>
+
+      {/* Profile Banner */}
+      <div className="card" style={{ padding: '16px 20px' }}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="w-16 h-16 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-xl font-semibold">
+              <div
+                className="w-12 h-12 rounded-xl flex items-center justify-center text-base font-semibold text-white"
+                style={{ background: 'var(--brand)' }}
+              >
                 {initials}
               </div>
-              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white border flex items-center justify-center text-slate-400">
-                <Camera size={12} />
+              <div
+                className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full border flex items-center justify-center"
+                style={{ background: '#fff', borderColor: 'var(--border)', color: 'var(--text-muted)' }}
+              >
+                <Camera size={10} />
               </div>
             </div>
             <div>
-              <p className="text-[17px] font-semibold text-slate-800">{user.name}</p>
-              <p className="text-[13px] text-slate-400">{user.email}</p>
+              <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                {user.name}
+              </p>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                {user.email}
+              </p>
             </div>
           </div>
 
-          <div className={`px-3 py-1 rounded-lg text-[11px] font-semibold border
-            ${isAdmin
-              ? 'bg-red-50 text-red-500 border-red-100'
-              : 'bg-indigo-50 text-indigo-600 border-indigo-100'
-            }`}>
+          <span
+            className="px-2.5 py-1 rounded-lg"
+            style={{
+              fontSize: '11px',
+              fontWeight: 600,
+              background: isAdmin ? '#fef2f2' : 'var(--brand-soft)',
+              color: isAdmin ? 'var(--danger)' : 'var(--brand)',
+              border: `1px solid ${isAdmin ? 'rgba(239,68,68,0.15)' : 'rgba(108,92,231,0.15)'}`,
+            }}
+          >
             {user.role.replace('_', ' ')}
+          </span>
+        </div>
+      </div>
+
+      {/* Personal Info Card */}
+      <div className="card" style={{ padding: '20px' }}>
+        <h2 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
+          Personal Information
+        </h2>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px' }}>
+          <div>
+            <FieldLabel>Full Name</FieldLabel>
+            <div className="relative">
+              <InputField value={name} onChange={(e: any) => setName(e.target.value)} />
+              <User size={14} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-disabled)', pointerEvents: 'none' }} />
+            </div>
+          </div>
+
+          <div>
+            <FieldLabel>Email Address</FieldLabel>
+            <div className="relative">
+              <InputField type="email" value={email} onChange={(e: any) => setEmail(e.target.value)} />
+              <Mail size={14} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-disabled)', pointerEvents: 'none' }} />
+            </div>
+          </div>
+
+          <div>
+            <FieldLabel>Phone Number</FieldLabel>
+            <div className="relative">
+              <InputField value={phone} onChange={(e: any) => setPhone(e.target.value)} />
+              <Phone size={14} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-disabled)', pointerEvents: 'none' }} />
+            </div>
+          </div>
+
+          <div>
+            <FieldLabel>Authorization</FieldLabel>
+            <div className="relative">
+              <InputField value={user.role} readOnly />
+              <Shield size={14} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-disabled)', pointerEvents: 'none' }} />
+            </div>
           </div>
         </div>
 
-        {/* ---------- Personal Info Card ---------- */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
-          <h2 className="text-[15px] font-semibold text-slate-800 mb-6">
-            Personal Information
-          </h2>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            <Field label="Full Name" icon={User}>
-              <Input value={name} onChange={(e: any) => setName(e.target.value)} />
-            </Field>
-
-            <Field label="Email Address" icon={Mail}>
-              <Input type="email" value={email} onChange={(e: any) => setEmail(e.target.value)} />
-            </Field>
-
-            <Field label="Phone Number" icon={Phone}>
-              <Input value={phone} onChange={(e: any) => setPhone(e.target.value)} />
-            </Field>
-
-            <Field label="Authorization" icon={Shield}>
-              <Input value={user.role} readOnly className="bg-slate-50 text-slate-500" />
-            </Field>
-          </div>
-        </div>
-
-        {/* ---------- Android Sync Card ---------- */}
-        {syncUrl && (
-          <div className="bg-gradient-to-br from-indigo-50 to-white border border-indigo-100 rounded-2xl p-8 shadow-sm">
-            <div className="flex items-center gap-3 mb-5">
-              <Smartphone size={20} className="text-indigo-600" />
-              <div>
-                <p className="text-[15px] font-semibold text-slate-800">
-                  Android Call Sync
-                </p>
-                <p className="text-[12px] text-slate-500">
-                  Connect MacroDroid to stream call logs in real-time
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <div className="flex-1 h-12 flex items-center px-4 rounded-xl border bg-white text-[12px] font-mono text-slate-500 overflow-hidden">
-                <span className="truncate">{syncUrl}</span>
-              </div>
-              <button
-                onClick={copyUrl}
-                className="h-12 px-4 rounded-xl border bg-white hover:bg-indigo-50 transition"
-              >
-                {copied ? <Check size={16} /> : <Copy size={16} />}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ---------- Sticky Save Footer ---------- */}
-        <div className="sticky bottom-6 flex justify-end mt-16">
+        <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
           <button
             onClick={saveProfile}
             disabled={saving}
-            className="h-12 px-10 rounded-xl bg-indigo-600 border border-indigo-600 text-[#ffffff] shadow-lg hover:bg-indigo-700 transition active:scale-[0.98]"
+            className="btn-primary"
+            style={{ minWidth: '120px', fontSize: '13px', padding: '8px 16px' }}
           >
             {saving ? 'Saving...' : saved ? '✓ Saved' : 'Save Changes'}
           </button>
         </div>
       </div>
+
+      {/* Android Sync Card */}
+      {syncUrl && (
+        <div className="card" style={{ padding: '16px 20px', background: 'linear-gradient(135deg, #f0eeff 0%, #fff 100%)' }}>
+          <div className="flex items-center gap-2.5 mb-4">
+            <div
+              className="w-8 h-8 rounded-lg flex items-center justify-center"
+              style={{ background: 'var(--brand-soft)' }}
+            >
+              <Smartphone size={16} style={{ color: 'var(--brand)' }} />
+            </div>
+            <div>
+              <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                Android Call Sync
+              </p>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                Connect MacroDroid to stream call logs in real-time
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <div
+              className="flex-1 flex items-center px-3 rounded-lg border overflow-hidden"
+              style={{ height: '38px', background: '#fff', borderColor: 'var(--border)', fontSize: '11px', fontFamily: 'monospace', color: 'var(--text-muted)' }}
+            >
+              <span className="truncate">{syncUrl}</span>
+            </div>
+            <button
+              onClick={copyUrl}
+              className="btn-secondary"
+              style={{ height: '38px', minWidth: '38px', padding: '0 12px' }}
+            >
+              {copied ? <Check size={14} style={{ color: 'var(--success)' }} /> : <Copy size={14} />}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

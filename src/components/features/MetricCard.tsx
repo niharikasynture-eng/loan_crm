@@ -26,24 +26,28 @@ export function MetricCard({
 }: MetricCardProps) {
   return (
     <div
-      className={`card p-5 flex flex-col gap-4 hover:shadow-card-hover transition-all ${className ?? ''}`}
+      className={`card flex flex-col gap-3 ${className ?? ''}`}
+      style={{ padding: '16px 20px' }}
     >
       <div className="flex items-center justify-between">
+        {/* Icon */}
         <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+          className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
           style={{ background: iconBg }}
         >
-          <Icon size={20} style={{ color: iconColor }} strokeWidth={1.8} />
+          <Icon size={18} style={{ color: iconColor }} strokeWidth={1.8} />
         </div>
         {trend && (
           <div
-            className="flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg"
+            className="flex items-center gap-1 px-2 py-0.5 rounded-lg"
             style={{
+              fontSize: '11px',
+              fontWeight: 600,
               background: trend.isPositive ? '#ecfdf5' : '#fef2f2',
               color: trend.isPositive ? 'var(--success)' : 'var(--danger)',
             }}
           >
-            {trend.isPositive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+            {trend.isPositive ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
             {trend.value}%
           </div>
         )}
@@ -51,19 +55,19 @@ export function MetricCard({
 
       <div>
         <p
-          className="text-[11px] font-semibold uppercase tracking-wider mb-1"
-          style={{ color: 'var(--text-muted)' }}
+          className="uppercase tracking-wider mb-1"
+          style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)' }}
         >
           {label}
         </p>
         <p
-          className="text-2xl font-bold leading-none mb-1 tabular-nums"
-          style={{ color: 'var(--text-primary)' }}
+          className="leading-none tabular-nums"
+          style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)' }}
         >
           {value}
         </p>
         {subValue && (
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+          <p className="mt-1" style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
             {subValue}
           </p>
         )}

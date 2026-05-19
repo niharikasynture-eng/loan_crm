@@ -62,10 +62,7 @@ export function RecentActivityList({ activities }: RecentActivityListProps) {
   }
 
   return (
-    <div
-      className="rounded-xl overflow-hidden"
-      style={{ border: '1px solid #e9eaf0', background: '#fff' }}
-    >
+    <div className="card-no-pad">
       {activities.map((act, idx) => {
         const cfg = TYPE_CONFIG[act.type?.toLowerCase()] ?? TYPE_CONFIG.note;
         const Icon = cfg.icon;
@@ -77,9 +74,9 @@ export function RecentActivityList({ activities }: RecentActivityListProps) {
             key={act._id}
             className="flex items-start gap-5 px-6 py-5 transition-colors"
             style={{
-              borderBottom: idx < activities.length - 1 ? '1px solid #f3f4f6' : 'none',
+              borderBottom: idx < activities.length - 1 ? '1px solid var(--border)' : 'none',
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = '#fafafa')}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-row-hover)')}
             onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
           >
             {/* Avatar */}
