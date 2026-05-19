@@ -56,69 +56,62 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div className="animate-fade-in pb-10 flex flex-col gap-8">
       <PageHeader
-        title="Dashboard"
-        subtitle={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+        title="Dashboard Overview"
+        subtitle={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
       />
 
-      {/* Lead Capture Banner — compact */}
+      {/* Lead Capture Banner */}
       {(user?.role === 'org_admin' || user?.role === 'manager') && (
         <div
-          className="rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3"
-          style={{ background: 'var(--brand-soft)', borderColor: 'rgba(108,92,231,0.15)' }}
+          className="rounded-[24px] border flex flex-col sm:flex-row sm:items-center justify-between gap-6 p-6 shadow-md transition-shadow hover:shadow-lg"
+          style={{ background: 'linear-gradient(135deg, var(--brand-soft) 0%, #fff 100%)', borderColor: 'rgba(124,58,237,0.1)' }}
         >
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-4">
             <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+              className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-indigo-100"
               style={{ background: 'var(--brand)', color: '#fff' }}
             >
-              <Link2 size={15} />
+              <Link2 size={22} />
             </div>
             <div>
-              <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                Public Lead Form
+              <p className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>
+                Public Lead Capture Link
               </p>
-              <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                Share this link to capture new leads automatically
+              <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
+                Automatically sync leads from your website or social media.
               </p>
             </div>
           </div>
           <div
-            className="flex items-center gap-3 bg-white rounded-lg border p-1.5 shrink-0"
+            className="flex items-center gap-2 bg-white rounded-xl border p-1.5 shrink-0 shadow-sm"
             style={{ borderColor: 'var(--border)' }}
           >
             <span
-              className="px-2 font-mono truncate max-w-[150px] sm:max-w-[250px] md:max-w-[350px]"
-              style={{ fontSize: '12px', color: 'var(--text-muted)' }}
+              className="px-4 text-xs font-bold tabular-nums truncate max-w-[280px]"
+              style={{ color: 'var(--brand)' }}
             >
               {publicLeadUrl}
             </span>
             <button
               onClick={copyLink}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md font-bold text-white transition-all shrink-0 shadow-sm"
-              style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em', background: copied ? 'var(--success)' : 'var(--brand)' }}
+              className="flex items-center gap-2 px-6 py-3 rounded-lg text-xs font-bold text-white transition-all shrink-0 hover:opacity-90 active:scale-95"
+              style={{ background: copied ? 'var(--success)' : 'var(--brand)' }}
             >
               {copied ? <CheckCircle size={14} /> : <Copy size={14} />}
-              {copied ? 'Copied' : 'Copy'}
+              {copied ? 'Copied!' : 'Copy Link'}
             </button>
           </div>
         </div>
       )}
 
-      {/* KPI Stats Grid — fully responsive */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
-          gap: '16px',
-        }}
-        className="sm:grid-cols-2 lg:grid-cols-4"
-      >
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
           label="Total Leads"
           value={metrics?.totalLeads ?? 0}
-          subValue={`${metrics?.newLeads ?? 0} new this month`}
+          subValue={`${metrics?.newLeads ?? 0} new entries`}
           icon={Users}
           iconBg="#eff6ff"
           iconColor="#2563eb"
@@ -134,7 +127,7 @@ export default function DashboardPage() {
         <MetricCard
           label="Calls (30d)"
           value={metrics?.callsThisMonth ?? 0}
-          subValue={`${metrics?.totalActivities ?? 0} total activities`}
+          subValue={`${metrics?.totalActivities ?? 0} field events`}
           icon={PhoneCall}
           iconBg="var(--brand-soft)"
           iconColor="var(--brand)"
@@ -142,20 +135,20 @@ export default function DashboardPage() {
         <MetricCard
           label="Pending Tasks"
           value={metrics?.pendingTasks ?? 0}
-          subValue="Needs your attention"
+          subValue="Action items"
           icon={CheckSquare}
           iconBg="#fffbeb"
           iconColor="#d97706"
         />
       </div>
 
-      {/* Recent Activity */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
-            Recent Activity
+      {/* Activity Feed */}
+      <div className="flex flex-col gap-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+            Recent Activities
           </h2>
-          <Badge variant="info">LIVE</Badge>
+          <Badge variant="info" className="px-3 py-1 font-bold tracking-widest text-[10px]">LIVE SYNC</Badge>
         </div>
         <RecentActivityList activities={activities} />
       </div>

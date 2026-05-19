@@ -23,21 +23,21 @@ export default function LeadsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { open: openModal, close: closeModal } = useModal();
-  
+
   const [search, setSearch] = React.useState('');
   const [page, setPage] = React.useState(1);
   const [selectedLeads, setSelectedLeads] = React.useState<Set<string>>(new Set());
   const [bulkSelectCount, setBulkSelectCount] = React.useState(0);
   const [isImportOpen, setIsImportOpen] = React.useState(false);
   const [orgUsers, setOrgUsers] = React.useState<IUser[]>([]);
-  
+
   const debouncedSearch = useDebounce(search, 300);
 
   // Data fetching
-  const { leads, loading, refresh, total } = useLeads({ 
-    search: debouncedSearch, 
-    limit: 10, 
-    skip: (page - 1) * 10 
+  const { leads, loading, refresh, total } = useLeads({
+    search: debouncedSearch,
+    limit: 10,
+    skip: (page - 1) * 10
   });
 
   const totalPages = Math.ceil(total / 10);
@@ -90,22 +90,22 @@ export default function LeadsPage() {
 
       return (
         <div className="space-y-6">
-          <div className="bg-brand-50 p-4 rounded-xl border border-brand-100">
+          <div className="bg-brand-50 p-6 rounded-xl border border-brand-100">
             <p className="text-sm text-brand-900 font-bold mb-1">Target Account</p>
             <p className="text-lg font-bold text-gray-900">{lead.name}</p>
           </div>
-          
+
           <div className="space-y-3">
             <p className="text-xs font-black uppercase tracking-widest text-gray-400">Select Responsible Team Member</p>
-            <AgentSelector 
-              agents={orgUsers} 
-              selectedId={selectedAgent} 
-              onSelect={setSelectedAgent} 
+            <AgentSelector
+              agents={orgUsers}
+              selectedId={selectedAgent}
+              onSelect={setSelectedAgent}
             />
           </div>
 
-          <Button 
-            size="lg" 
+          <Button
+            size="lg"
             className="w-full h-14 text-lg shadow-lg shadow-brand-500/20"
             isLoading={isAssigning}
             disabled={!selectedAgent}
@@ -145,27 +145,27 @@ export default function LeadsPage() {
       return (
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
-            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+            <div className="p-6 bg-gray-50 rounded-xl border border-gray-200">
               <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Batch Size</p>
               <p className="text-xl font-bold text-gray-900">{selectedLeads.size}</p>
             </div>
-            <div className="p-4 bg-brand-50 rounded-xl border border-brand-100">
+            <div className="p-6 bg-brand-50 rounded-xl border border-brand-100">
               <p className="text-[10px] font-black uppercase tracking-widest text-brand-400 mb-1">Target</p>
               <p className="text-xl font-bold text-brand-900 truncate">Bulk Clients</p>
             </div>
           </div>
-          
+
           <div className="space-y-3">
             <p className="text-xs font-black uppercase tracking-widest text-gray-400">Select Team Member</p>
-            <AgentSelector 
-              agents={orgUsers} 
-              selectedId={selectedAgent} 
-              onSelect={setSelectedAgent} 
+            <AgentSelector
+              agents={orgUsers}
+              selectedId={selectedAgent}
+              onSelect={setSelectedAgent}
             />
           </div>
 
-          <Button 
-            size="lg" 
+          <Button
+            size="lg"
             className="w-full h-14 text-lg shadow-lg shadow-brand-500/20"
             isLoading={isAssigning}
             disabled={!selectedAgent}
@@ -206,7 +206,7 @@ export default function LeadsPage() {
       title: 'Archive Lead',
       content: (
         <p className="text-sm text-gray-500 font-medium leading-relaxed">
-          Are you sure you want to archive <span className="font-bold text-gray-900">"{lead.name}"</span>? 
+          Are you sure you want to archive <span className="font-bold text-gray-900">"{lead.name}"</span>?
           This will hide associated data from the active pipeline.
         </p>
       ),
@@ -252,15 +252,15 @@ export default function LeadsPage() {
   };
 
   return (
-    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-      <PageHeader 
-        title="Lead Intelligence" 
+    <div className="animate-fade-in pb-10 flex flex-col gap-8">
+      <PageHeader
+        title="Lead Intelligence"
         subtitle="Global view of all inbound and qualified opportunities"
       />
 
       {/* Filters Card */}
       <div className="card">
-        <LeadFilters 
+        <LeadFilters
           search={search}
           onSearchChange={setSearch}
           onSearchSubmit={handleSearchSubmit}
@@ -274,8 +274,8 @@ export default function LeadsPage() {
         />
       </div>
 
-      {/* Leads Table */}
-      <LeadTable 
+
+      <LeadTable
         leads={leads}
         loading={loading}
         selectedLeads={selectedLeads}
@@ -301,10 +301,10 @@ export default function LeadsPage() {
       )}
 
       {/* Feature Modals */}
-      <LeadImportModal 
-        isOpen={isImportOpen} 
-        onClose={() => setIsImportOpen(false)} 
-        onSuccess={refresh} 
+      <LeadImportModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        onSuccess={refresh}
       />
     </div>
   );

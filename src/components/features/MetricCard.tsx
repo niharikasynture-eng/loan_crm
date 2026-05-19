@@ -26,8 +26,8 @@ export function MetricCard({
 }: MetricCardProps) {
   return (
     <div
-      className={`card flex flex-col gap-3 ${className ?? ''}`}
-      style={{ padding: '16px 20px' }}
+      className={`card p-6 flex flex-col gap-5 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-[#f1f5f9] bg-white overflow-hidden rounded-2xl ${className ?? ''}`}
+      style={{ boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.04)' }}
     >
       <div className="flex items-center justify-between">
         {/* Icon */}
@@ -53,10 +53,10 @@ export function MetricCard({
         )}
       </div>
 
-      <div>
+      <div className="space-y-1">
         <p
-          className="uppercase tracking-wider mb-1"
-          style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)' }}
+          className="text-[11px] font-semibold uppercase tracking-wider"
+          style={{ color: 'var(--text-muted)' }}
         >
           {label}
         </p>

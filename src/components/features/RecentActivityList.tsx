@@ -18,11 +18,11 @@ interface RecentActivityListProps {
 }
 
 const TYPE_CONFIG: Record<string, { icon: React.ElementType; color: string; bg: string; label: string }> = {
-  call:     { icon: Phone,         color: '#7c3aed', bg: '#f3f1ff', label: 'Call'      },
-  email:    { icon: Mail,          color: '#2563eb', bg: '#eff6ff', label: 'Email'     },
-  whatsapp: { icon: MessageCircle, color: '#059669', bg: '#ecfdf5', label: 'WhatsApp'  },
-  note:     { icon: StickyNote,    color: '#d97706', bg: '#fffbeb', label: 'Note'      },
-  meeting:  { icon: CalendarCheck, color: '#7c3aed', bg: '#f3f1ff', label: 'Meeting'   },
+  call: { icon: Phone, color: '#7c3aed', bg: '#f3f1ff', label: 'Call' },
+  email: { icon: Mail, color: '#2563eb', bg: '#eff6ff', label: 'Email' },
+  whatsapp: { icon: MessageCircle, color: '#059669', bg: '#ecfdf5', label: 'WhatsApp' },
+  note: { icon: StickyNote, color: '#d97706', bg: '#fffbeb', label: 'Note' },
+  meeting: { icon: CalendarCheck, color: '#7c3aed', bg: '#f3f1ff', label: 'Meeting' },
 };
 
 function timeAgo(date: string) {
@@ -62,7 +62,7 @@ export function RecentActivityList({ activities }: RecentActivityListProps) {
   }
 
   return (
-    <div className="card-no-pad">
+    <div className="flex flex-col gap-4">
       {activities.map((act, idx) => {
         const cfg = TYPE_CONFIG[act.type?.toLowerCase()] ?? TYPE_CONFIG.note;
         const Icon = cfg.icon;
@@ -72,11 +72,9 @@ export function RecentActivityList({ activities }: RecentActivityListProps) {
         return (
           <div
             key={act._id}
-            className="flex items-start gap-5 px-6 py-5 transition-colors"
-            style={{
-              borderBottom: idx < activities.length - 1 ? '1px solid var(--border)' : 'none',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-row-hover)')}
+            className="flex items-start gap-5 px-6 py-5 transition-colors bg-white rounded-xl border hover:shadow-sm"
+            style={{ borderColor: '#e9eaf0' }}
+            onMouseEnter={e => (e.currentTarget.style.background = '#fafafa')}
             onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
           >
             {/* Avatar */}

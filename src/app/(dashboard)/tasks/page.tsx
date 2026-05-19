@@ -22,7 +22,7 @@ export default function TasksPage() {
     }
   };
 
-  const pending   = tasks.filter(t => t.status !== 'completed');
+  const pending = tasks.filter(t => t.status !== 'completed');
   const completed = tasks.filter(t => t.status === 'completed');
 
   return (
@@ -60,7 +60,7 @@ export default function TasksPage() {
               <p className="mb-3" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 Pending ({pending.length})
               </p>
-              <div className="card-no-pad" style={{ overflow: 'hidden' }}>
+              <div className="flex flex-col gap-4">
                 {pending.map(task => <TaskRow key={task._id.toString()} task={task} userId={user?.id} onToggle={handleToggle} />)}
               </div>
             </div>
@@ -72,7 +72,7 @@ export default function TasksPage() {
               <p className="mb-3" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 Completed ({completed.length})
               </p>
-              <div className="card-no-pad" style={{ overflow: 'hidden' }}>
+              <div className="flex flex-col gap-4 opacity-60">
                 {completed.map(task => <TaskRow key={task._id.toString()} task={task} userId={user?.id} onToggle={handleToggle} />)}
               </div>
             </div>
@@ -85,27 +85,18 @@ export default function TasksPage() {
 
 function TaskRow({ task, userId, onToggle }: { task: any; userId?: string; onToggle: (id: string, status: string) => void }) {
   const isCompleted = task.status === 'completed';
-  const isOverdue   = !isCompleted && new Date(task.dueDate) < new Date();
+  const isOverdue = !isCompleted && new Date(task.dueDate) < new Date();
   const canComplete = task.assignedTo?._id === userId || task.assignedTo === userId;
 
   const PRIORITY_STYLE: Record<string, { bg: string; color: string }> = {
-    high:   { bg: '#fef2f2', color: '#dc2626' },
+    high: { bg: '#fef2f2', color: '#dc2626' },
     medium: { bg: '#fffbeb', color: '#d97706' },
-    low:    { bg: '#eff6ff', color: '#2563eb' },
+    low: { bg: '#eff6ff', color: '#2563eb' },
   };
   const ps = PRIORITY_STYLE[task.priority?.toLowerCase()] ?? PRIORITY_STYLE.medium;
 
   return (
-    <div
-      className="flex items-center gap-3.5 px-5 transition-colors"
-      style={{
-        minHeight: '56px',
-        borderBottom: '1px solid var(--border)',
-        background: 'transparent',
-      }}
-      onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-row-hover)')}
-      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-    >
+    <div className="flex items-center gap-4 p-4 sm:px-6 sm:py-5 border-b border-gray-100 transition-colors hover:bg-gray-50/80 rounded-2xl">
       {/* Toggle */}
       <button
         onClick={() => canComplete && onToggle(task._id.toString(), task.status)}

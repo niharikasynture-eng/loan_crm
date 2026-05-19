@@ -171,7 +171,7 @@ export function LeadTable({
       data={leads}
       isLoading={loading}
       onSort={() => {}} // TODO: Implement sorting in hook
-      className="bg-white"
+      className="bg-white p-4 sm:p-6 shadow-sm rounded-xl"
       emptyState={
         <div className="py-20 flex flex-col items-center gap-4">
           <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center text-gray-300">

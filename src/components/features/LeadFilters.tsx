@@ -84,8 +84,7 @@ export function LeadFilters({
             {selectedCount > 0 && (
               <Button
                 onClick={onBulkAssign}
-                className="h-10 px-5 shadow-sm animate-in fade-in slide-in-from-left-2 duration-300"
-                style={{ fontSize: '14px' }}
+                className="h-11 px-6 sm:px-10 bg-brand-600 hover:bg-brand-700 shadow-sm animate-in fade-in slide-in-from-left-2 duration-300"
               >
                 <UserCheck size={16} />
                 <span className="ml-2 font-semibold">Assign {selectedCount}</span>
@@ -95,22 +94,22 @@ export function LeadFilters({
         )}
 
         {/* Buttons Group */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
           {canImportExport && (
             <>
-              <Button variant="secondary" onClick={onImport} className="h-10 px-4 sm:px-6">
+              <Button variant="secondary" onClick={onImport} className="h-11 px-6 py-2 sm:px-10">
                 <Upload size={15} /> <span className="ml-2">Import</span>
               </Button>
-              <Button variant="secondary" onClick={onExport} className="h-10 px-4 sm:px-6">
+              <Button variant="secondary" onClick={onExport} className="h-11 px-6 py-2 sm:px-10">
                 <Download size={15} /> <span className="ml-2">Export</span>
               </Button>
             </>
           )}
 
           {canAddLead && (
-            <Button onClick={onAddLead} className="h-10 px-4 shrink-0 relative flex items-center justify-center min-w-[100px]">
+            <Button onClick={onAddLead} className="h-11 pl-6 pr-10 shadow-md shrink-0 relative flex items-center justify-center min-w-[120px]">
               <span>Add Lead</span>
-              <Plus size={14} strokeWidth={2.5} className="absolute right-2.5" />
+              <Plus size={14} strokeWidth={2.5} className="absolute right-3.5" />
             </Button>
           )}
         </div>

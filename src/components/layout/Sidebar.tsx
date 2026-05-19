@@ -42,8 +42,8 @@ export function Sidebar({ items, isCollapsed, onToggle, className }: SidebarProp
   return (
     <aside
       className={cn(
-        'flex flex-col h-full relative group transition-all duration-300',
-        isCollapsed ? 'w-[60px]' : 'w-[220px]',
+        'flex flex-col h-full relative transition-all duration-300 rounded-2xl',
+        isCollapsed ? 'w-[68px]' : 'w-56',
         className
       )}
       style={{
@@ -54,8 +54,8 @@ export function Sidebar({ items, isCollapsed, onToggle, className }: SidebarProp
       {/* Brand */}
       <div
         className={cn(
-          'h-[60px] flex items-center shrink-0',
-          isCollapsed ? 'justify-center px-0' : 'px-4 gap-2.5'
+          'h-16 flex items-center shrink-0',
+          isCollapsed ? 'justify-center px-0' : 'px-6 gap-3'
         )}
         style={{ borderBottom: '1px solid var(--sidebar-border)' }}
       >
@@ -73,7 +73,7 @@ export function Sidebar({ items, isCollapsed, onToggle, className }: SidebarProp
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-4 px-3 flex flex-col gap-2 overflow-y-auto no-scrollbar">
+      <nav className="flex-1 py-4 px-4 flex flex-col gap-2 overflow-y-auto no-scrollbar">
         {items.map((item, idx) => {
           const active = isActive(item.href);
           const showDivider = item.dividerBefore && idx > 0;
@@ -81,33 +81,44 @@ export function Sidebar({ items, isCollapsed, onToggle, className }: SidebarProp
             <React.Fragment key={item.href}>
               {showDivider && (
                 <div
-                  className="mx-2 my-1.5"
-                  style={{ height: '1px', background: 'var(--border)' }}
+                  className="my-1 border-t animate-fade-in"
+                  style={{ borderColor: 'var(--sidebar-border)' }}
                 />
               )}
               <Link
                 href={item.href}
                 title={isCollapsed ? item.label : undefined}
                 className={cn(
-                  'flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150',
+                  'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 group/item',
                   isCollapsed ? 'justify-center' : '',
-                  active
-                    ? 'bg-[rgba(108,92,231,0.10)] text-[var(--brand)] shadow-sm font-semibold'
-                    : 'text-[var(--text-secondary)] font-medium hover:bg-[var(--bg-row-hover)] hover:text-[var(--text-primary)]'
                 )}
+                style={{
+                  background: active ? 'var(--brand-soft)' : 'transparent',
+                  color: active ? 'var(--brand)' : 'var(--text-muted)',
+                  fontWeight: active ? 600 : 500,
+                }}
+                onMouseEnter={(e) => {
+                  if (!active) {
+                    (e.currentTarget as HTMLElement).style.background = '#f5f3ff';
+                    (e.currentTarget as HTMLElement).style.color = 'var(--brand)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!active) {
+                    (e.currentTarget as HTMLElement).style.background = 'transparent';
+                    (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)';
+                  }
+                }}
               >
                 {/* Icon */}
                 <div
-                  className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg transition-all"
+                  className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg transition-all"
                   style={{
-                    background: active ? 'rgba(108,92,231,0.15)' : 'transparent',
+                    background: active ? 'var(--brand)' : 'transparent',
+                    color: active ? '#fff' : 'var(--brand)',
                   }}
                 >
-                  <item.icon
-                    size={16}
-                    style={{ color: active ? '#6C5CE7' : 'currentColor' }}
-                    strokeWidth={active ? 2.2 : 1.8}
-                  />
+                  <item.icon size={18} />
                 </div>
 
                 {!isCollapsed && (
@@ -126,48 +137,47 @@ export function Sidebar({ items, isCollapsed, onToggle, className }: SidebarProp
             </React.Fragment>
           );
         })}
-      </nav>
+    </nav>
 
-      {/* Sign Out */}
-      <div
-        className="shrink-0 px-2 pb-3 pt-2 border-t"
-        style={{ borderColor: 'var(--sidebar-border)' }}
+      {/* Sign Out */ }
+  <div
+    className="shrink-0 px-2 pb-3 pt-2 border-t"
+    style={{ borderColor: 'var(--sidebar-border)' }}
+  >
+    <button
+      onClick={logout}
+      title={isCollapsed ? 'Sign Out' : undefined}
+      className={cn(
+        'flex items-center gap-2.5 w-full px-2.5 py-2 rounded-[8px] transition-all duration-150 text-[#ef4444]',
+        isCollapsed ? 'justify-center' : '',
+        'hover:bg-[#fef2f2]'
+      )}
+    >
+      <div className="w-7 h-7 flex items-center justify-center rounded-lg shrink-0"
+        style={{ background: '#fef2f2', color: '#ef4444' }}
       >
-        <button
-          onClick={logout}
-          title={isCollapsed ? 'Sign Out' : undefined}
-          className={cn(
-            'flex items-center gap-2.5 w-full px-2.5 py-2 rounded-[8px] transition-all duration-150 text-[#ef4444]',
-            isCollapsed ? 'justify-center' : '',
-            'hover:bg-[#fef2f2]'
-          )}
-        >
-          <div className="w-7 h-7 flex items-center justify-center rounded-lg shrink-0"
-            style={{ background: '#fef2f2', color: '#ef4444' }}
-          >
-            <LogOut size={15} />
-          </div>
-          {!isCollapsed && (
-            <span className="text-[13px] font-medium animate-fade-in">
-              Sign Out
-            </span>
-          )}
-        </button>
+        <LogOut size={15} />
       </div>
+      {!isCollapsed && (
+        <span className="text-[13px] font-medium animate-fade-in">
+          Sign Out
+        </span>
+      )}
+    </button>
+  </div>
 
-      {/* Collapse toggle */}
-      <button
-        onClick={onToggle}
-        className="absolute -right-3 top-[72px] w-6 h-6 rounded-full border flex items-center justify-center shadow-sm transition-all opacity-0 group-hover:opacity-100 hidden lg:flex"
-        style={{
-          background: '#fff',
-          borderColor: 'var(--border)',
-          color: 'var(--text-muted)',
-          zIndex: 10,
-        }}
-      >
-        {isCollapsed ? <ChevronRight size={11} /> : <ChevronLeft size={11} />}
-      </button>
-    </aside>
+  {/* Collapse toggle */ }
+  <button
+    onClick={onToggle}
+    className="absolute -right-3 top-16 w-6 h-6 rounded-full border flex items-center justify-center shadow-md transition-all z-50 hover:scale-110"
+    style={{
+      background: '#fff',
+      borderColor: '#e9eaf0',
+      color: 'var(--text-primary)',
+    }}
+  >
+    {isCollapsed ? <ChevronRight size={14} strokeWidth={3} /> : <ChevronLeft size={14} strokeWidth={3} />}
+  </button>
+    </aside >
   );
 }

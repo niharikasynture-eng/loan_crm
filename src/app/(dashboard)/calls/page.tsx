@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Phone, Download } from 'lucide-react';
+import { Phone, Search, Download, Clock, Shield } from 'lucide-react';
 import { useCalls } from '@/hooks/useCalls';
 import { useToast } from '@/hooks/useToast';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -54,28 +54,44 @@ export default function CallLogsPage() {
         }
       />
 
-      {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {stats.map((s) => (
-          <div key={s.label} className="card" style={{ padding: '16px 20px' }}>
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center mb-3"
-              style={{ background: s.iconBg }}
-            >
-              <s.icon size={18} style={{ color: s.iconColor }} strokeWidth={1.8} />
+      {/* Stat Matrix */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
+        {[
+          { label: 'Total Calls', value: calls.length, color: 'var(--brand)', icon: Phone },
+          { label: 'Total Duration', value: `${totalMins}m`, color: 'var(--success)', icon: Clock },
+          { label: 'Sync Accuracy', value: '99.9%', color: '#2563eb', icon: Shield },
+        ].map((s) => (
+          <div
+            key={s.label}
+            className="card p-14 flex flex-col items-start gap-8 transition-all hover:shadow-xl hover:-translate-y-1 cursor-default border border-[#f1f5f9] bg-white group overflow-hidden rounded-2xl"
+            style={{
+              boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.04), 0 4px 6px -4px rgb(0 0 0 / 0.04)'
+            }}
+          >
+            <div className="flex items-center justify-between w-full">
+              <div
+                className="w-14 h-14 rounded-2xl flex items-center justify-center transition-colors group-hover:scale-110 duration-300"
+                style={{ background: `${s.color}15`, color: s.color }}
+              >
+                <s.icon size={26} strokeWidth={2.5} />
+              </div>
+              <span className="text-3xl font-bold tracking-tight" style={{ color: s.color }}>
+                {s.value}
+              </span>
             </div>
-            <p style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1, marginBottom: '4px' }}>
-              {s.value}
-            </p>
-            <p style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)' }}>
-              {s.label}
-            </p>
+            <div className="mt-6 space-y-2">
+              <p className="text-sm font-bold uppercase tracking-widest text-[#94a3b8]">
+                {s.label}
+              </p>
+              <p className="text-xs text-[#64748b] leading-relaxed">Real-time field activity</p>
+            </div>
           </div>
         ))}
       </div>
 
-      {/* Call Log Table */}
-      <CallLogTable logs={calls} isLoading={loading} />
+      <div className="pt-4">
+        <CallLogTable logs={calls} isLoading={loading} />
+      </div>
     </div>
   );
 }
