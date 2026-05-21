@@ -39,23 +39,35 @@ export async function POST(req: NextRequest) {
 
       // Find Token
       const tokenKey = Object.keys(allData).find(k => k.trim().toLowerCase() === 'token');
-      const tokenRaw = tokenKey ? String(allData[tokenKey]) : '';
+      const tokenRaw = tokenKey ? String(allData[tokenKey]).trim() : '';
       
-      // Find Phone/Number
-      const phoneKey = Object.keys(allData).find(k => ['phone', 'number', 'call_number', 'from', 'to', 'contact_number'].includes(k.trim().toLowerCase()));
-      const rawPhone = phoneKey ? String(allData[phoneKey]) : '';
+      // Find Phone/Number (Support 20+ variations used by various phone APIs and MacroDroid/Automate)
+      const phoneKey = Object.keys(allData).find(k => [
+        'phone', 'number', 'call_number', 'from', 'to', 'contact_number',
+        'phone_number', 'phonenumber', 'contact', 'caller_number', 'caller_id',
+        'callerid', 'phone_no', 'phoneno', 'mobile', 'mobile_number', 'mobilenumber',
+        'mobile_no', 'mobileno'
+      ].includes(k.trim().toLowerCase()));
+      const rawPhone = phoneKey ? String(allData[phoneKey]).trim() : '';
 
-      // Find Duration
-      const durationKey = Object.keys(allData).find(k => ['duration', 'dur', 'time', 'seconds', 'call_duration'].includes(k.trim().toLowerCase()));
-      const durationRaw = durationKey ? String(allData[durationKey]) : '0';
+      // Find Duration (Support multiple duration representations)
+      const durationKey = Object.keys(allData).find(k => [
+        'duration', 'dur', 'time', 'seconds', 'call_duration', 'duration_seconds',
+        'durationseconds', 'call_duration_seconds', 'call_duration_s', 'duration_s'
+      ].includes(k.trim().toLowerCase()));
+      const durationRaw = durationKey ? String(allData[durationKey]).trim() : '0';
 
-      // Find Type
-      const typeKey = Object.keys(allData).find(k => ['type', 'call_type', 'direction', 'mode'].includes(k.trim().toLowerCase()));
-      const typeRaw = typeKey ? String(allData[typeKey]) : 'outgoing';
+      // Find Type (incoming vs outgoing)
+      const typeKey = Object.keys(allData).find(k => [
+        'type', 'call_type', 'direction', 'mode', 'calltype'
+      ].includes(k.trim().toLowerCase()));
+      const typeRaw = typeKey ? String(allData[typeKey]).trim() : 'outgoing';
 
       // Find Time
-      const timeKey = Object.keys(allData).find(k => ['timestamp', 'time', 'date', 'created_at'].includes(k.trim().toLowerCase()));
-      const timestampRaw = timeKey ? String(allData[timeKey]) : new Date().toISOString();
+      const timeKey = Object.keys(allData).find(k => [
+        'timestamp', 'time', 'date', 'created_at', 'call_time', 'calltime'
+      ].includes(k.trim().toLowerCase()));
+      const timestampRaw = timeKey ? String(allData[timeKey]).trim() : '';
 
       // Identify User (Salesperson) - STRICT MATCH ONLY
       let user = null;
@@ -69,8 +81,9 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      // Clean Duration
-      const duration = Math.round(parseFloat(durationRaw)) || 0;
+      // Clean Duration: extract digits and decimal points (handles brackets/units like "[15s]")
+      const durationCleaned = durationRaw.replace(/[^\d.]/g, '');
+      const duration = Math.round(parseFloat(durationCleaned)) || 0;
       
       // Clean Phone Number
       const normalizedIncoming = rawPhone.replace(/\D/g, '');
@@ -81,17 +94,43 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
+      // Validate and fallback dates when handling timestamps to prevent invalid date casting crashes
+      let startedDate = new Date();
+      if (timestampRaw && !timestampRaw.includes('[') && !timestampRaw.includes('time') && !timestampRaw.includes('date')) {
+        const parsedDate = new Date(timestampRaw);
+        if (!isNaN(parsedDate.getTime())) {
+          startedDate = parsedDate;
+        }
+      }
+
       // Android Doze mode can delay Automate syncs by 10-30 minutes. Use a wide window.
       const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
 
-      // Find Leads by Matching Last 10 Digits
-      const allLeads = await Lead.find({ organizationId: user.organizationId });
-      const matchingLeads = allLeads.filter(l => {
-        if (!l.phone) return false;
-        const normalizedLead = l.phone.replace(/\D/g, '');
-        return normalizedLead.endsWith(normalizedIncoming.slice(-10)) || 
-               normalizedIncoming.endsWith(normalizedLead.slice(-10));
-      });
+      // Find Leads: Optimize query to run at DB regex level, preventing Out-Of-Memory/Timeout on production data
+      let matchingLeads: any[] = [];
+      const digits = normalizedIncoming.replace(/\D/g, '');
+      if (digits.length >= 5) {
+        const lastDigits = digits.slice(-10);
+        // Build regex matching each digit in sequence with optional non-digits in between (handles spaces/dashes in DB)
+        const regexStr = lastDigits.split('').map((d, idx) => idx === lastDigits.length - 1 ? d : `${d}\\D*`).join('') + '$';
+        const phoneRegex = new RegExp(regexStr);
+
+        matchingLeads = await Lead.find({
+          organizationId: user.organizationId,
+          phone: { $regex: phoneRegex }
+        });
+      }
+
+      // Fallback exact/substring match if regex search yielded nothing
+      if (matchingLeads.length === 0 && normalizedIncoming.length >= 5) {
+        matchingLeads = await Lead.find({
+          organizationId: user.organizationId,
+          $or: [
+            { phone: normalizedIncoming },
+            { phone: { $regex: new RegExp(normalizedIncoming.slice(-10) + '$') } }
+          ]
+        });
+      }
 
       let lead = null;
 
@@ -119,7 +158,7 @@ export async function POST(req: NextRequest) {
           lead = matchingLeads[0];
         }
       } else {
-        // PREDICTIVE MATCHING (Fix for Samsung bug)
+        // PREDICTIVE MATCHING (Samsung bug fallback)
         const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
         const pendingCall = await CallLog.findOne({
           organizationId: user.organizationId,
@@ -147,7 +186,7 @@ export async function POST(req: NextRequest) {
       }
 
       // ────── UNIQUE ID & DEDUPLICATION ──────
-      const syncId = body.syncId || body.id || `sync-${user._id}-${normalizedIncoming}-${duration}-${new Date(timestampRaw).getTime()}`;
+      const syncId = body.syncId || body.id || `sync-${user._id}-${normalizedIncoming}-${duration}-${startedDate.getTime()}`;
       
       const existingActivity = await Activity.findOne({ syncId, organizationId: user.organizationId });
       if (existingActivity) {
@@ -239,7 +278,7 @@ export async function POST(req: NextRequest) {
         status: 'completed',
         duration,
         connectedDuration: duration,
-        startedAt: new Date(timestampRaw),
+        startedAt: startedDate,
         endedAt: new Date(),
         syncId,
         notes: `Automated ${callTypeLabel} call. (Hardware Verified)`,
@@ -255,6 +294,7 @@ export async function POST(req: NextRequest) {
         createdBy: user._id,
         status: 'completed',
         completedAt: new Date(),
+        callLogId: newCallLog._id, // Add callLogId link
       });
 
       // Update Lead Status
