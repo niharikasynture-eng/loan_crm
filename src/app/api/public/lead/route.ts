@@ -7,7 +7,10 @@ import { sendSMS } from '@/lib/twilio';
 
 export async function POST(req: NextRequest) {
   try {
-    const { orgSlug, name, email, phone, company, message } = await req.json();
+    const { 
+      orgSlug, name, email, phone, company, message,
+      project_id, budget, preferred_location, property_type, preferred_configuration 
+    } = await req.json();
 
     if (!orgSlug || !name || (!email && !phone)) {
       return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
@@ -30,6 +33,11 @@ export async function POST(req: NextRequest) {
       company,
       source: 'Public Form',
       status: 'new',
+      project_id,
+      budget,
+      preferred_location,
+      property_type,
+      preferred_configuration,
       customFields: message ? { interest_message: message } : {},
     });
 

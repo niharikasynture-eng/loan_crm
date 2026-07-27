@@ -3,8 +3,8 @@ import './globals.css';
 import { Providers } from './providers';
 
 export const metadata: Metadata = {
-  title: 'R-Life Sales CRM',
-  description: 'A powerful multi-tenant SaaS CRM for modern sales teams',
+  title: 'DealByte',
+  description: 'A powerful Real Estate CRM for modern sales teams',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

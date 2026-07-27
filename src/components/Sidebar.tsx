@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Users, Phone, CheckSquare, TrendingUp,
   Settings, LogOut, ChevronDown, Building2, BarChart2,
   Activity, Bell, Link2, Clock, CheckCircle, AlertCircle,
-  UserCog, ShieldCheck, Briefcase, UserCircle,
+  UserCog, ShieldCheck, Briefcase, UserCircle, MapPin, Grid, Bookmark
 } from 'lucide-react';
 
 interface Notification {
@@ -18,6 +18,10 @@ interface Notification {
 const CRM_NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/leads', label: 'Leads', icon: Users },
+  { href: '/projects', label: 'Projects', icon: Building2 },
+  { href: '/inventory', label: 'Inventory', icon: Grid },
+  { href: '/site-visits', label: 'Site Visits', icon: MapPin },
+  { href: '/bookings', label: 'Bookings', icon: Bookmark },
   { href: '/activities', label: 'Timeline', icon: Activity },
   { href: '/calls', label: 'Call History', icon: Phone },
   { href: '/tasks', label: 'Tasks', icon: CheckSquare },
@@ -118,11 +122,11 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
           onClick={onToggle}
         >
           <div className="w-9 h-9  rounded-xl bg-indigo-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-indigo-100 group-hover:scale-105 transition-transform">
-            <Activity size={18} color="#fff" strokeWidth={2.5} />
+            <Building2 size={18} color="#fff" strokeWidth={2.5} />
           </div>
           {!isCollapsed && (
             <div className="min-w-0 animate-fade-in">
-              <p className="text-sm font-bold text-gray-900 tracking-tight uppercase leading-none">R-Life CRM</p>
+              <p className="text-sm font-bold text-gray-900 tracking-tight uppercase leading-none">PropByte CRM</p>
               <p className="text-[10px] font-medium text-gray-400 mt-1 truncate">
                 {isSuperAdmin ? 'Platform Admin' : (organization?.name || 'Synture Solutions')}
               </p>
@@ -140,7 +144,11 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
             <div className={`px-4 space-y-2 ${isCollapsed ? 'flex flex-col items-center px-0' : ''}`}>
               {CRM_NAV.filter(item => {
                 if (isOnsiteVisitor) return item.href === '/leads' || item.href === '/dashboard';
-                if (isSalesAgent && item.href === '/reports') return false;
+                if (isSalesAgent) {
+                  const salesExcluded = ['/reports', '/projects', '/inventory'];
+                  if (salesExcluded.includes(item.href)) return false;
+                  if (item.href === '/leads') item.label = 'My Leads';
+                }
                 return true;
               }).map(({ href, label, icon: Icon }) => {
                 const active = isActive(href);

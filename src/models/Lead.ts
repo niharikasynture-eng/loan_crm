@@ -56,6 +56,11 @@ export interface ILead extends Document {
     mother?: number;
     father?: number;
   };
+  project_id?: mongoose.Types.ObjectId;
+  budget?: string;
+  preferred_location?: string;
+  property_type?: string;
+  preferred_configuration?: string;
   tseName?: string;
   tlName?: string;
   visitDate?: string;
@@ -131,6 +136,11 @@ const LeadSchema = new Schema<ILead>(
       mother: { type: Number },
       father: { type: Number },
     },
+    project_id: { type: Schema.Types.ObjectId, ref: 'Project' },
+    budget: { type: String, trim: true },
+    preferred_location: { type: String, trim: true },
+    property_type: { type: String, trim: true },
+    preferred_configuration: { type: String, trim: true },
     tseName: { type: String, trim: true },
     tlName: { type: String, trim: true },
     visitDate: { type: String },

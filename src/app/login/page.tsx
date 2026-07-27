@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-import { Eye, EyeOff, BarChart2, Users, TrendingUp, CheckSquare, ChevronDown, Check } from 'lucide-react';
+import { Eye, EyeOff, BarChart2, Users, TrendingUp, CheckSquare, ChevronDown, Check, Building2 } from 'lucide-react';
 
 const ROLE_OPTIONS = [
   { value: 'super_admin', label: 'Super Admin', desc: 'Full platform control', color: '#7c3aed' },
@@ -71,10 +71,10 @@ export default function LoginPage() {
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
           <div style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <img src="/R-life.png" alt="R-Life Logo" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }} />
+            <img src="/dealbyte.svg" alt="DealByte Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
           <span style={{ fontSize: 17, fontWeight: 800, color: '#1a202c', letterSpacing: '-0.5px' }}>
-            R-Life CRM
+            DealByte
           </span>
         </div>
 
@@ -276,7 +276,7 @@ export default function LoginPage() {
         </form>
 
         <p style={{ marginTop: 16, fontSize: 13, color: '#718096', textAlign: 'center' }}>
-          New to R-Life CRM?{' '}
+          New to DealByte?{' '}
           <Link href="/register" style={{ color: '#1a73e8', fontWeight: 600, textDecoration: 'none' }}>
             Create an organization
           </Link>

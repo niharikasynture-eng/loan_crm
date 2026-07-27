@@ -5,6 +5,10 @@ import Lead from '@/models/Lead';
 import User from '@/models/User';
 import CallLog from '@/models/CallLog';
 
+export async function GET(req: NextRequest) {
+  return POST(req);
+}
+
 export async function POST(req: NextRequest) {
   try {
     await connectDB();

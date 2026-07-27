@@ -42,7 +42,10 @@ export default function NewClientPage() {
     familyAges: { husband: '', wife: '', child1: '', child2: '', mother: '', father: '' },
     secondAreaReference: '',
     tseName: '', tlName: '', visitDate: new Date().toISOString().split('T')[0],
+    budget: '', property_type: 'Residential', preferred_configuration: '', project_id: '',
   });
+
+  const [projects, setProjects] = useState<{_id: string, name: string}[]>([]);
 
   useEffect(() => {
     if (user && !isAdmin && user.role !== 'manager') {
@@ -51,6 +54,9 @@ export default function NewClientPage() {
     }
     api.get<{ users: IUser[] }>('/users?role=sales_agent,onsite_visitor')
       .then(d => setOrgUsers(d.users))
+      .catch(console.error);
+    api.get<{ projects: {_id: string, name: string}[] }>('/projects')
+      .then(d => setProjects(d.projects))
       .catch(console.error);
   }, [user, isAdmin, router]);
 
@@ -178,6 +184,42 @@ export default function NewClientPage() {
                   <Map size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 z-10" />
                   <input type="url" placeholder="Google Maps URL" value={form.mapLink} onChange={e => set('mapLink', e.target.value)} className={inputClass} style={{ paddingLeft: '48px' }} />
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 1.5. REAL ESTATE PREFERENCES */}
+          <div className={sectionClass}>
+            <div className="flex items-center gap-3 px-8 py-4 border-b border-slate-100 bg-slate-50/50">
+              <div className="w-10 h-10 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow-sm">
+                <Building2 size={18} strokeWidth={2.5} />
+              </div>
+              <h2 className="text-lg font-bold text-slate-800 tracking-tight">Real Estate Preferences</h2>
+            </div>
+
+            <div className="p-8 md:p-10 grid grid-cols-1 md:grid-cols-12 gap-x-8 gap-y-8">
+              <div className="md:col-span-6">
+                <label className={labelClass}>Interested Project</label>
+                <select value={form.project_id} onChange={e => set('project_id', e.target.value)} className={inputClass}>
+                  <option value="">Select a Project...</option>
+                  {projects.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
+                </select>
+              </div>
+              <div className="md:col-span-6">
+                <label className={labelClass}>Budget (₹)</label>
+                <input type="text" placeholder="e.g. 50L - 1Cr" value={form.budget} onChange={e => set('budget', e.target.value)} className={inputClass} />
+              </div>
+              <div className="md:col-span-6">
+                <label className={labelClass}>Property Type</label>
+                <select value={form.property_type} onChange={e => set('property_type', e.target.value)} className={inputClass}>
+                  <option value="Residential">Residential</option>
+                  <option value="Commercial">Commercial</option>
+                  <option value="Plot">Plot</option>
+                </select>
+              </div>
+              <div className="md:col-span-6">
+                <label className={labelClass}>Preferred Configuration</label>
+                <input type="text" placeholder="e.g. 2 BHK, 3 BHK" value={form.preferred_configuration} onChange={e => set('preferred_configuration', e.target.value)} className={inputClass} />
               </div>
             </div>
           </div>

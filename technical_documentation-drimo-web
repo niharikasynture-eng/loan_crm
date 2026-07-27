@@ -1,0 +1,234 @@
+# Technical Documentation: Drimo Web Ecosystem
+
+Welcome to the **Drimo Web** technical reference guide! This document is designed to walk you through every folder, file, technical configuration, and industry-standard term used in this codebase.
+
+Drimo Web is an **Enterprise Driver Human Resource Management System (HRMS)** built with a modern web stack. It supports multiple portals with different user privileges (internal administrators, driver support agents, drivers, and client organizations).
+
+---
+
+## 1. High-Level Architecture Overview
+
+Drimo is structured as a single monorepo-style application that serves **three distinct user flows** using a single Next.js installation:
+1. **Drimo Admin Portal (`/drimo`)**: For platform operations, payroll accountants, super admins, and support agents.
+2. **Drimo Driver Portal (`/drimo/driver`)**: A mobile-optimized interface for drivers to log attendance, check support tickets, and see their payroll details.
+3. **Client Organization Portal (`/org`)**: For clients (e.g., transport companies) using Drimo drivers. They can view attendance analytics, assign shifts, approve leave requests, and request driver replacements.
+
+```mermaid
+graph TD
+    User([User request]) --> Mid[Next.js Middleware]
+    Mid -->|Scope: 'drimo'| DrimoApp[/drimo pages]
+    Mid -->|Role: 'driver'| DriverApp[/drimo/driver pages]
+    Mid -->|Scope: 'org'| OrgApp[/org pages]
+    
+    DrimoApp --> API[API Endpoints /api/drimo]
+    DriverApp --> API
+    OrgApp --> OrgAPI[API Endpoints /api/org]
+    
+    API --> DB[(MongoDB Database)]
+    OrgAPI --> DB
+```
+
+---
+
+## 2. Directory Structure & Files Explanations
+
+Here is a full breakdown of the project directories and files in your workspace (`c:\Users\Admin\Drimo-web`):
+
+### 📂 Root Directory Configurations
+- **`.env.local`**: Holds local environment variables such as database connection strings (`MONGODB_URI`) and JWT secret keys (`JWT_SECRET`). It is excluded from Git to prevent exposing credentials.
+- **`next.config.mjs`**: Next.js configuration module. Defines custom optimizations, image domains, and experimental React 19 settings.
+- **`postcss.config.js`**: Configures PostCSS (used by Tailwind CSS to parse utility classes into standard CSS).
+- **`tailwind.config.js`**: Custom Tailwind CSS theme file. It defines:
+  - **Color palettes**: `drimo` (slate/deep navy shades), `amber` (gold hues for brand accents), and `org` (teals for the partner portal).
+  - **Shadow glows**: Custom glow effects (`shadow-glow-amber`, `shadow-glow-teal`) for buttons and active cards.
+  - **Custom animations**: Keyframes for smooth entries (`fade-in`, `slide-in`) to provide a premium feel.
+- **`jsconfig.json`**: Configures path mapping. Allows using the absolute path alias `@/` which resolves directly to the `./src/` folder (e.g., importing `@/lib/db/connect` rather than writing complex relative paths like `../../../lib/db/connect`).
+- **`package.json`**: Lists dependencies, devDependencies, and build scripts.
+- **`package-lock.json`**: Records the exact version of all node modules installed to ensure environmental consistency across deployments.
+
+---
+
+### 📂 `scripts/`
+- **`seed.js`**: Database population script. It establishes a connection to MongoDB and creates default users, organizations, and driver data.
+  > [!TIP]
+  > To seed your database with mock data, run `node scripts/seed.js` or compile it through npm. It creates credentials like `super@gmail.com`, `operation@gmail.com`, `acc@gmail.com`, and `driver@gmail.com` (all using the password `password123`).
+
+---
+
+### 📂 `src/` (The Application Code)
+
+#### 📄 `src/middleware.js`
+The application's **security firewall**. It intercepts all incoming requests before they hit a page layout, checks browser cookies (`drimo_token` or `org_token`), verifies the JWT payload, and controls route access:
+- **Drimo scope (`/drimo`)**: Redirects unauthenticated users to `/drimo/login`. If the role is `driver`, it restricts access to only `/drimo/driver/*` paths. Non-drivers are blocked from driver pages and redirected back to the admin dashboard.
+- **Role Gating**: Blocks admins who are not authorized (e.g., only `super_admin` and `accounts_admin` can access `/drimo/salary` or `/drimo/invoices`).
+- **Org scope (`/org`)**: Prevents non-organization members from entering. Viewers (`viewer` role) are restricted to read-only views like `/org/reports`, `/org/dashboard`, `/org/notifications`, and `/org/drivers`.
+
+---
+
+#### 📂 `src/lib/` (Core Libraries & DB Connectors)
+Shared utilities and helper classes that run on the server side:
+- **`apiFilter.js`**: Contains security scope filters.
+  - `scopeFilter(token)`: Outputs a MongoDB filter dynamically. If a client organisation calls an API, it appends `{ orgId: token.orgId }` to ensure they only see their own drivers. If a driver calls it, it filters by `{ driverId: token.driverId }`.
+- **`helpers.js`**: Contains standard JSON response wrappers (`apiSuccess`, `apiError`), cookie extractor (`getTokenFromRequest`), date converters (`toDateStr`), and helper configurations for API pagination.
+- **📂 `auth/`**
+  - `hash.js`: Helper function utilizing `bcryptjs` to encrypt passwords during signup and verify them during login.
+  - `jwt.js`: Utilizes the high-performance `jose` library to sign and verify JSON Web Tokens with an 8-hour expiry time.
+- **📂 `db/`**
+  - `connect.js`: Reusable MongoDB connection function. It caches the connection globally to avoid creating multiple, overlapping connections when hot-reloading in development.
+  - **📂 `models/` (Mongoose DB Schemas)**:
+    - `User.js`: Schema for system login accounts (stores name, email, encrypted password, role, scope, status).
+    - `Driver.js`: Detailed driver profile (license number, date of birth, blood group, base salary, uploaded documents with verification status, current assigned organization).
+    - `Attendance.js`: Logs check-in/out times, selfies, geo-coordinates (latitude/longitude), calculated working hours, status (present, absent, leave, half-day), and admin verification notes.
+    - `SupportTicket.js`: Driver support questions categorised by topic (salary, vehicle, leaves, etc.) with priority levels, assignments, and resolution descriptions.
+    - `Leave.js`: Leave requests filed by drivers, complete with date ranges, reason types, and approval states.
+    - `Organization.js`: Client business accounts detailing company name, contact emails, sub-domains (slugs), and billing contract limits.
+    - `Overtime.js` & `OverStation.js`: Work supplements that record additional billable hours or field allowances.
+    - `Invoice.js` & `KPIReport.js`: Invoices sent to organizations and metrics reports summarizing performance index ratings.
+    - `Trip.js`, `ShiftAssignment.js`, `DriverAssignment.js`, `IncrementHistory.js`, `Notification.js`, `Settings.js`.
+
+---
+
+#### 📂 `src/components/` (Reusable UI Building Blocks)
+- **📂 `ui/`**
+  - `Button.jsx`: Flexible button supporting outline, primary, secondary, and ghost variants.
+  - `Badge.jsx`: Label badge that takes statuses (`active`, `present`, `pending`, `rejected`) and renders custom colors matching the Tailwind system.
+  - `DataTable.jsx`: Responsive grid table with header labels and row formatting.
+  - `Modal.jsx`: Pop-up window wrapper with absolute screen blocking and backdrop blur.
+  - `Spinner.jsx`: Custom loading indicator.
+  - `StatCard.jsx`: Dashboard cards showcasing values, icons, and trends.
+- **📂 `drimo/`**
+  - `Sidebar.jsx` & `Topbar.jsx`: Left navigation drawer and top bar designed specifically for the platform operators.
+  - **📂 `driver/`**
+    - `DriverSidebar.jsx`: Mobile-friendly side navigation designed for drivers.
+- **📂 `org/`**
+  - `Sidebar.jsx` & `Topbar.jsx`: Navigation bars branded in teals and slate colors for organization managers.
+
+---
+
+#### 📂 `src/app/` (Pages & APIs Routing)
+Next.js utilizes file-system routing. Inside this directory, folder names determine the browser path, and `page.js` or `route.js` determine what displays or runs.
+
+- **`layout.js`**: Global wrapper that defines the HTML base tag, loads fonts (Inter from Google Fonts), and mounts globally available classes.
+- **`globals.css`**: Styling foundation defining Tailwind imports, customized scrollbar overlays, core color CSS variables, and layout shells (such as `.drimo-shell` and `.org-shell`).
+- **`page.js`**: The main project welcome landing page where users click to go to either the **Drimo Portal** or the **Organization Portal**.
+
+- **📂 `api/` (Backend Endpoints)**
+  - `📂 api/auth/drimo/route.js` & `api/auth/org/route.js`: Handlers for validating email/password, issuing JWTs, and storing cookies.
+  - `📂 api/drimo/*`: Internal APIs (e.g., `/api/drimo/salary` processes payroll sheets, calculates monthly base pay minus absences, and issues batch IDs).
+  - `📂 api/org/*`: Enterprise client APIs for fetching KPI scorecards, managing work shifts, and viewing attendance logs.
+
+- **📂 `drimo/` (Admin Web Pages)**
+  - `/drimo/dashboard`: Displays system-wide active stats (total drivers, active clients, unverified documents, open support tickets).
+  - `/drimo/drivers`: Main driver database listing. Admins can create profiles, upload document metadata, change employment status, and link profiles to login accounts.
+  - `/drimo/salary`: Payroll calculation worksheet. Calculates month-by-month attendance sheets, tracks half-days and leave offsets, and generates payout totals.
+  - **📂 `drimo/driver/` (Driver Subportal)**:
+    - `/drimo/driver/dashboard`: Driver homepage. Features a huge interactive **Punch In / Punch Out** button using geolocation details.
+    - `/drimo/driver/attendance`: Displays the driver's own check-in/out logs calendar.
+
+- **📂 `org/` (Client Web Pages)**
+  - `/org/dashboard`: High-level metrics for HR managers (daily active headcount, today's absent count, active shifts).
+  - `/org/shifts`: Scheduling calendar allowing supervisors to assign driver shifts.
+  - `/org/kpi`: Metric score sheets that evaluate drivers based on late arrivals, customer feedback, and safe operation.
+  - `/org/replacements`: Allows requesting immediate backup drivers in case an existing driver calls in sick or goes on leave.
+
+---
+
+## 3. Glossary of Technical Terms
+
+To help you gain full confidence in this environment, here is an absolute guide to the technical terms you will see throughout the codebase:
+
+### 🌐 Next.js & React Concepts
+
+#### App Router
+Introduced in recent Next.js versions, this is the modern routing system. Files named `page.js` inside folders translate automatically to browser routes (e.g., `src/app/drimo/page.js` becomes `/drimo` in the URL).
+
+#### Layouts (`layout.js`)
+Shared UI shell that wraps surrounding pages. It prevents nested components from rebuilding when navigating between sibling routes (like clicking around the sidebar).
+
+#### Route Handlers (`route.js`)
+Custom request handlers that act as backend API endpoints. They process standard REST methods (`GET`, `POST`, `PUT`, `DELETE`) and return JSON payloads.
+
+#### Client Components (`"use client"`)
+React components that execute in the browser. You must place `"use client"` at the top of files that utilize user interaction (like clicking a button, running timers, or triggering React hooks like `useState` and `useEffect`).
+
+#### Server Components
+By default in the App Router, files are compiled as Server Components. They fetch data directly from databases on the server-side, reducing client-side bundle sizes and speeding up initial page loads.
+
+#### Next.js Middleware
+Code that triggers *before* a request is fully processed. It is useful for inspecting request headers, managing logins, and enforcing security policies before serving HTML to a user.
+
+---
+
+### 🗄️ Database & Mongoose Concepts
+
+#### MongoDB & NoSQL
+A document-based database. Instead of writing rigid rows and columns (like SQL), it stores entries as dynamic JSON-like documents.
+
+#### Mongoose
+An Object Data Modeling (ODM) library for MongoDB and Node.js. It allows you to declare structured schemas (like validating that `email` is lowercase or `status` is limited to an enum).
+
+#### DB Connection Caching
+In serverless environments, Next.js routes fire in isolated execution threads. Mongoose caching (used in `src/lib/db/connect.js`) stores the database connection in a global variable so that consecutive API calls reuse the open pipeline instead of overwhelming the database with new connections.
+
+#### Mongoose Population (`.populate()`)
+A query technique that automatically replaces an ID field with the full document from another collection (e.g., converting `currentOrgId` inside a Driver document into the actual Organization object).
+
+#### Enums
+Rigid validation constraints ensuring a text field can only accept a specific list of strings (for example: `status: { type: String, enum: ['active', 'inactive', 'on_leave'] }`).
+
+#### Database Indexes (`.index()`)
+Performance flags created on columns. If we query driver records by their organization often, adding `DriverSchema.index({ currentOrgId: 1 })` speeds up search lookups.
+
+---
+
+### 🔐 Security & Auth Concepts
+
+#### JSON Web Token (JWT)
+An encoded string containing a secured data payload (like `{ userId: '123', role: 'super_admin' }`). Since it is cryptographically signed, the server can trust that the client has not tampered with their login state.
+
+#### Scope vs Role
+- **Scope**: General domain boundaries. In this app, scopes are either `drimo` (internal application) or `org` (client application).
+- **Role**: Level of authority inside a scope. A user in the `drimo` scope might have the `accounts_admin` role, whereas a user in the `org` scope might have the `hr_manager` role.
+
+#### Hashing & Salts (Bcrypt)
+Security algorithm that converts plain-text passwords into encrypted strings (e.g., `password123` becomes `$2a$12$R9h/c...`). This is one-way encryption—it is virtually impossible to decode back to the original password, making the database secure if leaked.
+
+---
+
+### 🎨 Styling & Tailwind Concepts
+
+#### Tailwind Directives (`@tailwind`)
+Special tags in your CSS files (`@tailwind base; @tailwind components; @tailwind utilities;`) that instruct Tailwind's compiler to inject its pre-made responsive classes.
+
+#### `@apply`
+A Tailwind helper directive that allows you to pack multiple utility classes into a single, clean CSS class (e.g., combining `.badge-green { @apply bg-emerald-500/15 text-emerald-400; }`). This keeps components neat and avoids cluttering React files with hundreds of inline CSS tags.
+
+#### CSS Variables (`:root`)
+Global dynamic styling tokens (e.g., `--drimo-bg: #0F172A`). They allow you to shift whole interface accents dynamically by altering key color values inside a central file.
+
+---
+
+## 4. Summary Flow: How Everything Connects
+
+Here is an example of what happens when a driver opens the Drimo App to **Punch In**:
+
+```
+[Driver UI] 
+   └── 1. Clicks "PUNCH IN" (uses "use client" in src/app/drimo/driver/dashboard/page.js)
+   └── 2. Browser grabs Geo-Location coordinates and snaps a verification selfie.
+   └── 3. UI triggers a POST request to `/api/drimo/attendance`
+
+[API Endpoint]
+   └── 4. Middleware (src/middleware.js) intercepts request, reads cookie "drimo_token"
+   └── 5. Verifies JWT (src/lib/auth/jwt.js) & extracts payload (driverId = X, scope = drimo)
+   └── 6. Next.js router routes request to POST handler in api route
+   └── 7. Handler imports dbConnect (src/lib/db/connect.js) to reuse database link
+   └── 8. Mongoose maps input to Attendance schema (src/lib/db/models/Attendance.js)
+   └── 9. Record is written to MongoDB!
+   └── 10. Returns `apiSuccess()` (src/lib/helpers.js)
+
+[Driver UI]
+   └── 11. Sonner toast pops up showing "Punch In recorded successfully!"
+```
+
+This clean, decoupled architecture ensures that whether you are checking attendance, assigning shifts, or calculating a month's driver payroll, the codebase remains reliable, performant, and secure!
