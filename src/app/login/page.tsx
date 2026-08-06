@@ -186,7 +186,7 @@ export default function LoginPage() {
           {/* Email */}
           <div>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#4a5568', marginBottom: 6 }}>
-              Email Address!
+              Email Address
             </label>
             <div style={{ position: 'relative' }}>
               <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#a0aec0' }}>
