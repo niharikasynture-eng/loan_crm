@@ -45,16 +45,16 @@ export default function RootPage() {
               <img src="/dealbyte.svg" alt="DealByte Logo" className="w-9 h-9" />
               <span className="text-xl font-bold tracking-tight text-slate-900">DealByte</span>
             </div>
-            
+
             <div className="flex items-center gap-4">
-              <Link 
-                href="/login" 
+              <Link
+                href="/login"
                 className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors px-4 py-2"
               >
                 Log in
               </Link>
-              <Link 
-                href="/register" 
+              <Link
+                href="/register"
                 className="text-sm font-semibold bg-indigo-600 text-white px-5 py-2.5 rounded-lg hover:bg-indigo-700 transition-all shadow-sm hover:shadow active:scale-95"
               >
                 Sign up
@@ -68,7 +68,7 @@ export default function RootPage() {
       <div className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
         <div className="absolute inset-0 bg-slate-50 opacity-100 -z-20"></div>
         <div className="absolute top-0 right-0 -translate-y-12 translate-x-1/3 w-[800px] h-[600px] bg-indigo-50 rounded-full blur-3xl -z-10"></div>
-        
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
             <div className="max-w-2xl">
@@ -80,18 +80,18 @@ export default function RootPage() {
                 Close more deals with less friction.
               </h1>
               <p className="text-lg text-slate-600 mb-8 leading-relaxed max-w-xl">
-                A professional CRM built to streamline your sales pipeline, manage leads effectively, and provide actionable insights without the bloat of traditional software.
+                A professional CRM built to streamline your sales pipeline, manage leads effectively, and provide actionable insights without the bloat of traditional software .
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link 
-                  href="/register" 
+                <Link
+                  href="/register"
                   className="inline-flex justify-center items-center gap-2 px-6 py-3.5 rounded-xl bg-indigo-600 text-white font-semibold text-base hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 hover:shadow-xl hover:shadow-indigo-200 active:scale-95"
                 >
                   Start for free
                   <ArrowRight size={18} />
                 </Link>
-                <Link 
-                  href="/login" 
+                <Link
+                  href="/login"
                   className="inline-flex justify-center items-center gap-2 px-6 py-3.5 rounded-xl bg-white text-slate-700 border border-slate-200 font-semibold text-base hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95"
                 >
                   View live demo
@@ -133,7 +133,7 @@ export default function RootPage() {
                       + New Deal
                     </button>
                   </div>
-                  
+
                   <div className="grid grid-cols-3 gap-4">
                     {[
                       { icon: <Users size={16} className="text-indigo-600" />, label: 'Active Leads', value: '1,245' },
@@ -179,7 +179,7 @@ export default function RootPage() {
           </div>
         </div>
       </div>
-      
+
       {/* Logos section */}
       <div className="border-t border-slate-200 bg-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
