@@ -105,11 +105,8 @@ export async function POST(req: NextRequest) {
 
     if (!leadId || !type) return apiError('leadId and type are required');
 
-    // Ensure lead belongs to org and (if salesperson) is assigned to them
-    const leadQuery: Record<string, unknown> = { _id: leadId, organizationId: auth.organizationId };
-    if (auth.role === ROLES.SALES_AGENT) leadQuery.assignedTo = auth.userId;
-
-    const lead = await Lead.findOne(leadQuery);
+    // Ensure lead belongs to org
+    const lead = await Lead.findOne({ _id: leadId, organizationId: auth.organizationId });
     if (!lead) return apiError('Lead not found or access denied', 404);
 
     const activity = await Activity.create({
