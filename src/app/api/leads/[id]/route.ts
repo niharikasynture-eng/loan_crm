@@ -123,20 +123,30 @@ export async function PATCH(
     if (body.assignedTo && body.assignedTo !== prevAssigned) {
       const assignedUser = await User.findById(body.assignedTo).select('name email role');
       if (assignedUser) {
-        /* 
-        // STAFF NOTIFICATIONS DISABLED AS PER USER REQUEST
+        const leadVal = (lead as any).value || 0;
+        const leadTags = (lead as any).tags || [];
+        const isHighPriority =
+          leadVal >= 50000 ||
+          leadTags.some((t: string) => ['urgent', 'high-priority', 'hot', 'vip'].includes(t.toLowerCase()));
+
+        const title = isHighPriority ? '🚨 HIGH PRIORITY: Urgent Client Assigned!' : '📋 Client Assigned to You';
+        const message = isHighPriority
+          ? `Urgent: High-value client "${(lead as {name: string}).name}" has been assigned to you.`
+          : `You have been assigned the client: "${(lead as {name: string}).name}"`;
+
         await Notification.create({
           userId: body.assignedTo,
           organizationId: auth.organizationId,
           type: 'lead_assigned',
-          title: 'Lead Assigned to You',
-          message: `You have been assigned the lead: "${(lead as {name: string}).name}"`,
+          title,
+          message,
           link: `/leads/${id}`,
         });
-        if (assignedUser.role === ROLES.SALES_AGENT) {
+
+        if (assignedUser.email) {
           await sendLeadAssignedEmail(assignedUser.email, assignedUser.name, (lead as {name: string}).name, id);
         }
-        */
+
         await AuditLog.create({
           action: 'lead_assigned',
           performedBy: auth.userId,

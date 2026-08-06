@@ -87,21 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { token: t, user: u, organization: o } = data.data;
 
-    // Role enforcement: if a role was selected on the login form,
-    // make sure the user's actual role matches it.
-    if (selectedRole && u.role !== selectedRole) {
-      const ROLE_LABELS: Record<string, string> = {
-        super_admin: 'Super Admin',
-        org_admin: 'Org Admin',
-        manager: 'Manager',
-        sales_agent: 'Sales Person',
-        onsite_visitor: 'Onsite Visitor',
-      };
-      throw new Error(
-        `Access denied. You selected "${ROLE_LABELS[selectedRole] || selectedRole}" but your account role is "${ROLE_LABELS[u.role] || u.role}". Please select the correct role.`
-      );
-    }
-
+    // Role enforcement: Auto-route to user's actual role
     localStorage.setItem('crm_token', t);
     setToken(t);
     setUser(u);

@@ -1,10 +1,3 @@
-// Email utility — uses nodemailer if SMTP configured, otherwise logs to console
-// Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM in .env.local
-
-const SMTP_HOST = process.env.SMTP_HOST;
-const SMTP_USER = process.env.SMTP_USER;
-const SMTP_PASS = process.env.SMTP_PASS;
-const SMTP_FROM = process.env.SMTP_FROM || 'R-Life CRM <noreply@r-life.com>';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 interface EmailOptions {
@@ -14,7 +7,12 @@ interface EmailOptions {
 }
 
 export async function sendEmail(opts: EmailOptions): Promise<void> {
-  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
+  const host = process.env.SMTP_HOST;
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS?.replace(/\s+/g, '');
+  const from = process.env.SMTP_FROM || 'R-Life CRM <noreply@r-life.com>';
+
+  if (!host || !user || !pass) {
     console.warn('⚠️  [EMAIL] SMTP not configured — email was NOT sent.');
     console.log(`  → To: ${opts.to}`);
     console.log(`  → Subject: ${opts.subject}`);
@@ -22,18 +20,17 @@ export async function sendEmail(opts: EmailOptions): Promise<void> {
   }
 
   try {
-    // Dynamic import to avoid issues if nodemailer not available
     const nodemailer = await import('nodemailer');
     const transporter = nodemailer.default.createTransport({
-      host: SMTP_HOST,
+      host,
       port: parseInt(process.env.SMTP_PORT || '587'),
       secure: process.env.SMTP_SECURE === 'true',
-      auth: { user: SMTP_USER, pass: SMTP_PASS },
+      auth: { user, pass },
     });
-    await transporter.sendMail({ from: SMTP_FROM, ...opts });
+    const info = await transporter.sendMail({ from, ...opts });
+    console.log(`✅ [EMAIL SUCCESS] Sent to ${opts.to} | MessageId: ${info.messageId}`);
   } catch (err) {
-    console.error('Email send failed:', err);
-    // Don't throw — email failure should not break the request
+    console.error(`❌ [EMAIL FAILURE] Failed to send to ${opts.to}:`, err);
   }
 }
 

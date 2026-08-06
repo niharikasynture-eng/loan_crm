@@ -5,6 +5,7 @@ import Lead from '@/models/Lead';
 import User from '@/models/User';
 import Notification from '@/models/Notification';
 import { sendLeadAssignedEmail } from '@/lib/email';
+import { getAutoAssignedAgent } from '@/lib/lead-routing';
 
 // GET /api/leads
 export async function GET(req: NextRequest) {
@@ -78,6 +79,11 @@ export async function POST(req: NextRequest) {
 
     if (!name) return apiError('Lead name is required');
 
+    let targetAssignedTo = assignedTo || null;
+    if (!targetAssignedTo) {
+      targetAssignedTo = await getAutoAssignedAgent(auth.organizationId);
+    }
+
     const lead = await Lead.create({
       organizationId: auth.organizationId,
       name,
@@ -86,7 +92,8 @@ export async function POST(req: NextRequest) {
       company,
       source: source || 'Other',
       status: status || 'new',
-      assignedTo: assignedTo || null,
+      assignedTo: targetAssignedTo || undefined,
+      assignedAt: targetAssignedTo ? new Date() : undefined,
       value,
       notes,
       tags: tags || [],
@@ -102,8 +109,15 @@ export async function POST(req: NextRequest) {
       .populate('createdBy', 'name email')
       .lean();
 
-    // Trigger notifications: org_admin + managers
-    await notifyNewLead(auth.organizationId, lead._id.toString(), name, assignedTo);
+    // Trigger notifications: org_admin + managers + assigned agent
+    await notifyNewLead(auth.organizationId, lead._id.toString(), name, targetAssignedTo, { value, tags, income });
+
+    // Background Auto-Data Enrichment (Non-blocking)
+    if (email) {
+      import('@/lib/lead-enrichment').then(({ enrichLeadData }) => {
+        enrichLeadData(lead._id.toString()).catch((err) => console.error('Enrichment error:', err));
+      });
+    }
 
     return apiSuccess({ lead: populated }, 'Lead created', 201);
   } catch (err: unknown) {
@@ -112,17 +126,21 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Helper: notify org_admin and managers about new lead
+// Helper: notify assigned sales agents, org_admin, and managers about new/assigned leads
 export async function notifyNewLead(
   organizationId: string,
   leadId: string,
   leadName: string,
-  assignedToId?: string
+  assignedToId?: string,
+  leadData?: { value?: number; tags?: string[]; income?: string }
 ) {
   try {
-    /* 
-    // STAFF NOTIFICATIONS DISABLED AS PER USER REQUEST
-    // Find org admins and managers to notify
+    const isHighPriority =
+      (leadData?.value && leadData.value >= 50000) ||
+      (leadData?.tags && leadData.tags.some((t) => ['urgent', 'high-priority', 'hot', 'vip'].includes(t.toLowerCase()))) ||
+      (leadData?.income && ['high', '10lakh+', '50lakh+', 'crore'].some((k) => leadData.income?.toLowerCase().includes(k)));
+
+    // 1. Find org admins and managers to notify of new client arrival
     const recipients = await User.find({
       organizationId,
       role: { $in: [ROLES.ORG_ADMIN, ROLES.MANAGER] },
@@ -135,30 +153,37 @@ export async function notifyNewLead(
           userId: r._id,
           organizationId,
           type: 'new_lead',
-          title: 'New Lead Received',
-          message: `A new lead "${leadName}" has been added.`,
+          title: isHighPriority ? '🚨 HIGH PRIORITY: New Client Received' : '📋 New Client Received',
+          message: isHighPriority
+            ? `High-value client "${leadName}" has entered the system!`
+            : `A new client "${leadName}" has been added to the system.`,
           link: `/leads/${leadId}`,
         }))
       );
     }
 
-    // Notify assigned salesperson (if assigned to someone other than creator)
+    // 2. Notify assigned salesperson instantly
     if (assignedToId) {
       const assignedUser = await User.findById(assignedToId).select('name email role');
-      if (assignedUser && assignedUser.role === ROLES.SALES_AGENT) {
+      if (assignedUser) {
+        const title = isHighPriority ? '🚨 HIGH PRIORITY: Urgent Client Assigned!' : '📋 New Client Assigned to You';
+        const message = isHighPriority
+          ? `Urgent: High-value client "${leadName}" has been assigned to you. Contact within 2 hours!`
+          : `You have been assigned the client: "${leadName}".`;
+
         await Notification.create({
           userId: assignedToId,
           organizationId,
           type: 'lead_assigned',
-          title: 'Lead Assigned to You',
-          message: `You have been assigned the lead: "${leadName}"`,
+          title,
+          message,
           link: `/leads/${leadId}`,
         });
-        // Also send email
+
+        // Also send email alert to assigned agent
         await sendLeadAssignedEmail(assignedUser.email, assignedUser.name, leadName, leadId);
       }
     }
-    */
   } catch (err) {
     console.error('Failed to send lead notifications:', err);
   }

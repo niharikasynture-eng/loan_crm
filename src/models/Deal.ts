@@ -23,6 +23,10 @@ export interface IDeal extends Document {
   notes?: string;
   pipelineId?: mongoose.Types.ObjectId;
   position: number;
+  isStale?: boolean;
+  staleFlaggedAt?: Date;
+  breakupEmailSent?: boolean;
+  breakupEmailSentAt?: Date;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -53,6 +57,10 @@ const DealSchema = new Schema<IDeal>(
     notes: { type: String },
     pipelineId: { type: Schema.Types.ObjectId, ref: 'Pipeline' },
     position: { type: Number, default: 0 },
+    isStale: { type: Boolean, default: false },
+    staleFlaggedAt: { type: Date },
+    breakupEmailSent: { type: Boolean, default: false },
+    breakupEmailSentAt: { type: Date },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
   },
   { timestamps: true }

@@ -37,6 +37,9 @@ export default function DashboardPage() {
   };
 
   React.useEffect(() => {
+    // Automatically trigger 2-Hour SLA Ghost Lead check
+    api.get('/cron/ghost-leads').catch(console.error);
+
     api.get<{ metrics: DashboardMetrics; recentActivities: any[] }>('/dashboard')
       .then((d) => { setMetrics(d.metrics); setActivities(d.recentActivities); })
       .catch(() => toast('error', 'Failed to load dashboard'))
