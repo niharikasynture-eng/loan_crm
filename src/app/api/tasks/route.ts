@@ -73,9 +73,9 @@ export async function POST(req: NextRequest) {
 
     if (!title || !dueDate) return apiError('Title and dueDate are required');
 
-    // If salesperson is creating, ensure lead is theirs
-    if (leadId && auth.role === ROLES.SALES_AGENT) {
-      const lead = await Lead.findOne({ _id: leadId, assignedTo: auth.userId, organizationId: auth.organizationId });
+    // Ensure lead belongs to org if specified
+    if (leadId) {
+      const lead = await Lead.findOne({ _id: leadId, organizationId: auth.organizationId });
       if (!lead) return apiError('Lead not found or access denied', 404);
     }
 

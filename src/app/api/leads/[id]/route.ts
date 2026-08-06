@@ -76,9 +76,8 @@ export async function PATCH(
       if (body[key] !== undefined) updates[key] = body[key];
     }
 
-    // Restricted roles can only update their own leads
+    // Restricted roles can update leads within their organization
     const query: Record<string, unknown> = { _id: id, organizationId: auth.organizationId };
-    if (auth.role === ROLES.SALES_AGENT || auth.role === ROLES.ONSITE_VISITOR) query.assignedTo = auth.userId;
 
     const previousLead = await Lead.findOne(query).lean();
     if (!previousLead) return apiError('Lead not found', 404);
