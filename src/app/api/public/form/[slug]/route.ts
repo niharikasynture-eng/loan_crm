@@ -5,6 +5,7 @@ import Organization from '@/models/Organization';
 import Lead from '@/models/Lead';
 import { notifyNewLead } from '@/app/api/leads/route';
 import { sendPublicLeadWelcomeEmail } from '@/lib/email';
+import { getAutoAssignedAgent } from '@/lib/lead-routing';
 
 // GET /api/public/form/[slug] — Get org info for slug-based public form
 export async function GET(
@@ -15,10 +16,21 @@ export async function GET(
     const { slug } = await params;
     await connectDB();
 
-    const org = await Organization.findOne({
-      slug: slug,
+    let org = await Organization.findOne({
+      slug: slug.toLowerCase(),
       status: { $in: ['active', 'approved'] },
     }).select('name slug settings').lean();
+
+    if (!org) {
+      // Fallback: match by slug prefix or name in case slug has a auto-generated suffix
+      org = await Organization.findOne({
+        $or: [
+          { slug: { $regex: `^${slug.toLowerCase()}`, $options: 'i' } },
+          { name: { $regex: `^${slug.toLowerCase()}`, $options: 'i' } },
+        ],
+        status: { $in: ['active', 'approved'] },
+      }).select('name slug settings').lean();
+    }
 
     if (!org) return apiError('Organization not found or inactive', 404);
 
@@ -43,10 +55,20 @@ export async function POST(
     const { slug } = await params;
     await connectDB();
 
-    const org = await Organization.findOne({
-      slug: slug,
+    let org = await Organization.findOne({
+      slug: slug.toLowerCase(),
       status: { $in: ['active', 'approved'] },
     });
+
+    if (!org) {
+      org = await Organization.findOne({
+        $or: [
+          { slug: { $regex: `^${slug.toLowerCase()}`, $options: 'i' } },
+          { name: { $regex: `^${slug.toLowerCase()}`, $options: 'i' } },
+        ],
+        status: { $in: ['active', 'approved'] },
+      });
+    }
 
     if (!org) return apiError('Organization not found or inactive', 404);
 
@@ -55,6 +77,9 @@ export async function POST(
 
     if (!name) return apiError('Name is required');
     if (!email && !phone) return apiError('Email or phone is required');
+
+    // Determine auto-assigned agent
+    const assignedAgentId = await getAutoAssignedAgent(org._id);
 
     // 1. Create the lead record
     const lead = await Lead.create({
@@ -66,6 +91,8 @@ export async function POST(
       source: source || 'Public Form',
       status: 'new',
       pipelineStage: 'new',
+      assignedTo: assignedAgentId || undefined,
+      assignedAt: assignedAgentId ? new Date() : undefined,
       notes: message || '',
       tags: ['public-form', 'slug-based'],
     });
@@ -94,12 +121,16 @@ export async function POST(
       });
     }
 
-    // 3. BACKGROUND: Notify org admins + managers (non-blocking)
+    // 3. BACKGROUND: Notify org admins + managers + assigned agent + Auto-Data Enrich (non-blocking)
     (async () => {
       try {
-        await notifyNewLead(org._id.toString(), lead._id.toString(), name, undefined);
+        await notifyNewLead(org._id.toString(), lead._id.toString(), name, assignedAgentId || undefined, { tags: ['public-form'] });
+        if (email) {
+          const { enrichLeadData } = await import('@/lib/lead-enrichment');
+          await enrichLeadData(lead._id.toString());
+        }
       } catch (e) {
-        console.error('[AUTOMATION] Admin notify error:', e);
+        console.error('[AUTOMATION] Background task error:', e);
       }
     })();
 

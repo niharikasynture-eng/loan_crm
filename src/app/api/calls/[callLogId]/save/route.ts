@@ -45,7 +45,14 @@ export async function POST(
       await Lead.updateOne(
         { _id: lead._id },
         { 
-          $set: { lastCallOutcome: outcome }
+          $set: { 
+            lastCallOutcome: outcome,
+            lastContactedAt: new Date(),
+            lastCalledAt: new Date(),
+            status: 'contacted',
+            isGhost: false,
+          },
+          $inc: { totalCalls: 1 }
         }
       );
 

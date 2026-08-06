@@ -23,6 +23,9 @@ export interface IOrganization extends Document {
   settings: {
     leadSources: string[];
     customFields: Array<{ name: string; type: string; required: boolean }>;
+    leadRoutingMode?: 'manual' | 'round_robin' | 'performance';
+    lastAssignedAgentIndex?: number;
+    autoAssignNewLeads?: boolean;
   };
   createdAt: Date;
   updatedAt: Date;
@@ -60,6 +63,13 @@ const OrganizationSchema = new Schema<IOrganization>(
         type: [{ name: String, type: String, required: Boolean }],
         default: [],
       },
+      leadRoutingMode: {
+        type: String,
+        enum: ['manual', 'round_robin', 'performance'],
+        default: 'round_robin',
+      },
+      lastAssignedAgentIndex: { type: Number, default: 0 },
+      autoAssignNewLeads: { type: Boolean, default: true },
     },
   },
   { timestamps: true }

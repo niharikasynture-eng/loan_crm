@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { connectDB } from '@/lib/db';
 import { requireAuth, apiError, apiSuccess, ROLES } from '@/lib/auth';
 import SiteVisit from '@/models/SiteVisit';
+import { triggerIntentStageMovement } from '@/lib/intent-stage-mover';
 
 export async function GET(req: NextRequest) {
   try {
@@ -37,6 +38,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
+// POST /api/site-visits
 export async function POST(req: NextRequest) {
   try {
     const auth = requireAuth(req);
@@ -47,8 +49,21 @@ export async function POST(req: NextRequest) {
       ...data,
       organizationId: auth.organizationId,
       createdBy: auth.userId,
-      sales_user_id: data.sales_user_id || auth.userId, // Default to self if not specified
+      sales_user_id: data.sales_user_id || auth.userId,
     });
+
+    if (data.lead_id) {
+      await triggerIntentStageMovement({
+        organizationId: auth.organizationId.toString(),
+        leadId: data.lead_id.toString(),
+        eventType: 'site_visit_scheduled',
+        eventData: {
+          visitDate: data.visit_date,
+          visitTime: data.visit_time,
+          notes: data.remarks,
+        },
+      });
+    }
 
     return apiSuccess(visit, 'Site visit scheduled', 201);
   } catch (err: unknown) {

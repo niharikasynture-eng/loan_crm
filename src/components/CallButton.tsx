@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Phone, Check } from 'lucide-react';
+import { Phone, Check, CheckSquare } from 'lucide-react';
 import { api } from '@/lib/api-client';
+import { PostCallDispositionModal } from '@/components/features/PostCallDispositionModal';
 
 interface CallButtonProps {
   lead: {
@@ -10,10 +11,12 @@ interface CallButtonProps {
     name: string;
     phone: string;
   };
+  onCallLogged?: () => void;
 }
 
-export default function CallButton({ lead }: CallButtonProps) {
+export default function CallButton({ lead, onCallLogged }: CallButtonProps) {
   const [isDialing, setIsDialing] = useState(false);
+  const [showDispositionModal, setShowDispositionModal] = useState(false);
 
   const handleClickCall = () => {
     setIsDialing(true);
@@ -21,21 +24,22 @@ export default function CallButton({ lead }: CallButtonProps) {
     // Clean phone number for the dialer
     const cleanPhone = lead.phone.replace(/[^\d+]/g, '');
     
-    // Notify server of call start for predictive matching (fix for Samsung phones)
+    // Notify server of call start for predictive matching
     api.post('/activities/call-start', { leadId: lead._id })
       .catch(err => console.error('Call capture error:', err));
     
-    // Direct navigation is more reliable for mobile dialers than window.open
+    // Direct navigation is more reliable for mobile dialers
     window.location.href = `tel:${cleanPhone}`;
     
-    // Reset the button state after a few seconds to provide feedback
+    // Automatically open the 1-Click Call Outcome modal after 3 seconds
     setTimeout(() => {
       setIsDialing(false);
-    }, 4000);
+      setShowDispositionModal(true);
+    }, 3000);
   };
 
   return (
-    <div className="w-full relative">
+    <div className="w-full relative space-y-3">
       <button
         onClick={handleClickCall}
         className={`w-full flex items-center justify-center gap-3 p-5 rounded-[24px] transition-all text-white font-black shadow-lg group overflow-hidden relative ${
@@ -58,7 +62,16 @@ export default function CallButton({ lead }: CallButtonProps) {
           </>
         )}
       </button>
-      <p className="text-center text-[10px] font-black text-gray-400 mt-3 uppercase tracking-widest">
+
+      <button
+        type="button"
+        onClick={() => setShowDispositionModal(true)}
+        className="w-full h-11 flex items-center justify-center gap-2 rounded-2xl bg-indigo-50 text-indigo-700 font-bold text-xs border border-indigo-100 hover:bg-indigo-100 transition-all active:scale-[0.98]"
+      >
+        <CheckSquare size={15} /> 1-Click Record Call Outcome
+      </button>
+
+      <p className="text-center text-[10px] font-black text-gray-400 mt-2 uppercase tracking-widest">
         {isDialing ? `Dialing ${lead.phone}...` : lead.phone}
       </p>
       
@@ -67,6 +80,16 @@ export default function CallButton({ lead }: CallButtonProps) {
           <Phone className="w-4 h-4 animate-pulse" /> Mobile Dialer Initiated
         </div>
       )}
+
+      {/* 1-Click Post-Call Outcome Modal */}
+      <PostCallDispositionModal
+        isOpen={showDispositionModal}
+        onClose={() => setShowDispositionModal(false)}
+        lead={lead}
+        onSuccess={() => {
+          if (onCallLogged) onCallLogged();
+        }}
+      />
     </div>
   );
 }

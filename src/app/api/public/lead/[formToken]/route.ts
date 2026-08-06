@@ -5,6 +5,7 @@ import Organization from '@/models/Organization';
 import Lead from '@/models/Lead';
 import { notifyNewLead } from '@/app/api/leads/route';
 import { sendPublicLeadWelcomeEmail } from '@/lib/email';
+import { getAutoAssignedAgent } from '@/lib/lead-routing';
 
 // GET /api/public/lead/[formToken] — Get org info for public form
 export async function GET(
@@ -56,6 +57,9 @@ export async function POST(
     if (!name) return apiError('Name is required');
     if (!email && !phone) return apiError('Email or phone is required');
 
+    // Auto-assign sales agent
+    const assignedAgentId = await getAutoAssignedAgent(org._id);
+
     // 1. Create the lead record
     const lead = await Lead.create({
       organizationId: org._id,
@@ -65,6 +69,8 @@ export async function POST(
       company: company?.trim(),
       source: source || 'Website Form',
       status: 'new',
+      assignedTo: assignedAgentId || undefined,
+      assignedAt: assignedAgentId ? new Date() : undefined,
       notes: message || '',
       tags: ['public-form'],
     });
@@ -92,10 +98,10 @@ export async function POST(
       });
     }
 
-    // 3. BACKGROUND: Notify org admins + managers (non-blocking)
+    // 3. BACKGROUND: Notify org admins + managers + assigned agent (non-blocking)
     (async () => {
       try {
-        await notifyNewLead(org._id.toString(), lead._id.toString(), name, undefined);
+        await notifyNewLead(org._id.toString(), lead._id.toString(), name, assignedAgentId || undefined, { tags: ['public-form'] });
       } catch (err) {
         console.error('[AUTOMATION] Admin notify error:', err);
       }

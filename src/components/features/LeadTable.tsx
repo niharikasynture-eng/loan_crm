@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Trash2, UserCheck, Eye } from 'lucide-react';
 import { Table, Column } from '@/components/ui/Table';
@@ -65,14 +66,14 @@ export function LeadTable({
       key: 'name',
       header: 'Client Details',
       render: (lead) => (
-        <div className="flex flex-col">
-          <span className="text-sm font-bold text-gray-900 group-hover:text-brand-600 transition-colors">
+        <Link href={`/leads/${lead._id}`} className="flex flex-col group/name">
+          <span className="text-sm font-bold text-gray-900 group-hover/name:text-indigo-600 transition-colors underline-offset-2 hover:underline">
             {lead.name}
           </span>
           <span className="text-xs font-medium text-gray-400 tabular-nums">
             {lead.email || lead.phone || 'No contact info'}
           </span>
-        </div>
+        </Link>
       ),
     },
     {
@@ -86,12 +87,42 @@ export function LeadTable({
     },
     {
       key: 'status',
-      header: 'Status',
-      render: (lead) => (
-        <Badge variant={lead.status as any}>
-          {lead.status.replace('_', ' ')}
-        </Badge>
-      ),
+      header: 'Status & SLA',
+      render: (lead) => {
+        const isGhost = (lead as any).isGhost || (
+          lead.assignedTo &&
+          lead.assignedAt &&
+          (!lead.lastContactedAt || new Date(lead.lastContactedAt) < new Date(lead.assignedAt)) &&
+          lead.status === 'new' &&
+          (Date.now() - new Date(lead.assignedAt).getTime() > 2 * 60 * 60 * 1000)
+        );
+
+        let slaBadge = null;
+        if (isGhost) {
+          slaBadge = (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-500/10 text-red-600 border border-red-200 rounded text-[11px] font-bold animate-pulse">
+              👻 Ghost (2h+ Overdue)
+            </span>
+          );
+        } else if (lead.assignedTo && lead.assignedAt && lead.status === 'new' && (!lead.lastContactedAt || new Date(lead.lastContactedAt) < new Date(lead.assignedAt))) {
+          const msPassed = Date.now() - new Date(lead.assignedAt).getTime();
+          const minsLeft = Math.max(0, Math.ceil((2 * 60 * 60 * 1000 - msPassed) / 60000));
+          slaBadge = (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-600 border border-amber-200 rounded text-[11px] font-semibold">
+              ⏱️ {minsLeft}m left
+            </span>
+          );
+        }
+
+        return (
+          <div className="flex flex-col items-start gap-1">
+            <Badge variant={lead.status as any}>
+              {lead.status.replace('_', ' ')}
+            </Badge>
+            {slaBadge}
+          </div>
+        );
+      },
     },
     {
       key: 'source',

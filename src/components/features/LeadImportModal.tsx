@@ -147,13 +147,17 @@ export function LeadImportModal({ isOpen, onClose, onSuccess }: LeadImportModalP
           </div>
         )}
         
-        <div className="bg-gray-50/50 rounded-card p-6 border border-gray-100">
-          <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Required Columns:</p>
+        <div className="bg-gray-50/50 rounded-card p-6 border border-gray-100 space-y-3">
+          <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Required Columns:</p>
           <div className="flex gap-2 flex-wrap text-[10px] font-mono">
             <span className="px-2 py-1 bg-brand-50 border border-brand-100 text-brand-600 rounded font-bold">Name*</span>
             <span className="px-2 py-1 bg-brand-50 border border-brand-100 text-brand-600 rounded font-bold">Phone*</span>
             <span className="px-2 py-1 bg-white border border-gray-100 text-gray-400 rounded">Email</span>
             <span className="px-2 py-1 bg-white border border-gray-100 text-gray-400 rounded">Company</span>
+          </div>
+          <div className="pt-2 border-t border-gray-100 text-[11px] text-indigo-600 font-medium flex items-center gap-1.5">
+            <span>⚡</span>
+            <span><strong>Smart Lead Routing Active:</strong> Imported leads will automatically be distributed across active sales agents based on your organization settings.</span>
           </div>
         </div>
       </div>

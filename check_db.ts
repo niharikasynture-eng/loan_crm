@@ -1,12 +1,23 @@
 import mongoose from 'mongoose';
+import Organization from './src/models/Organization';
 import User from './src/models/User';
 
-async function checkUser() {
-  const uri = 'mongodb+srv://chinmaybelpatre_db_user:mPbSdJZln4dvmiGP@cluster0.rivhc9u.mongodb.net/?appName=Cluster0';
+async function checkUsers() {
+  const uri = process.env.MONGODB_URI || 'mongodb://chinmaybelpatre_db_user:mPbSdJZln4dvmiGP@ac-n4eyjzn-shard-00-00.rivhc9u.mongodb.net:27017,ac-n4eyjzn-shard-00-01.rivhc9u.mongodb.net:27017,ac-n4eyjzn-shard-00-02.rivhc9u.mongodb.net:27017/?ssl=true&replicaSet=atlas-j7am4w-shard-0&authSource=admin&appName=Cluster0';
   await mongoose.connect(uri);
-  const users = await User.find({ phone: { $exists: true, $ne: null } });
-  console.log('Users with phone numbers:', users.map(u => ({ email: u.email, phone: u.phone })));
+  const _u = User;
+  const _o = Organization;
+  const users = await User.find({}).populate('organizationId', 'name slug status');
+  console.log('--- USERS IN DATABASE ---');
+  console.log(users.map(u => ({
+    name: u.name,
+    email: u.email,
+    role: u.role,
+    isActive: u.isActive,
+    orgName: (u.organizationId as any)?.name || 'None',
+    orgSlug: (u.organizationId as any)?.slug || 'None',
+  })));
   process.exit();
 }
 
-checkUser();
+checkUsers();

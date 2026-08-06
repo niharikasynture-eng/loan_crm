@@ -156,7 +156,7 @@ export default function LeadsPage() {
           </div>
 
           <div className="space-y-3">
-            <p className="text-xs font-black uppercase tracking-widest text-gray-400">Select Team Member</p>
+            <p className="text-xs font-black uppercase tracking-widest text-gray-400">Option 1: Assign to Specific Agent</p>
             <AgentSelector
               agents={orgUsers}
               selectedId={selectedAgent}
@@ -166,7 +166,7 @@ export default function LeadsPage() {
 
           <Button
             size="lg"
-            className="w-full h-14 text-lg shadow-lg shadow-brand-500/20"
+            className="w-full h-12 text-base"
             isLoading={isAssigning}
             disabled={!selectedAgent}
             onClick={async () => {
@@ -187,7 +187,37 @@ export default function LeadsPage() {
               }
             }}
           >
-            Assign Clients
+            Assign to Selected Agent
+          </Button>
+
+          <div className="relative py-2 flex items-center justify-center">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200" /></div>
+            <span className="relative px-3 bg-white text-xs font-bold text-gray-400 uppercase tracking-widest">OR</span>
+          </div>
+
+          <Button
+            size="lg"
+            variant="secondary"
+            className="w-full h-12 text-base text-indigo-600 border-indigo-200 bg-indigo-50/50 hover:bg-indigo-100"
+            isLoading={isAssigning}
+            onClick={async () => {
+              setIsAssigning(true);
+              try {
+                await api.post('/leads/auto-route', {
+                  leadIds: Array.from(selectedLeads)
+                });
+                toast('success', `Successfully auto-routed ${selectedLeads.size} leads using Smart Lead Routing`);
+                setSelectedLeads(new Set());
+                refresh();
+                closeModal();
+              } catch (err: any) {
+                toast('error', err.message || 'Auto-routing failed');
+              } finally {
+                setIsAssigning(false);
+              }
+            }}
+          >
+            ⚡ Auto-Distribute (Smart Round Robin)
           </Button>
         </div>
       );

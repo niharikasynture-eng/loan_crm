@@ -25,6 +25,11 @@ export default function DealsPage() {
   const { leads, loading, refresh } = useLeads({ limit: 1000 });
   const [dragging, setDragging] = React.useState<string | null>(null);
 
+  React.useEffect(() => {
+    // Auto-trigger stale deal cleanup SLA check on mount
+    api.get('/cron/stale-deals').catch((err) => console.error('Stale deal check error:', err));
+  }, []);
+
   const handleDrop = async (stageId: string, leadId: string) => {
     try {
       await api.patch(`/leads/${leadId}`, { pipelineStage: stageId, status: stageId });
@@ -100,32 +105,51 @@ export default function DealsPage() {
                   className="flex flex-col gap-2.5 p-2 rounded-xl min-h-[100px] transition-colors"
                   style={{ background: dragging ? '#f5f3ff' : '#f8f9fc', border: '1.5px dashed', borderColor: dragging ? 'var(--brand-light)' : 'var(--border)' }}
                 >
-                  {stageLeads.map(lead => (
-                    <div
-                      key={lead._id.toString()}
-                      draggable
-                      onDragStart={e => { e.dataTransfer.setData('leadId', lead._id.toString()); setDragging(lead._id.toString()); }}
-                      onDragEnd={() => setDragging(null)}
-                      className="card px-3 py-3 cursor-grab active:cursor-grabbing hover:shadow-card-hover transition-all"
-                    >
-                      <Link
-                        href={`/leads/${lead._id}`}
-                        className="block text-sm font-semibold mb-1 hover:underline"
-                        style={{ color: 'var(--text-primary)' }}
-                        onClick={e => e.stopPropagation()}
+                  {stageLeads.map(lead => {
+                    const isStale = (lead as any).isStale;
+                    const lostReason = (lead as any).lostReason || '';
+                    const isUnresponsiveArchived = stage.id === 'lost' && lostReason.toLowerCase().includes('unresponsive');
+
+                    return (
+                      <div
+                        key={lead._id.toString()}
+                        draggable
+                        onDragStart={e => { e.dataTransfer.setData('leadId', lead._id.toString()); setDragging(lead._id.toString()); }}
+                        onDragEnd={() => setDragging(null)}
+                        className={`card px-3 py-3 cursor-grab active:cursor-grabbing hover:shadow-card-hover transition-all relative ${
+                          isStale ? 'border-red-300 bg-red-50/20' : ''
+                        }`}
                       >
-                        {lead.name}
-                      </Link>
-                      {lead.value ? (
-                        <div className="flex items-center gap-1 text-xs font-semibold" style={{ color: 'var(--success)' }}>
-                          <IndianRupee size={11} /> {(lead.value).toLocaleString()}
-                        </div>
-                      ) : null}
-                      <p className="text-xs mt-1.5 truncate" style={{ color: 'var(--text-muted)' }}>
-                        {(lead as any).company || (lead as any).assignedTo?.name || '—'}
-                      </p>
-                    </div>
-                  ))}
+                        {isStale && (
+                          <div className="mb-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-100 text-red-700 text-[9px] font-black uppercase tracking-wider animate-pulse">
+                            ⚠️ Stale (14d+ Inactive)
+                          </div>
+                        )}
+                        {isUnresponsiveArchived && (
+                          <div className="mb-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-200 text-slate-700 text-[9px] font-black uppercase tracking-wider">
+                            🕸️ Auto-Archived (Unresponsive)
+                          </div>
+                        )}
+
+                        <Link
+                          href={`/leads/${lead._id}`}
+                          className="block text-sm font-semibold mb-1 hover:underline"
+                          style={{ color: 'var(--text-primary)' }}
+                          onClick={e => e.stopPropagation()}
+                        >
+                          {lead.name}
+                        </Link>
+                        {lead.value ? (
+                          <div className="flex items-center gap-1 text-xs font-semibold" style={{ color: 'var(--success)' }}>
+                            <IndianRupee size={11} /> {(lead.value).toLocaleString()}
+                          </div>
+                        ) : null}
+                        <p className="text-xs mt-1.5 truncate" style={{ color: 'var(--text-muted)' }}>
+                          {(lead as any).company || (lead as any).assignedTo?.name || '—'}
+                        </p>
+                      </div>
+                    );
+                  })}
 
                   {stageLeads.length === 0 && (
                     <div className="flex items-center justify-center py-8">

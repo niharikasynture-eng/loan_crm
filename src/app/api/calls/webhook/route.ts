@@ -46,6 +46,9 @@ export async function POST(req: NextRequest) {
     // Update Lead stats
     await Lead.findByIdAndUpdate(callLog.leadId, {
       lastCalledAt: new Date(),
+      lastContactedAt: new Date(),
+      status: 'contacted',
+      isGhost: false,
       $inc: { totalCalls: 1 }
     });
 

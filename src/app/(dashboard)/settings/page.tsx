@@ -47,13 +47,45 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  const [routingMode, setRoutingMode] = useState<'manual' | 'round_robin' | 'performance'>('round_robin');
+  const [autoAssign, setAutoAssign] = useState(true);
+  const [savingRouting, setSavingRouting] = useState(false);
+  const [routingSaved, setRoutingSaved] = useState(false);
+
   useEffect(() => {
     if (user) {
       setName(user.name);
       setEmail(user.email);
       setPhone(user.phone || '');
     }
-  }, [user]);
+
+    if (isAdmin) {
+      api.get('/organization/settings')
+        .then((res: any) => {
+          if (res.data?.settings) {
+            setRoutingMode(res.data.settings.leadRoutingMode || 'round_robin');
+            setAutoAssign(res.data.settings.autoAssignNewLeads !== false);
+          }
+        })
+        .catch(console.error);
+    }
+  }, [user, isAdmin]);
+
+  const saveRoutingSettings = async () => {
+    setSavingRouting(true);
+    try {
+      await api.patch('/organization/settings', {
+        leadRoutingMode: routingMode,
+        autoAssignNewLeads: autoAssign,
+      });
+      setRoutingSaved(true);
+      setTimeout(() => setRoutingSaved(false), 2000);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSavingRouting(false);
+    }
+  };
 
   const syncUrl = useMemo(() => {
     if (!user?.callSyncToken) return '';
@@ -185,6 +217,103 @@ export default function SettingsPage() {
               </button>
             </div>
           </div>
+
+          {/* Lead Routing Settings (Org Admin Only) */}
+          {isAdmin && (
+            <div className="card p-12 rounded-3xl border border-slate-100 bg-white shadow-sm space-y-8 mt-10">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Smart Lead Routing</h2>
+                  <p className="text-sm font-medium text-slate-400 mt-1">
+                    Automatically distribute web form & incoming leads among active sales agents
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={autoAssign}
+                    onChange={(e) => setAutoAssign(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
+                </label>
+              </div>
+
+              {autoAssign && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+                  {/* Round Robin */}
+                  <div
+                    onClick={() => setRoutingMode('round_robin')}
+                    className={`p-6 rounded-2xl border-2 cursor-pointer transition-all space-y-3 ${
+                      routingMode === 'round_robin'
+                        ? 'border-indigo-600 bg-indigo-50/30 shadow-md shadow-indigo-50'
+                        : 'border-slate-100 hover:border-slate-200 bg-slate-50/50'
+                    }`}
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
+                      🔄
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-800 text-base">Round Robin</h3>
+                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                        Distributes incoming leads sequentially & equally across all active sales agents.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Performance-Based */}
+                  <div
+                    onClick={() => setRoutingMode('performance')}
+                    className={`p-6 rounded-2xl border-2 cursor-pointer transition-all space-y-3 ${
+                      routingMode === 'performance'
+                        ? 'border-indigo-600 bg-indigo-50/30 shadow-md shadow-indigo-50'
+                        : 'border-slate-100 hover:border-slate-200 bg-slate-50/50'
+                    }`}
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold">
+                      ⚡
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-800 text-base">Performance-Based</h3>
+                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                        Routes new leads to sales agents with the highest deal win rate & closing speed.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Manual */}
+                  <div
+                    onClick={() => setRoutingMode('manual')}
+                    className={`p-6 rounded-2xl border-2 cursor-pointer transition-all space-y-3 ${
+                      routingMode === 'manual'
+                        ? 'border-indigo-600 bg-indigo-50/30 shadow-md shadow-indigo-50'
+                        : 'border-slate-100 hover:border-slate-200 bg-slate-50/50'
+                    }`}
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center font-bold">
+                      👤
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-800 text-base">Manual Only</h3>
+                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                        Disables auto-routing. Managers manually assign leads from the Lead Table.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-4 flex justify-end">
+                <button
+                  onClick={saveRoutingSettings}
+                  disabled={savingRouting}
+                  className="h-13 px-12 rounded-2xl bg-indigo-600 text-white text-sm font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-[0.98] disabled:opacity-50"
+                >
+                  {savingRouting ? 'Saving...' : routingSaved ? '✓ Routing Preferences Saved' : 'Save Routing Settings'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

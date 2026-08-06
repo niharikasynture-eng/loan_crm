@@ -6,6 +6,7 @@ import { Mail, Phone, Building, Briefcase, Calendar, CheckSquare, MessageSquare,
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import CallButton from '@/components/CallButton';
+import { PostCallDispositionModal } from '@/components/features/PostCallDispositionModal';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/useToast';
 
@@ -94,9 +95,24 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // ── Smart Call (Browser Timer / No Automate App) ──
+  // ── Smart Call & 1-Click Outcome Modal ──
   const [isBrowserCallActive, setIsBrowserCallActive] = useState(false);
   const [browserCallResult, setBrowserCallResult] = useState<{ duration: number; trustLabel: string } | null>(null);
+  const [isDispositionOpen, setIsDispositionOpen] = useState(false);
+  const [isEnriching, setIsEnriching] = useState(false);
+
+  async function handleEnrichLead() {
+    setIsEnriching(true);
+    try {
+      await api.post(`/leads/${leadId}/enrich`, {});
+      showToast('Lead enriched via Intelligence REST API!', 'success', 'Enriched');
+      loadData();
+    } catch (err: any) {
+      showToast(err.message || 'Enrichment failed', 'error', 'Error');
+    } finally {
+      setIsEnriching(false);
+    }
+  }
 
   // Form states
   const [noteText, setNoteText] = useState('');
@@ -294,6 +310,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
             );
 
             setBrowserCallResult({ duration: result.duration, trustLabel: result.trustLabel });
+            setIsDispositionOpen(true);
 
             // Refresh activities
             setTimeout(() => loadData(), 1000);
@@ -796,6 +813,31 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                 </div>
 
                 <button
+                  type="button"
+                  onClick={() => {
+                    const bookingUrl = `${window.location.origin}/book-visit/synture-solutions`;
+                    navigator.clipboard.writeText(bookingUrl);
+                    showToast('Site Visit booking link copied to clipboard!', 'success', 'Link Copied');
+                  }}
+                  className="w-full h-11 flex items-center justify-center gap-2 rounded-xl bg-indigo-50 text-indigo-700 font-bold text-xs border border-indigo-100 hover:bg-indigo-100 transition-all active:scale-[0.98] mt-2"
+                >
+                  <Calendar size={14} /> 🔗 Share Site Visit Booking Link
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleEnrichLead}
+                  disabled={isEnriching}
+                  className="w-full h-11 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold text-xs shadow-md hover:opacity-95 transition-all active:scale-[0.98] mt-2"
+                >
+                  {isEnriching ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <span>✨ Auto-Enrich Lead Data</span>
+                  )}
+                </button>
+
+                <button
                   onClick={() => setActiveModal('note')}
                   className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-[var(--border-strong)] bg-white hover:border-[#f59e0b] hover:shadow-[0_4px_12px_rgba(245,158,11,0.08)] transition-all group mt-1"
                 >
@@ -807,6 +849,52 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                     <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Log manual updates</span>
                   </div>
                 </button>
+
+                {/* ── Enriched Intelligence Card ── */}
+                {(lead as any).isEnriched && (
+                  <div className="mt-4 p-4 rounded-2xl bg-gradient-to-br from-slate-900 to-indigo-950 text-white border border-indigo-500/30 shadow-xl space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400">✨ Enriched Intelligence</span>
+                      <span className="text-[9px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full font-mono">Zero-LLM</span>
+                    </div>
+
+                    <div className="space-y-2 text-xs">
+                      {(lead as any).jobTitle && (
+                        <div>
+                          <p className="text-[10px] text-slate-400 uppercase font-bold">Job Title</p>
+                          <p className="font-bold text-white text-sm">{(lead as any).jobTitle}</p>
+                        </div>
+                      )}
+                      {(lead as any).industry && (
+                        <div>
+                          <p className="text-[10px] text-slate-400 uppercase font-bold">Industry</p>
+                          <p className="font-semibold text-slate-200">{(lead as any).industry}</p>
+                        </div>
+                      )}
+                      <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800">
+                        <div>
+                          <p className="text-[9px] text-slate-400 uppercase font-bold">Company Size</p>
+                          <p className="font-semibold text-indigo-300">{(lead as any).companySize || '—'}</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] text-slate-400 uppercase font-bold">Est. Revenue</p>
+                          <p className="font-semibold text-emerald-400">{(lead as any).companyRevenue || '—'}</p>
+                        </div>
+                      </div>
+
+                      {(lead as any).linkedinUrl && (
+                        <a
+                          href={(lead as any).linkedinUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-2 block text-center py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-[11px] transition-all shadow-sm"
+                        >
+                          🔗 View LinkedIn Profile
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1790,6 +1878,18 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
             </div>
           </div>
         </div>
+      )}
+
+      {/* 1-Click Post-Call Disposition Modal */}
+      {lead && (
+        <PostCallDispositionModal
+          isOpen={isDispositionOpen}
+          onClose={() => setIsDispositionOpen(false)}
+          lead={lead}
+          onSuccess={() => {
+            loadData();
+          }}
+        />
       )}
     </div>
   );

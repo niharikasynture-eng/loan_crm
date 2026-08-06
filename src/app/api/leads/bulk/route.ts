@@ -33,7 +33,7 @@ export async function PATCH(req: NextRequest) {
     // 2. Bulk Update
     const result = await Lead.updateMany(
       { _id: { $in: leadIds }, organizationId: auth.organizationId },
-      { $set: { assignedTo: new mongoose.Types.ObjectId(assignedTo) } }
+      { $set: { assignedTo: new mongoose.Types.ObjectId(assignedTo), assignedAt: new Date(), ghostAlertSent: false, isGhost: false } }
     );
 
     // 3. Process Notifications & Audits for each lead

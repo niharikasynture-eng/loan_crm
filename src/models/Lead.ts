@@ -18,6 +18,9 @@ export interface ILead extends Document {
   notes?: string;
   customFields?: Record<string, string | number | boolean>;
   tags: string[];
+  assignedAt?: Date;
+  ghostAlertSent?: boolean;
+  isGhost?: boolean;
   lastContactedAt?: Date;
   lastCalledAt?: Date;
   lastCallOutcome?: string;
@@ -66,6 +69,16 @@ export interface ILead extends Document {
   visitDate?: string;
   isReadByVisitor: boolean;
   readAt?: Date;
+  jobTitle?: string;
+  linkedinUrl?: string;
+  companyDomain?: string;
+  companySize?: string;
+  companyRevenue?: string;
+  industry?: string;
+  avatarUrl?: string;
+  companyLogoUrl?: string;
+  isEnriched?: boolean;
+  enrichedAt?: Date;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -94,6 +107,9 @@ const LeadSchema = new Schema<ILead>(
       default: 'new',
     },
     assignedTo: { type: Schema.Types.ObjectId, ref: 'User' },
+    assignedAt: { type: Date },
+    ghostAlertSent: { type: Boolean, default: false },
+    isGhost: { type: Boolean, default: false },
     value: { type: Number },
     notes: { type: String },
     customFields: { type: Schema.Types.Mixed, default: {} },
@@ -102,6 +118,16 @@ const LeadSchema = new Schema<ILead>(
     lastCalledAt: { type: Date, default: null },
     lastCallOutcome: { type: String, default: null },
     totalCalls: { type: Number, default: 0 },
+    jobTitle: { type: String },
+    linkedinUrl: { type: String },
+    companyDomain: { type: String },
+    companySize: { type: String },
+    companyRevenue: { type: String },
+    industry: { type: String },
+    avatarUrl: { type: String },
+    companyLogoUrl: { type: String },
+    isEnriched: { type: Boolean, default: false },
+    enrichedAt: { type: Date },
     lostReason: { type: String, default: null },
     secondaryPhone: { type: String, trim: true },
     address: { type: String, trim: true },
