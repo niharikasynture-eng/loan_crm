@@ -101,27 +101,63 @@ export async function POST(req: NextRequest) {
     if (auth.role === ROLES.SUPER_ADMIN || auth.role === ROLES.ONSITE_VISITOR) return apiError('Access denied', 403);
 
     const body = await req.json();
-    const { leadId, type, outcome, duration, notes, link, scheduledAt, completedAt, priority } = body;
+    const {
+      leadId,
+      type,
+      outcome,
+      duration,
+      notes,
+      link,
+      subject,
+      status,
+      priority,
+      scheduledAt,
+      completedAt,
+      startTime,
+      endTime,
+      createdAt,
+    } = body;
 
-    if (!leadId || !type) return apiError('leadId and type are required');
+    if (!leadId || !type) return apiError('leadId and type are required', 400);
+
+    // Validate ObjectId format for leadId to prevent Mongoose CastError 500
+    if (typeof leadId !== 'string' || leadId.length !== 24) {
+      return apiError('Invalid leadId format', 400);
+    }
 
     // Ensure lead belongs to org
     const lead = await Lead.findOne({ _id: leadId, organizationId: auth.organizationId });
     if (!lead) return apiError('Lead not found or access denied', 404);
 
-    const activity = await Activity.create({
+    const activityData: Record<string, unknown> = {
       organizationId: auth.organizationId,
       leadId,
       type,
-      outcome,
-      duration,
       notes: notes || '',
-      link,
-      scheduledAt,
-      completedAt,
-      priority,
       createdBy: auth.userId,
-    });
+    };
+
+    if (outcome) activityData.outcome = outcome;
+    if (typeof duration === 'number' && !isNaN(duration)) activityData.duration = duration;
+    else if (duration && !isNaN(Number(duration))) activityData.duration = Number(duration);
+    if (link) activityData.link = link;
+    if (subject) activityData.subject = subject;
+    if (status) activityData.status = status;
+    if (priority) activityData.priority = priority;
+    if (startTime) activityData.startTime = startTime;
+    if (endTime) activityData.endTime = endTime;
+
+    if (scheduledAt && !isNaN(Date.parse(scheduledAt))) {
+      activityData.scheduledAt = new Date(scheduledAt);
+    }
+    if (completedAt && !isNaN(Date.parse(completedAt))) {
+      activityData.completedAt = new Date(completedAt);
+    }
+    if (createdAt && !isNaN(Date.parse(createdAt))) {
+      activityData.createdAt = new Date(createdAt);
+    }
+
+    const activity = await Activity.create(activityData);
 
     // Update lead's lastContactedAt
     if (type === 'call' || type === 'meeting') {
@@ -134,7 +170,10 @@ export async function POST(req: NextRequest) {
 
     return apiSuccess({ activity: populated }, 'Activity logged', 201);
   } catch (err: unknown) {
+    console.error('POST /api/activities error:', err);
     if (err instanceof Error && err.message === 'UNAUTHORIZED') return apiError('Unauthorized', 401);
-    return apiError('Failed to log activity', 500);
+    if (err instanceof Error && err.name === 'ValidationError') return apiError(err.message, 400);
+    if (err instanceof Error && err.name === 'CastError') return apiError(`Invalid data format: ${err.message}`, 400);
+    return apiError(err instanceof Error ? err.message : 'Failed to log activity', 500);
   }
 }

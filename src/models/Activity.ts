@@ -8,15 +8,17 @@ export interface IActivity extends Document {
   organizationId: mongoose.Types.ObjectId;
   leadId: mongoose.Types.ObjectId;
   type: ActivityType;
-  outcome?: CallOutcome;
+  outcome?: string;
   duration?: number;
   notes: string;
   link?: string;
   subject?: string;
   status?: 'pending' | 'completed' | 'failed';
-  priority?: 'low' | 'medium' | 'high';
+  priority?: string;
   scheduledAt?: Date;
   completedAt?: Date;
+  startTime?: string;
+  endTime?: string;
   syncId?: string;
   callLogId?: mongoose.Types.ObjectId;
   createdBy: mongoose.Types.ObjectId;
@@ -37,10 +39,7 @@ const ActivitySchema = new Schema<IActivity>(
       enum: ['call', 'note', 'meeting', 'email', 'whatsapp'],
       required: true,
     },
-    outcome: {
-      type: String,
-      enum: ['connected', 'no_answer', 'busy', 'voicemail', 'callback', 'interested', 'not_interested'],
-    },
+    outcome: { type: String },
     duration: { type: Number },
     notes: { type: String, default: '' },
     link: { type: String },
@@ -50,12 +49,11 @@ const ActivitySchema = new Schema<IActivity>(
       enum: ['pending', 'completed', 'failed'],
       default: 'completed',
     },
-    priority: {
-      type: String,
-      enum: ['low', 'medium', 'high', null],
-    },
+    priority: { type: String },
     scheduledAt: { type: Date },
     completedAt: { type: Date },
+    startTime: { type: String },
+    endTime: { type: String },
     syncId: { type: String, index: true },
     callLogId: { type: Schema.Types.ObjectId, ref: 'CallLog' },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
@@ -67,7 +65,7 @@ ActivitySchema.index({ organizationId: 1, leadId: 1, createdAt: -1 });
 ActivitySchema.index({ organizationId: 1, createdBy: 1, createdAt: -1 });
 ActivitySchema.index({ organizationId: 1, type: 1, createdAt: -1 });
 
-const Activity: Model<IActivity> =
-  mongoose.models.Activity || mongoose.model<IActivity>('Activity', ActivitySchema);
+delete (mongoose.models as any).Activity;
+const Activity: Model<IActivity> = mongoose.model<IActivity>('Activity', ActivitySchema);
 
 export default Activity;
