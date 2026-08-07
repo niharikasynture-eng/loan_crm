@@ -734,7 +734,21 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                     if (lead.phone) {
                       setIsDialing(true);
                       window.open(`tel:${lead.phone}`, '_self');
-                      setTimeout(() => setIsDialing(false), 3000);
+
+                      // Auto-open 1-Click Post-Call Disposition modal when returning to CRM tab
+                      const handleReturn = () => {
+                        if (document.visibilityState === 'visible') {
+                          document.removeEventListener('visibilitychange', handleReturn);
+                          setIsDialing(false);
+                          setIsDispositionOpen(true);
+                        }
+                      };
+                      document.addEventListener('visibilitychange', handleReturn);
+
+                      setTimeout(() => {
+                        setIsDialing(false);
+                        setIsDispositionOpen(true);
+                      }, 3000);
                     } else {
                       showToast('No phone number available for this lead.', 'error', 'Error');
                     }
