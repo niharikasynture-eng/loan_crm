@@ -5,7 +5,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { api } from '@/lib/api-client';
 import { useToast } from '@/hooks/useToast';
-import { Trophy, FileText, CheckCircle2, PhoneCall, XCircle, PhoneOff, Calendar, StickyNote } from 'lucide-react';
+import { Trophy, FileText, CheckCircle2, PhoneCall, XCircle, PhoneOff, Calendar, StickyNote, Clock } from 'lucide-react';
 
 interface PostCallDispositionModalProps {
   isOpen: boolean;
@@ -83,19 +83,27 @@ export function PostCallDispositionModal({
 }: PostCallDispositionModalProps) {
   const { toast } = useToast();
   const [submitting, setSubmitting] = React.useState(false);
-  const [selectedDisposition, setSelectedDisposition] = React.useState<string | null>(null);
+  const [selectedDisposition, setSelectedDisposition] = React.useState<string>('contacted');
+  const [callbackTimingMode, setCallbackTimingMode] = React.useState<'24h' | 'custom'>('24h');
   const [notes, setNotes] = React.useState('');
   const [followUpDate, setFollowUpDate] = React.useState('');
 
-  const handleSelectDisposition = async (disp: typeof DISPOSITIONS[0]) => {
-    setSelectedDisposition(disp.id);
+  const handleSaveDisposition = async () => {
+    if (!selectedDisposition) return;
+    const disp = DISPOSITIONS.find((d) => d.id === selectedDisposition)!;
     setSubmitting(true);
 
     try {
-      // Calculate callback date: use specified followUpDate, or default to 24 hours from now for 'Call Back Later'
-      let targetFollowUpDate: Date | null = followUpDate ? new Date(followUpDate) : null;
-      if (disp.id === 'contacted' && !targetFollowUpDate) {
-        targetFollowUpDate = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours default
+      let targetFollowUpDate: Date | null = null;
+      if (selectedDisposition === 'contacted') {
+        if (callbackTimingMode === 'custom' && followUpDate) {
+          targetFollowUpDate = new Date(followUpDate);
+        } else {
+          // Default 24 hours from now
+          targetFollowUpDate = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        }
+      } else if (followUpDate) {
+        targetFollowUpDate = new Date(followUpDate);
       }
 
       // 1. Update lead status & pipeline stage
@@ -129,8 +137,8 @@ export function PostCallDispositionModal({
       }
 
       const callbackNotice = disp.id === 'contacted'
-        ? followUpDate
-          ? ` (Reminder set for specified time)`
+        ? callbackTimingMode === 'custom' && followUpDate
+          ? ` (Reminder set for ${new Date(followUpDate).toLocaleString()})`
           : ` (Reminder set for 24 hrs from now)`
         : '';
 
@@ -148,7 +156,7 @@ export function PostCallDispositionModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="📞 Post-Call Outcome (1-Click Disposition)"
+      title="📞 Post-Call Outcome & Follow-up"
       size="lg"
     >
       <div className="space-y-6">
@@ -163,7 +171,7 @@ export function PostCallDispositionModal({
         </div>
 
         <p className="text-xs font-black text-slate-400 uppercase tracking-widest">
-          Select 1-Click Call Outcome:
+          Select Call Outcome:
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -175,9 +183,9 @@ export function PostCallDispositionModal({
                 key={disp.id}
                 type="button"
                 disabled={submitting}
-                onClick={() => handleSelectDisposition(disp)}
+                onClick={() => setSelectedDisposition(disp.id)}
                 className={`p-4 rounded-2xl border-2 text-left transition-all relative overflow-hidden group shadow-sm hover:shadow-md ${disp.color} ${
-                  isSelected ? 'ring-2 ring-indigo-500 scale-[0.98]' : ''
+                  isSelected ? 'ring-2 ring-indigo-500 border-indigo-500 scale-[0.99] shadow-md' : 'opacity-80 hover:opacity-100'
                 }`}
               >
                 <div className="flex items-center gap-3 mb-2">
@@ -194,33 +202,78 @@ export function PostCallDispositionModal({
           })}
         </div>
 
-        {/* Optional Notes & Follow-up */}
-        <div className="space-y-4 pt-2 border-t border-slate-100">
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest block mb-1.5 flex items-center gap-1">
-                <StickyNote size={13} /> Call Notes (Optional)
-              </label>
-              <input
-                type="text"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="e.g. Requested 3BHK brochure on WhatsApp"
-                className="w-full h-11 px-4 text-xs rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:border-indigo-400 outline-none transition-all"
-              />
+        {/* Call Back Later Timing Options */}
+        {selectedDisposition === 'contacted' && (
+          <div className="p-4 bg-amber-50/80 border border-amber-200/80 rounded-2xl space-y-3">
+            <p className="text-xs font-bold text-amber-800 flex items-center gap-1.5">
+              <Clock size={15} className="text-amber-600" /> Choose Call Back Reminder Timing:
+            </p>
+
+            <div className="grid sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setCallbackTimingMode('24h')}
+                className={`p-3 rounded-xl border text-xs font-bold flex items-center gap-2 transition-all ${
+                  callbackTimingMode === '24h'
+                    ? 'bg-amber-500 text-white border-amber-600 shadow-sm'
+                    : 'bg-white text-slate-700 border-amber-200 hover:bg-amber-100/50'
+                }`}
+              >
+                <Clock size={16} /> Call Back Within 24 Hours
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCallbackTimingMode('custom')}
+                className={`p-3 rounded-xl border text-xs font-bold flex items-center gap-2 transition-all ${
+                  callbackTimingMode === 'custom'
+                    ? 'bg-amber-500 text-white border-amber-600 shadow-sm'
+                    : 'bg-white text-slate-700 border-amber-200 hover:bg-amber-100/50'
+                }`}
+              >
+                <Calendar size={16} /> Specify Date & Time
+              </button>
             </div>
-            <div>
-              <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest block mb-1.5 flex items-center gap-1">
-                <Calendar size={13} /> Follow-Up Date (Optional)
-              </label>
-              <input
-                type="datetime-local"
-                value={followUpDate}
-                onChange={(e) => setFollowUpDate(e.target.value)}
-                className="w-full h-11 px-4 text-xs rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:border-indigo-400 outline-none transition-all"
-              />
-            </div>
+
+            {callbackTimingMode === 'custom' && (
+              <div className="pt-2">
+                <label className="text-[11px] font-black text-amber-800 uppercase tracking-widest block mb-1.5">
+                  Specific Call Back Time:
+                </label>
+                <input
+                  type="datetime-local"
+                  value={followUpDate}
+                  onChange={(e) => setFollowUpDate(e.target.value)}
+                  className="w-full h-11 px-4 text-xs rounded-xl border border-amber-300 bg-white focus:ring-2 focus:ring-amber-500 outline-none transition-all"
+                />
+              </div>
+            )}
           </div>
+        )}
+
+        {/* Optional Notes */}
+        <div className="space-y-4 pt-2 border-t border-slate-100">
+          <div>
+            <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest block mb-1.5 flex items-center gap-1">
+              <StickyNote size={13} /> Call Notes (Optional)
+            </label>
+            <input
+              type="text"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="e.g. Requested brochure or details on WhatsApp"
+              className="w-full h-11 px-4 text-xs rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:border-indigo-400 outline-none transition-all"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={handleSaveDisposition}
+            disabled={submitting || (selectedDisposition === 'contacted' && callbackTimingMode === 'custom' && !followUpDate)}
+            className="btn-primary w-full h-12 text-sm font-bold shadow-md hover:shadow-lg transition-all"
+          >
+            {submitting ? 'Saving Outcome...' : 'Save Call Outcome & Schedule Reminder'}
+          </button>
         </div>
       </div>
     </Modal>
