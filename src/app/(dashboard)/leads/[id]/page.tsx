@@ -671,6 +671,17 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                     {lead.status.replace('_', ' ').toUpperCase()}
                   </span>
                 </div>
+
+                {(lead as any).lastStageChangedBy && (
+                  <div className="mt-4 p-3.5 rounded-xl bg-indigo-50/70 border border-indigo-100/80 text-left text-xs space-y-1 w-full">
+                    <div className="flex items-center gap-1.5 font-bold text-indigo-900">
+                      <Clock size={13} className="text-indigo-500" /> Stage Audit Log
+                    </div>
+                    <p className="text-slate-600 text-[11px] leading-relaxed">
+                      Status changed from <strong className="capitalize text-slate-800">{(lead as any).previousStage || 'previous'}</strong> to <strong className="capitalize text-indigo-700 font-bold">{lead.status}</strong> by <strong className="text-indigo-600 font-bold">{(lead as any).lastStageChangedBy.name || 'Sales Agent'}</strong>.
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="mt-8 space-y-4 pt-8 border-t border-gray-100">
