@@ -131,14 +131,33 @@ export default function DealsPage() {
                           </div>
                         )}
 
-                        <Link
-                          href={`/leads/${lead._id}`}
-                          className="block text-sm font-semibold mb-1 hover:underline"
-                          style={{ color: 'var(--text-primary)' }}
-                          onClick={e => e.stopPropagation()}
-                        >
-                          {lead.name}
-                        </Link>
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <Link
+                            href={`/leads/${lead._id}`}
+                            className="block text-sm font-semibold hover:underline truncate max-w-[110px]"
+                            style={{ color: 'var(--text-primary)' }}
+                            onClick={e => e.stopPropagation()}
+                          >
+                            {lead.name}
+                          </Link>
+
+                          <select
+                            value={stage.id}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              handleDrop(e.target.value, lead._id.toString());
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            className="text-[10px] font-bold py-0.5 px-1 rounded-md border border-slate-200 bg-white text-slate-700 hover:border-indigo-400 focus:outline-none cursor-pointer shrink-0"
+                          >
+                            {STAGES.map((s) => (
+                              <option key={s.id} value={s.id}>
+                                {s.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
                         {lead.value ? (
                           <div className="flex items-center gap-1 text-xs font-semibold" style={{ color: 'var(--success)' }}>
                             <IndianRupee size={11} /> {(lead.value).toLocaleString()}

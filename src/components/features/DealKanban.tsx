@@ -78,14 +78,29 @@ export function DealKanban({ leads, onStageChange }: DealKanbanProps) {
                   draggable
                   onDragStart={(e) => handleDragStart(e, lead._id.toString())}
                 >
-                  <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="flex items-center justify-between gap-2 mb-2">
                     <Link 
                       href={`/leads/${lead._id}`}
-                      className="text-sm font-bold text-gray-900 group-hover:text-brand-600 transition-colors truncate"
+                      className="text-sm font-bold text-gray-900 group-hover:text-brand-600 transition-colors truncate max-w-[130px]"
+                      onClick={(e) => e.stopPropagation()}
                     >
                       {lead.name}
                     </Link>
-                    <GripVertical size={14} className="text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                    <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+                      <select
+                        value={stage.id}
+                        onChange={(e) => onStageChange(lead._id.toString(), e.target.value)}
+                        className="text-[10px] font-bold py-0.5 px-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:border-indigo-400 focus:outline-none cursor-pointer shadow-2xs"
+                      >
+                        {STAGES.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.label}
+                          </option>
+                        ))}
+                      </select>
+                      <GripVertical size={14} className="text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-1.5 text-success-600 font-bold text-xs mb-3">
