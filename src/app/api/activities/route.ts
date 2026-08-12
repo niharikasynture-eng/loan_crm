@@ -3,6 +3,8 @@ import { connectDB } from '@/lib/db';
 import { requireAuth, apiError, apiSuccess, ROLES } from '@/lib/auth';
 import Activity from '@/models/Activity';
 import Lead from '@/models/Lead';
+import User from '@/models/User';
+import mongoose from 'mongoose';
 
 // GET /api/activities
 export async function GET(req: NextRequest) {
@@ -121,7 +123,7 @@ export async function POST(req: NextRequest) {
     if (!leadId || !type) return apiError('leadId and type are required', 400);
 
     // Validate ObjectId format for leadId to prevent Mongoose CastError 500
-    if (typeof leadId !== 'string' || leadId.length !== 24) {
+    if (typeof leadId !== 'string' || !mongoose.Types.ObjectId.isValid(leadId)) {
       return apiError('Invalid leadId format', 400);
     }
 

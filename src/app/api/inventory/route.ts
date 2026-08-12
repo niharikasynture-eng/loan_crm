@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { connectDB } from '@/lib/db';
 import { requireAuth, apiError, apiSuccess, ROLES } from '@/lib/auth';
 import InventoryUnit from '@/models/InventoryUnit';
+import Project from '@/models/Project';
 
 export async function GET(req: NextRequest) {
   try {

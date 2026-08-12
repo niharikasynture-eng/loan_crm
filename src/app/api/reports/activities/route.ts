@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server';
 import { connectDB } from '@/lib/db';
 import { requireAuth, apiError, apiSuccess, ROLES } from '@/lib/auth';
 import Activity from '@/models/Activity';
+import Lead from '@/models/Lead';
+import User from '@/models/User';
 import mongoose from 'mongoose';
 
 export async function GET(req: NextRequest) {

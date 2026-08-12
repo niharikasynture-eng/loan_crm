@@ -3,6 +3,7 @@ import { connectDB } from '@/lib/db';
 import { requireAuth, apiError, apiSuccess, ROLES } from '@/lib/auth';
 import Deal from '@/models/Deal';
 import Lead from '@/models/Lead';
+import User from '@/models/User';
 
 // GET /api/deals
 export async function GET(req: NextRequest) {

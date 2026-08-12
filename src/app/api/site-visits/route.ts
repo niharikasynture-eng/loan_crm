@@ -2,6 +2,9 @@ import { NextRequest } from 'next/server';
 import { connectDB } from '@/lib/db';
 import { requireAuth, apiError, apiSuccess, ROLES } from '@/lib/auth';
 import SiteVisit from '@/models/SiteVisit';
+import Lead from '@/models/Lead';
+import Project from '@/models/Project';
+import User from '@/models/User';
 import { triggerIntentStageMovement } from '@/lib/intent-stage-mover';
 
 export async function GET(req: NextRequest) {

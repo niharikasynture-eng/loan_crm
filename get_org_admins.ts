@@ -18,8 +18,8 @@ async function listAndResetOrgAdmins() {
 
   console.log('--- ALL ORG ADMIN ACCOUNTS IN DATABASE ---');
   for (const admin of orgAdmins) {
-    // Reset password to password123 for convenience
-    admin.password = newPassHash;
+    // Reset password to password123 (pre-save hook will hash it once)
+    admin.password = 'password123';
     admin.isActive = true; // Ensure account is active
     await admin.save();
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import { requireAuth, apiError } from '@/lib/auth';
 import CallLog from '@/models/CallLog';
+import User from '@/models/User';
 
 export async function GET(
   req: NextRequest,
