@@ -13,13 +13,13 @@ export function PageHeader({ title, subtitle, action, className }: PageHeaderPro
     <div className={cn('flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8', className)}>
       <div>
         <h1
-          className="font-semibold leading-tight"
-          style={{ fontSize: '24px', fontWeight: 600, color: 'var(--text-primary)' }}
+          className="font-black leading-tight tracking-tight"
+          style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a' }}
         >
           {title}
         </h1>
         {subtitle && (
-          <p className="mt-1 leading-relaxed" style={{ fontSize: '13px', fontWeight: 400, color: 'var(--text-muted)' }}>
+          <p className="mt-1 leading-relaxed font-semibold" style={{ fontSize: '13px', fontWeight: 500, color: '#475569' }}>
             {subtitle}
           </p>
         )}

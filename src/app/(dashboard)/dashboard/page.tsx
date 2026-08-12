@@ -14,6 +14,7 @@ interface DashboardMetrics {
   totalLeads: number; newLeads: number; wonLeads: number; lostLeads: number;
   totalDeals: number; wonDeals: number; wonDealValue: number;
   totalActivities: number; callsThisMonth: number; pendingTasks: number; conversionRate: number;
+  qualificationRate?: number; wonRate?: number; lossRate?: number; isExecutive?: boolean;
 }
 
 export default function DashboardPage() {
@@ -59,10 +60,11 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="animate-fade-in pb-10 flex flex-col gap-8">
+    <div className="animate-fade-in pb-10 flex flex-col gap-5">
       <PageHeader
         title="Dashboard Overview"
         subtitle={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+        className="mb-1"
       />
 
       {/* Lead Capture Banner */}
@@ -144,6 +146,114 @@ export default function DashboardPage() {
           iconColor="#d97706"
         />
       </div>
+
+      {/* Executive Conversion & Rate Analysis Section + Pie Chart */}
+      {(user?.role === 'super_admin' || user?.role === 'org_admin' || user?.role === 'manager') && (
+        <div className="bg-white p-6 rounded-2xl border border-slate-200/90 shadow-xs space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-bold text-slate-800">Executive Conversion & Rate Analysis</h2>
+              <p className="text-xs text-slate-500">Live lead conversion pipeline rates and deal distribution</p>
+            </div>
+            <span className="px-3 py-1 bg-indigo-50 text-indigo-700 font-bold rounded-full text-[10px] uppercase tracking-widest border border-indigo-100">
+              Admin & Manager Only
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+            {/* Rate Breakdown Pie / Donut Chart */}
+            <div className="lg:col-span-5 flex items-center justify-center p-6 bg-slate-50/60 rounded-2xl border border-slate-100">
+              <div className="relative w-48 h-48 flex items-center justify-center">
+                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                  <path
+                    className="text-slate-200"
+                    strokeWidth="4"
+                    stroke="currentColor"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                  {/* Conversion Slice (Emerald) */}
+                  <path
+                    className="text-emerald-500 transition-all duration-500"
+                    strokeDasharray={`${metrics?.conversionRate || 0}, 100`}
+                    strokeWidth="4.5"
+                    strokeLinecap="round"
+                    stroke="currentColor"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                  {/* Qualification Slice (Indigo) */}
+                  <path
+                    className="text-indigo-500 transition-all duration-500"
+                    strokeDasharray={`${metrics?.qualificationRate || 0}, 100`}
+                    strokeDashoffset={`-${metrics?.conversionRate || 0}`}
+                    strokeWidth="4.5"
+                    strokeLinecap="round"
+                    stroke="currentColor"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                </svg>
+                <div className="absolute flex flex-col items-center justify-center text-center">
+                  <span className="text-3xl font-black text-slate-800 tabular-nums">{metrics?.conversionRate || 0}%</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Conversion</span>
+                </div>
+              </div>
+
+              {/* Legend List */}
+              <div className="ml-6 space-y-2 text-xs font-semibold">
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-indigo-500 shrink-0" />
+                  <span className="text-slate-600">Qualification:</span>
+                  <span className="font-bold text-slate-900">{metrics?.qualificationRate || 0}%</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-emerald-500 shrink-0" />
+                  <span className="text-slate-600">Conversion:</span>
+                  <span className="font-bold text-slate-900">{metrics?.conversionRate || 0}%</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-sky-500 shrink-0" />
+                  <span className="text-slate-600">Won Rate:</span>
+                  <span className="font-bold text-slate-900">{metrics?.wonRate || 0}%</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-rose-500 shrink-0" />
+                  <span className="text-slate-600">Loss Rate:</span>
+                  <span className="font-bold text-slate-900">{metrics?.lossRate || 0}%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Rate Stat Cards Matrix */}
+            <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="p-4 rounded-xl border border-indigo-100 bg-indigo-50/40 space-y-1">
+                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest block">Qualification Rate</span>
+                <p className="text-2xl font-black text-indigo-900">{metrics?.qualificationRate || 0}%</p>
+                <p className="text-[11px] text-indigo-700 font-medium">Inbound to qualified lead ratio</p>
+              </div>
+
+              <div className="p-4 rounded-xl border border-emerald-100 bg-emerald-50/40 space-y-1">
+                <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest block">Conversion Rate</span>
+                <p className="text-2xl font-black text-emerald-900">{metrics?.conversionRate || 0}%</p>
+                <p className="text-[11px] text-emerald-700 font-medium">Total leads converted to won deals</p>
+              </div>
+
+              <div className="p-4 rounded-xl border border-sky-100 bg-sky-50/40 space-y-1">
+                <span className="text-[10px] font-black text-sky-600 uppercase tracking-widest block">Won Deal Rate</span>
+                <p className="text-2xl font-black text-sky-900">{metrics?.wonRate || 0}%</p>
+                <p className="text-[11px] text-sky-700 font-medium">Closed deals won percentage</p>
+              </div>
+
+              <div className="p-4 rounded-xl border border-rose-100 bg-rose-50/40 space-y-1">
+                <span className="text-[10px] font-black text-rose-600 uppercase tracking-widest block">Deal Loss Rate</span>
+                <p className="text-2xl font-black text-rose-900">{metrics?.lossRate || 0}%</p>
+                <p className="text-[11px] text-rose-700 font-medium">Deals lost ratio</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Activity Feed */}
       <div className="flex flex-col gap-6">

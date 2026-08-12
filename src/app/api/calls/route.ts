@@ -5,6 +5,7 @@ import CallLog from '@/models/CallLog';
 import Activity from '@/models/Activity';
 import Lead from '@/models/Lead';
 import User from '@/models/User';
+import Task from '@/models/Task';
 
 export const dynamic = 'force-dynamic';
 
@@ -100,6 +101,28 @@ export async function POST(req: NextRequest) {
     }
     
     await lead.save();
+
+    // 4. AUTOMATION: Auto-complete any pending tasks for this lead
+    await Task.updateMany(
+      { leadId, organizationId: auth.organizationId, status: { $in: ['pending', 'in_progress'] } },
+      { status: 'completed', completedAt: new Date() }
+    ).catch((e) => console.error('Task auto-complete warning:', e));
+
+    // 5. AUTOMATION: If outcome is callback or interested, auto-create follow-up task
+    if (outcome === 'callback' || outcome === 'interested') {
+      await Task.create({
+        organizationId: auth.organizationId,
+        leadId,
+        category: 'sales',
+        title: `📞 Follow-Up Call: ${lead.name}`,
+        description: notes || `Auto-scheduled follow-up call after outcome: ${outcome}`,
+        status: 'pending',
+        priority: 'high',
+        dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000), // Due in 24h
+        assignedTo: auth.userId,
+        createdBy: auth.userId,
+      }).catch((e) => console.error('Auto follow-up task creation warning:', e));
+    }
 
     return apiSuccess({ activityId: activity._id, callLogId: callLog._id }, 'Call logged successfully', 201);
   } catch (err: any) {

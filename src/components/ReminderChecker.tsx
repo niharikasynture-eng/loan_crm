@@ -19,9 +19,14 @@ export function ReminderChecker() {
   // Ref-based fired set — prevents double-fire across rapid re-renders
   const firedRef = useRef<Set<string>>(new Set());
 
-  // On mount: seed from localStorage so page refresh doesn't re-fire today's alerts
+  // On mount: request Desktop Notification permission & seed from localStorage
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(console.error);
+    }
+
     try {
       const today = new Date().toDateString(); // e.g. "Mon Apr 28 2025"
       const raw = localStorage.getItem('crm_reminders_fired');
@@ -115,6 +120,16 @@ export function ReminderChecker() {
           : `Time to follow up with ${leadName}`;
 
       showToast(message, 'reminder', title, priority, leadLink, leadName);
+
+      // Desktop Push Notification Alert
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        try {
+          new Notification(`🔔 CRM REMINDER — ${leadName}`, {
+            body: message,
+            icon: '/favicon.ico',
+          });
+        } catch { /* ignore push error */ }
+      }
     }
   }, [user, showToast, markFired]);
 

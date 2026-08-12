@@ -35,11 +35,21 @@ export function useTasks(options: { status?: string; leadId?: string } = {}) {
     }
   };
 
+  const createTask = async (newTask: Partial<ITask>) => {
+    try {
+      const data = await api.post<{ task: ITask }>('/tasks', newTask);
+      setTasks(prev => [data.task, ...prev]);
+      return data.task;
+    } catch (err: any) {
+      throw new Error(err.message || 'Failed to create task');
+    }
+  };
+
   const completeTask = (id: string) => updateTask(id, { status: 'completed', completedAt: new Date() });
 
   useEffect(() => {
     fetchTasks();
   }, [fetchTasks]);
 
-  return { tasks, loading, error, refresh: fetchTasks, updateTask, completeTask };
+  return { tasks, loading, error, refresh: fetchTasks, updateTask, completeTask, createTask };
 }

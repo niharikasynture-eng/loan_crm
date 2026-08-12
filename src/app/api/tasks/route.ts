@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
     if (auth.role === ROLES.SUPER_ADMIN || auth.role === ROLES.ONSITE_VISITOR) return apiError('Access denied', 403);
 
     const body = await req.json();
-    const { title, description, leadId, dealId, dueDate, priority, assignedTo, link } = body;
+    const { title, description, leadId, dealId, bookingId, category, dueDate, priority, assignedTo, link } = body;
 
     if (!title || !dueDate) return apiError('Title and dueDate are required');
 
@@ -86,6 +86,8 @@ export async function POST(req: NextRequest) {
       description,
       leadId,
       dealId,
+      bookingId,
+      category: category || 'sales',
       dueDate: new Date(dueDate),
       priority: priority || 'medium',
       link,

@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Users, Activity, Phone,
   CheckSquare, TrendingUp, BarChart2, Settings, UserCog, Menu, X,
-  Clock, CheckCircle, Building2
+  Clock, CheckCircle, Building2, KeyRound
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Sidebar, NavItem } from '@/components/layout/Sidebar';
@@ -61,6 +61,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { label: 'Calls', href: '/calls', icon: Phone },
         { label: 'Tasks', href: '/tasks', icon: CheckSquare },
         { label: 'Pipeline', href: '/deals', icon: TrendingUp },
+        ...(isAdmin ? [{ label: 'Post Sales', href: '/post-sales', icon: KeyRound }] : []),
         ...(isAdmin ? [{ label: 'Reports', href: '/reports', icon: BarChart2 }] : []),
         ...(isAdmin ? [{ label: 'Team', href: '/users', icon: UserCog }] : []),
         { label: 'Settings', href: '/settings', icon: Settings },

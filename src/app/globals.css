@@ -19,10 +19,16 @@
 
 @layer base {
   h1, h2, h3, h4, h5, h6 {
-    font-weight: 700 !important;
+    font-weight: 800 !important;
+    color: #0f172a;
+    letter-spacing: -0.015em;
   }
   p {
-    font-weight: 300 !important;
+    font-weight: 500 !important;
+    color: #334155;
+  }
+  span, label, input, select, button {
+    font-weight: 500;
   }
 }
 

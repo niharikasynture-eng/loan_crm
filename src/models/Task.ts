@@ -8,6 +8,8 @@ export interface ITask extends Document {
   organizationId: mongoose.Types.ObjectId;
   leadId?: mongoose.Types.ObjectId;
   dealId?: mongoose.Types.ObjectId;
+  bookingId?: mongoose.Types.ObjectId;
+  category?: 'sales' | 'post_sales' | 'billing' | 'compliance' | 'handover';
   title: string;
   description?: string;
   status: TaskStatus;
@@ -32,6 +34,12 @@ const TaskSchema = new Schema<ITask>(
     },
     leadId: { type: Schema.Types.ObjectId, ref: 'Lead', index: true },
     dealId: { type: Schema.Types.ObjectId, ref: 'Deal', index: true },
+    bookingId: { type: Schema.Types.ObjectId, ref: 'Booking', index: true },
+    category: {
+      type: String,
+      enum: ['sales', 'post_sales', 'billing', 'compliance', 'handover'],
+      default: 'sales',
+    },
     title: { type: String, required: true, trim: true },
     description: { type: String },
     status: {

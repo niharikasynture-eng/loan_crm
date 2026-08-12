@@ -58,13 +58,15 @@ export default function ReportsPage() {
     async function load() {
       setLoading(true);
       try {
-        const dash = await api.get<any>(`/dashboard?period=${period}&userId=${agent}`);
-        const acts = await api.get<any>(`/reports/activities?period=${period}&userId=${agent}`);
-        const ags = await api.get<any>(`/reports/salespeople?period=${period}`);
+        const dash = await api.get<any>(`/dashboard?period=${period}&userId=${agent}`).catch(() => null);
+        setData(dash?.metrics || { callsThisMonth: 0, wonDealValue: 0, wonDeals: 0, totalLeads: 0, newLeads: 0, conversionRate: 0 });
 
-        setData(dash.metrics);
-        setActivities(acts.activities || []);
-        setAgents(ags.performance || []);
+        if (isManager) {
+          const acts = await api.get<any>(`/reports/activities?period=${period}&userId=${agent}`).catch(() => ({ activities: [] }));
+          const ags = await api.get<any>(`/reports/salespeople?period=${period}`).catch(() => ({ performance: [] }));
+          setActivities(acts.activities || []);
+          setAgents(ags.performance || []);
+        }
       } catch (err) {
         console.error(err);
       } finally {
@@ -72,7 +74,7 @@ export default function ReportsPage() {
       }
     }
     load();
-  }, [period, agent]);
+  }, [period, agent, isManager]);
 
   if (loading) {
     return (
@@ -162,11 +164,58 @@ export default function ReportsPage() {
           iconBg="var(--brand-soft)" iconColor="var(--brand)" />
         <StatCard icon={Award} title="Won Deals" value={`₹${Number(data.wonDealValue).toLocaleString()}`}
           sub={`${data.wonDeals} deals closed`} iconBg="#ecfdf5" iconColor="var(--success)" />
-        <StatCard icon={Users} title="New Leads" value={data.totalLeads}
-          sub={`+${data.newLeads} this period`} iconBg="#eff6ff" iconColor="#2563eb" />
-        <StatCard icon={Target} title="Conversion" value={`${data.conversionRate}%`}
-          sub="Lead-to-deal ratio" iconBg="#fffbeb" iconColor="#d97706" />
+        <StatCard icon={Users} title="Total Leads" value={data.totalLeads}
+          sub={`+${data.newLeads} new entries`} iconBg="#eff6ff" iconColor="#2563eb" />
+
+        {isManager ? (
+          <StatCard icon={Target} title="Conversion Rate" value={`${data.conversionRate}%`}
+            sub="Lead-to-won deal ratio" iconBg="#fffbeb" iconColor="#d97706" />
+        ) : (
+          <StatCard icon={Target} title="Pending Tasks" value={data.pendingTasks || 0}
+            sub="Action items assigned" iconBg="#fffbeb" iconColor="#d97706" />
+        )}
       </div>
+
+      {/* Executive Rate Analysis Matrix (Only for Super Admin, Org Admin, & Manager) */}
+      {isManager && (
+        <div className="p-6 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-bold text-slate-800">Executive Conversion & Rate Analytics</h2>
+              <p className="text-xs text-slate-500">Restricted manager metrics: Qualification, Conversion, Won & Loss rates</p>
+            </div>
+            <span className="px-3 py-1 bg-indigo-50 text-indigo-700 font-bold rounded-full text-[10px] uppercase tracking-widest border border-indigo-100">
+              Admin & Manager Only
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="p-4 rounded-xl border border-indigo-100 bg-indigo-50/40 space-y-1">
+              <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest block">Qualification Rate</span>
+              <p className="text-2xl font-black text-indigo-900">{data.qualificationRate || 0}%</p>
+              <p className="text-[11px] text-indigo-700 font-medium">Inbound to qualified lead ratio</p>
+            </div>
+
+            <div className="p-4 rounded-xl border border-emerald-100 bg-emerald-50/40 space-y-1">
+              <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest block">Conversion Rate</span>
+              <p className="text-2xl font-black text-emerald-900">{data.conversionRate || 0}%</p>
+              <p className="text-[11px] text-emerald-700 font-medium">Total leads converted to won deals</p>
+            </div>
+
+            <div className="p-4 rounded-xl border border-sky-100 bg-sky-50/40 space-y-1">
+              <span className="text-[10px] font-black text-sky-600 uppercase tracking-widest block">Won Deal Rate</span>
+              <p className="text-2xl font-black text-sky-900">{data.wonRate || 0}%</p>
+              <p className="text-[11px] text-sky-700 font-medium">Closed deals won percentage</p>
+            </div>
+
+            <div className="p-4 rounded-xl border border-rose-100 bg-rose-50/40 space-y-1">
+              <span className="text-[10px] font-black text-rose-600 uppercase tracking-widest block">Deal Loss Rate</span>
+              <p className="text-2xl font-black text-rose-900">{data.lossRate || 0}%</p>
+              <p className="text-[11px] text-rose-700 font-medium">Deals lost ratio</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Activity Log */}
       {isManager && (

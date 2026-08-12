@@ -4,6 +4,8 @@ import { requireAuth, apiError, apiSuccess, ROLES } from '@/lib/auth';
 import Activity from '@/models/Activity';
 import Lead from '@/models/Lead';
 import User from '@/models/User';
+import CallLog from '@/models/CallLog';
+import Task from '@/models/Task';
 import mongoose from 'mongoose';
 
 // GET /api/activities
@@ -161,9 +163,34 @@ export async function POST(req: NextRequest) {
 
     const activity = await Activity.create(activityData);
 
-    // Update lead's lastContactedAt
+    // Update lead's lastContactedAt and auto-sync CallLog for analytics
     if (type === 'call' || type === 'meeting') {
       await Lead.findByIdAndUpdate(leadId, { lastContactedAt: new Date() });
+    }
+
+    if (type === 'call') {
+      const validOutcomes = ['interested', 'not-interested', 'callback', 'no-answer', 'busy', 'wrong-number'];
+      const mappedOutcome = validOutcomes.includes(outcome) ? outcome : null;
+      const dur = typeof activityData.duration === 'number' ? activityData.duration : 15;
+
+      await CallLog.create({
+        leadId,
+        organizationId: auth.organizationId,
+        salesPersonId: auth.userId,
+        status: status === 'missed' ? 'missed' : 'completed',
+        outcome: mappedOutcome,
+        duration: dur,
+        connectedDuration: dur,
+        notes: notes || 'Call logged',
+        startedAt: activityData.createdAt ? new Date(activityData.createdAt as string) : new Date(),
+        endedAt: new Date(),
+      }).catch((err) => console.error('CallLog auto-sync warning:', err));
+
+      // AUTOMATION: Auto-complete any pending task for this lead when call is logged
+      await Task.updateMany(
+        { leadId, organizationId: auth.organizationId, status: { $in: ['pending', 'in_progress'] } },
+        { status: 'completed', completedAt: new Date() }
+      ).catch((err) => console.error('Task auto-complete warning:', err));
     }
 
     const populated = await Activity.findById(activity._id)

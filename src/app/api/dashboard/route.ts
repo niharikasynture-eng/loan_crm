@@ -99,7 +99,15 @@ export async function GET(req: NextRequest) {
         .lean(),
     ]);
 
-    const conversionRate = totalLeads > 0 ? ((wonLeads / totalLeads) * 100).toFixed(1) : '0';
+    const qualifiedLeads = await Lead.countDocuments({ ...queryLeads, status: { $in: ['qualified', 'proposal', 'won'] } });
+    
+    const isExecutive = auth.role === 'super_admin' || auth.role === 'org_admin' || auth.role === 'manager';
+
+    const conversionRate = totalLeads > 0 ? parseFloat(((wonLeads / totalLeads) * 100).toFixed(1)) : 0;
+    const qualificationRate = totalLeads > 0 ? parseFloat(((qualifiedLeads / totalLeads) * 100).toFixed(1)) : 0;
+    const totalClosed = wonLeads + lostLeads;
+    const wonRate = totalClosed > 0 ? parseFloat(((wonLeads / totalClosed) * 100).toFixed(1)) : 0;
+    const lossRate = totalClosed > 0 ? parseFloat(((lostLeads / totalClosed) * 100).toFixed(1)) : 0;
 
     const wonDealValue = await Deal.aggregate([
       { $match: { ...queryDeals, stage: 'closed_won' } },
@@ -118,7 +126,11 @@ export async function GET(req: NextRequest) {
         callsThisMonth: callsCount, // Reusing legacy field name for frontend compatibility
         pendingTasks,
         totalUsers,
-        conversionRate: parseFloat(conversionRate),
+        conversionRate: isExecutive ? conversionRate : 0,
+        qualificationRate: isExecutive ? qualificationRate : 0,
+        wonRate: isExecutive ? wonRate : 0,
+        lossRate: isExecutive ? lossRate : 0,
+        isExecutive,
         wonDealValue: wonDealValue[0]?.total || 0,
       },
       charts: {
