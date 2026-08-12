@@ -92,6 +92,12 @@ export function PostCallDispositionModal({
     setSubmitting(true);
 
     try {
+      // Calculate callback date: use specified followUpDate, or default to 24 hours from now for 'Call Back Later'
+      let targetFollowUpDate: Date | null = followUpDate ? new Date(followUpDate) : null;
+      if (disp.id === 'contacted' && !targetFollowUpDate) {
+        targetFollowUpDate = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours default
+      }
+
       // 1. Update lead status & pipeline stage
       await api.patch(`/leads/${lead._id}`, {
         status: disp.stage,
@@ -106,22 +112,29 @@ export function PostCallDispositionModal({
         type: 'call',
         outcome: disp.id,
         notes: notes ? `${disp.label}: ${notes}` : `Call outcome recorded: ${disp.label}`,
-        status: 'completed',
-        completedAt: new Date(),
+        status: disp.id === 'contacted' ? 'pending' : 'completed',
+        completedAt: disp.id === 'contacted' ? undefined : new Date(),
+        scheduledAt: disp.id === 'contacted' ? targetFollowUpDate : undefined,
       });
 
-      // 3. Create follow-up task if date specified
-      if (followUpDate) {
+      // 3. Create follow-up task
+      if (targetFollowUpDate) {
         await api.post('/tasks', {
           leadId: lead._id,
-          title: `Follow up: ${disp.label} — ${lead.name}`,
-          dueDate: new Date(followUpDate),
+          title: `Follow up: Call Back — ${lead.name}`,
+          dueDate: targetFollowUpDate,
           priority: disp.id === 'proposal' || disp.id === 'won' ? 'high' : 'medium',
           status: 'pending',
         });
       }
 
-      toast('success', `Call outcome saved: ${disp.label}`);
+      const callbackNotice = disp.id === 'contacted'
+        ? followUpDate
+          ? ` (Reminder set for specified time)`
+          : ` (Reminder set for 24 hrs from now)`
+        : '';
+
+      toast('success', `Call outcome saved: ${disp.label}${callbackNotice}`);
       if (onSuccess) onSuccess();
       onClose();
     } catch (err: any) {

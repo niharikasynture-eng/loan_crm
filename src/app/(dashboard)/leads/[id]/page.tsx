@@ -1565,34 +1565,66 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                       )}
                     </div>
                   </div>
-                  <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl">
+                  <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl space-y-1">
                     <p className="text-[11px] text-emerald-700 font-medium italic">
-                      Real WhatsApp API is active via <strong>Ultramsg</strong>.
-                      Messages will be sent directly from your linked number.
+                      Send via automated <strong>Ultramsg API</strong> or open directly in <strong>WhatsApp App/Web</strong>.
                     </p>
                   </div>
-                  <button
-                    onClick={async () => {
-                      if (!lead.phone) return showToast('Lead must have a phone number.', 'error', 'Error');
-                      setSubmitting(true);
-                      try {
-                        await api.post('/activities/whatsapp', {
-                          leadId: lead._id,
-                          message: whatsappData.message
-                        });
-                        showToast('WhatsApp message sent successfully!', 'success', 'WhatsApp');
-                        handleLogged();
-                      } catch (err: any) {
-                        showToast(err.message || 'Failed to send WhatsApp message', 'error', 'WhatsApp Error');
-                      } finally {
-                        setSubmitting(false);
-                      }
-                    }}
-                    disabled={submitting}
-                    className="btn-primary w-full !bg-emerald-600 hover:!bg-emerald-700 border-none"
-                  >
-                    {submitting ? 'Sending...' : 'Send WhatsApp Message'}
-                  </button>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <button
+                      onClick={async () => {
+                        if (!lead.phone) return showToast('Lead must have a phone number.', 'error', 'Error');
+                        setSubmitting(true);
+                        try {
+                          await api.post('/activities/whatsapp', {
+                            leadId: lead._id,
+                            message: whatsappData.message
+                          });
+                          showToast('WhatsApp message sent successfully via gateway!', 'success', 'WhatsApp');
+                          handleLogged();
+                        } catch (err: any) {
+                          showToast(err.message || 'Failed to send WhatsApp message', 'error', 'WhatsApp Gateway Error');
+                        } finally {
+                          setSubmitting(false);
+                        }
+                      }}
+                      disabled={submitting}
+                      className="btn-primary flex-1 !bg-emerald-600 hover:!bg-emerald-700 border-none"
+                    >
+                      {submitting ? 'Sending...' : 'Send via Gateway'}
+                    </button>
+
+                    <button
+                      onClick={async () => {
+                        if (!lead.phone) return showToast('Lead must have a phone number.', 'error', 'Error');
+                        setSubmitting(true);
+                        try {
+                          const res = await api.post<{ waUrl: string }>('/activities/whatsapp', {
+                            leadId: lead._id,
+                            message: whatsappData.message,
+                            direct: true
+                          });
+                          showToast('Opening WhatsApp...', 'info', 'Direct WhatsApp');
+                          handleLogged();
+                          if (res?.waUrl) {
+                            window.open(res.waUrl, '_blank');
+                          } else {
+                            const cleanPhone = lead.phone.replace(/\D/g, '');
+                            const formatted = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+                            window.open(`https://wa.me/${formatted}?text=${encodeURIComponent(whatsappData.message)}`, '_blank');
+                          }
+                        } catch (err: any) {
+                          showToast(err.message || 'Failed to initialize direct WhatsApp', 'error', 'WhatsApp Error');
+                        } finally {
+                          setSubmitting(false);
+                        }
+                      }}
+                      disabled={submitting}
+                      className="btn-secondary flex-1 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                    >
+                      Open Direct WhatsApp ↗
+                    </button>
+                  </div>
                 </div>
               )}
 

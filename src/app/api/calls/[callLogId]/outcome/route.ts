@@ -23,7 +23,12 @@ export async function POST(
 
     callLog.outcome = outcome;
     callLog.notes = notes;
-    if (nextFollowUpDate) callLog.nextFollowUpDate = new Date(nextFollowUpDate);
+    let followUpTime: Date | null = nextFollowUpDate ? new Date(nextFollowUpDate) : null;
+    if (['callback', 'contacted', 'interested'].includes(outcome) && !followUpTime) {
+      followUpTime = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h default
+    }
+
+    if (followUpTime) callLog.nextFollowUpDate = followUpTime;
     await callLog.save();
 
     const lead = await Lead.findById(callLog.leadId);
@@ -33,16 +38,16 @@ export async function POST(
     }
 
     // Create a follow-up task or meeting if needed
-    if (['interested', 'callback', 'meeting'].includes(outcome) && nextFollowUpDate) {
+    if (followUpTime && ['interested', 'callback', 'contacted', 'meeting'].includes(outcome)) {
       const taskTitle = outcome === 'meeting' 
         ? `Meeting Scheduled - ${lead?.name || 'Lead'}`
-        : `Follow up - ${lead?.name || 'Lead'}`;
+        : `Follow up: Call Back — ${lead?.name || 'Lead'}`;
 
       await Task.create({
         organizationId: auth.organizationId,
         leadId: callLog.leadId,
         title: taskTitle,
-        dueDate: new Date(nextFollowUpDate),
+        dueDate: followUpTime,
         assignedTo: auth.userId,
         status: 'pending',
         priority: outcome === 'meeting' ? 'high' : 'medium',
@@ -61,6 +66,8 @@ export async function POST(
       outcome: activityOutcome,
       duration: callLog.duration,
       notes: notes,
+      status: ['callback', 'contacted'].includes(outcome) ? 'pending' : 'completed',
+      scheduledAt: ['callback', 'contacted'].includes(outcome) && followUpTime ? followUpTime : undefined,
       createdBy: auth.userId
     });
 
