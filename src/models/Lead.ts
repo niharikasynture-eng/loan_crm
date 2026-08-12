@@ -19,6 +19,9 @@ export interface ILead extends Document {
   customFields?: Record<string, string | number | boolean>;
   tags: string[];
   assignedAt?: Date;
+  lastStageChangedBy?: mongoose.Types.ObjectId;
+  lastStageChangedAt?: Date;
+  previousStage?: string;
   ghostAlertSent?: boolean;
   isGhost?: boolean;
   lastContactedAt?: Date;
@@ -108,6 +111,9 @@ const LeadSchema = new Schema<ILead>(
     },
     assignedTo: { type: Schema.Types.ObjectId, ref: 'User' },
     assignedAt: { type: Date },
+    lastStageChangedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    lastStageChangedAt: { type: Date },
+    previousStage: { type: String },
     ghostAlertSent: { type: Boolean, default: false },
     isGhost: { type: Boolean, default: false },
     value: { type: Number },

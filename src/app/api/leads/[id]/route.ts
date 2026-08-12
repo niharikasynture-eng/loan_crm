@@ -25,6 +25,7 @@ export async function GET(
     const lead = await Lead.findOne(query)
       .populate('assignedTo', 'name email avatar')
       .populate('createdBy', 'name email')
+      .populate('lastStageChangedBy', 'name email avatar')
       .lean();
 
     if (!lead) return apiError('Lead not found', 404);
@@ -76,15 +77,24 @@ export async function PATCH(
       if (body[key] !== undefined) updates[key] = body[key];
     }
 
-    // Restricted roles can update leads within their organization
     const query: Record<string, unknown> = { _id: id, organizationId: auth.organizationId };
 
     const previousLead = await Lead.findOne(query).lean();
     if (!previousLead) return apiError('Lead not found', 404);
 
+    // Track status/stage change audit details
+    const newStage = body.pipelineStage || body.status;
+    const oldStage = (previousLead as any).pipelineStage || (previousLead as any).status;
+    if (newStage && newStage !== oldStage) {
+      updates.previousStage = oldStage;
+      updates.lastStageChangedBy = auth.userId;
+      updates.lastStageChangedAt = new Date();
+    }
+
     const lead = await Lead.findOneAndUpdate(query, updates, { new: true })
       .populate('assignedTo', 'name email avatar')
       .populate('createdBy', 'name email')
+      .populate('lastStageChangedBy', 'name email avatar')
       .lean();
 
     if (!lead) return apiError('Lead not found', 404);

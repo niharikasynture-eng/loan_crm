@@ -114,12 +114,23 @@ export function DealKanban({ leads, onStageChange }: DealKanbanProps) {
                     </span>
                     {lead.assignedTo && (
                       <div className="flex items-center gap-1.5">
-                        <div className="w-5 h-5 rounded-lg bg-brand-50 flex items-center justify-center text-[9px] font-black text-brand-600 border border-brand-100 uppercase">
+                        <div className="w-5 h-5 rounded-lg bg-brand-50 flex items-center justify-center text-[9px] font-black text-brand-600 border border-brand-100 uppercase" title={`Assigned to ${(lead as any).assignedTo.name}`}>
                           {(lead as any).assignedTo.name.charAt(0)}
                         </div>
                       </div>
                     )}
                   </div>
+
+                  {lead.lastStageChangedBy && (
+                    <div className="mt-2 pt-2 border-t border-slate-100 flex items-center gap-1.5 text-[10px] text-slate-500 leading-tight">
+                      <div className="w-4 h-4 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-[8px] shrink-0 uppercase">
+                        {(lead.lastStageChangedBy as any).name ? (lead.lastStageChangedBy as any).name.charAt(0) : 'U'}
+                      </div>
+                      <span className="truncate">
+                        Status changed from <strong className="capitalize text-slate-700">{lead.previousStage || 'previous'}</strong> to <strong className="capitalize text-indigo-700 font-bold">{stage.label}</strong> by <strong className="text-indigo-600 font-bold">{(lead.lastStageChangedBy as any).name || 'Sales Agent'}</strong>
+                      </span>
+                    </div>
+                  )}
                 </Card>
               ))}
 

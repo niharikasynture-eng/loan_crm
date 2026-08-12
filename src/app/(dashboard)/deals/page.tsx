@@ -166,6 +166,17 @@ export default function DealsPage() {
                         <p className="text-xs mt-1.5 truncate" style={{ color: 'var(--text-muted)' }}>
                           {(lead as any).company || (lead as any).assignedTo?.name || '—'}
                         </p>
+
+                        {(lead as any).lastStageChangedBy && (
+                          <div className="mt-2 pt-1.5 border-t border-slate-100 flex items-center gap-1.5 text-[10px] text-slate-500 leading-tight">
+                            <div className="w-4 h-4 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-[8px] shrink-0 uppercase">
+                              {(lead as any).lastStageChangedBy.name ? (lead as any).lastStageChangedBy.name.charAt(0) : 'U'}
+                            </div>
+                            <span className="truncate">
+                              Status changed from <strong className="capitalize text-slate-700">{(lead as any).previousStage || 'previous'}</strong> to <strong className="capitalize text-indigo-700 font-bold">{stage.label}</strong> by <strong className="text-indigo-600 font-bold">{(lead as any).lastStageChangedBy.name || 'Sales Agent'}</strong>
+                            </span>
+                          </div>
+                        )}
                       </div>
                     );
                   })}

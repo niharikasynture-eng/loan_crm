@@ -44,6 +44,7 @@ export async function GET(req: NextRequest) {
       Lead.find(query)
         .populate('assignedTo', 'name email avatar')
         .populate('createdBy', 'name email')
+        .populate('lastStageChangedBy', 'name email avatar')
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
