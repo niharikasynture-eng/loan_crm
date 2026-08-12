@@ -122,22 +122,25 @@ export function DealKanban({ leads, onStageChange }: DealKanbanProps) {
                   </div>
 
                   {lead.lastStageChangedBy && (
-                    <div className="mt-2.5 pt-2 border-t border-slate-100/90 space-y-1 bg-slate-50/50 -mx-3 -mb-3 p-2.5 rounded-b-xl">
-                      <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800">
-                        <div className="w-5 h-5 rounded-full bg-gradient-to-r from-indigo-500 to-sky-500 text-white flex items-center justify-center font-bold text-[9px] shrink-0 uppercase shadow-2xs">
+                    <div className="mt-3 pt-2 border-t border-slate-100/80 flex items-center justify-between gap-1.5">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center font-bold text-[9px] shrink-0 uppercase shadow-2xs">
                           {(lead.lastStageChangedBy as any).avatar ? (
                             <img src={(lead.lastStageChangedBy as any).avatar} alt="" className="w-full h-full rounded-full object-cover" />
                           ) : (
                             (lead.lastStageChangedBy as any).name ? (lead.lastStageChangedBy as any).name.charAt(0) : 'U'
                           )}
                         </div>
-                        <span className="text-[11px] font-bold text-indigo-950 truncate">
+                        <span className="font-semibold text-slate-700 text-[11px] truncate">
                           {(lead.lastStageChangedBy as any).name || 'Sales Agent'}
                         </span>
                       </div>
-                      <p className="text-[10px] text-slate-600 leading-normal pl-0.5">
-                        Status changed from <strong className="capitalize text-slate-900 font-bold">{lead.previousStage || 'previous'}</strong> to <strong className="capitalize text-indigo-700 font-bold">{stage.label}</strong>
-                      </p>
+
+                      <div className="text-[10px] text-slate-400 font-medium shrink-0 flex items-center gap-1 bg-slate-100/80 px-2 py-0.5 rounded-full border border-slate-200/60">
+                        <span className="capitalize">{lead.previousStage || 'new'}</span>
+                        <span className="text-slate-400">→</span>
+                        <span className="font-bold text-indigo-600 capitalize">{stage.label}</span>
+                      </div>
                     </div>
                   )}
                 </Card>
