@@ -122,13 +122,22 @@ export function DealKanban({ leads, onStageChange }: DealKanbanProps) {
                   </div>
 
                   {lead.lastStageChangedBy && (
-                    <div className="mt-2 pt-2 border-t border-slate-100 flex items-center gap-1.5 text-[10px] text-slate-500 leading-tight">
-                      <div className="w-4 h-4 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-[8px] shrink-0 uppercase">
-                        {(lead.lastStageChangedBy as any).name ? (lead.lastStageChangedBy as any).name.charAt(0) : 'U'}
+                    <div className="mt-2.5 pt-2 border-t border-slate-100/90 space-y-1 bg-slate-50/50 -mx-3 -mb-3 p-2.5 rounded-b-xl">
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800">
+                        <div className="w-5 h-5 rounded-full bg-gradient-to-r from-indigo-500 to-sky-500 text-white flex items-center justify-center font-bold text-[9px] shrink-0 uppercase shadow-2xs">
+                          {(lead.lastStageChangedBy as any).avatar ? (
+                            <img src={(lead.lastStageChangedBy as any).avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                          ) : (
+                            (lead.lastStageChangedBy as any).name ? (lead.lastStageChangedBy as any).name.charAt(0) : 'U'
+                          )}
+                        </div>
+                        <span className="text-[11px] font-bold text-indigo-950 truncate">
+                          {(lead.lastStageChangedBy as any).name || 'Sales Agent'}
+                        </span>
                       </div>
-                      <span className="truncate">
-                        Status changed from <strong className="capitalize text-slate-700">{lead.previousStage || 'previous'}</strong> to <strong className="capitalize text-indigo-700 font-bold">{stage.label}</strong> by <strong className="text-indigo-600 font-bold">{(lead.lastStageChangedBy as any).name || 'Sales Agent'}</strong>
-                      </span>
+                      <p className="text-[10px] text-slate-600 leading-normal pl-0.5">
+                        Status changed from <strong className="capitalize text-slate-900 font-bold">{lead.previousStage || 'previous'}</strong> to <strong className="capitalize text-indigo-700 font-bold">{stage.label}</strong>
+                      </p>
                     </div>
                   )}
                 </Card>
