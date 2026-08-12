@@ -8,17 +8,37 @@ import User from '@/models/User';
 
 export const dynamic = 'force-dynamic';
 
-// GET /api/calls - Fetch organization call history
+// GET /api/calls - Fetch organization call history with analytics filtering
 export async function GET(req: NextRequest) {
   try {
     const auth = requireAuth(req);
     await connectDB();
 
-    const callLogs = await CallLog.find({ organizationId: auth.organizationId })
-      .populate('leadId', 'name phone')
-      .populate('salesPersonId', 'name email')
-      .sort({ createdAt: -1 })
-      .limit(50);
+    const { searchParams } = req.nextUrl;
+    const salesPersonId = searchParams.get('salesPersonId');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+    const limit = parseInt(searchParams.get('limit') || '500');
+
+    const query: Record<string, any> = { organizationId: auth.organizationId };
+
+    if (auth.role === 'sales_agent' || auth.role === 'onsite_visitor') {
+      query.salesPersonId = auth.userId;
+    } else if (salesPersonId && salesPersonId !== 'all') {
+      query.salesPersonId = salesPersonId;
+    }
+
+    if (startDate || endDate) {
+      query.startedAt = {};
+      if (startDate) query.startedAt.$gte = new Date(startDate);
+      if (endDate) query.startedAt.$lte = new Date(endDate);
+    }
+
+    const callLogs = await CallLog.find(query)
+      .populate('leadId', 'name phone email company')
+      .populate('salesPersonId', 'name email avatar')
+      .sort({ startedAt: -1, createdAt: -1 })
+      .limit(limit);
 
     return apiSuccess({ callLogs });
   } catch (err: any) {
