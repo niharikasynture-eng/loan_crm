@@ -42,6 +42,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isSuperAdmin = user.role === 'super_admin';
   const isOnsiteVisitor = user.role === 'onsite_visitor';
   const isAdmin = ['org_admin', 'manager'].includes(user.role);
+  const canAccessPostSales = ['super_admin', 'org_admin', 'manager', 'sales_agent'].includes(user.role);
 
   const navItems: NavItem[] = isSuperAdmin
     ? [
@@ -61,7 +62,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { label: 'Calls', href: '/calls', icon: Phone },
         { label: 'Tasks', href: '/tasks', icon: CheckSquare },
         { label: 'Pipeline', href: '/deals', icon: TrendingUp },
-        ...(isAdmin ? [{ label: 'Post Sales', href: '/post-sales', icon: KeyRound }] : []),
+        ...(canAccessPostSales ? [{ label: 'Post Sales', href: '/post-sales', icon: KeyRound }] : []),
         ...(isAdmin ? [{ label: 'Reports', href: '/reports', icon: BarChart2 }] : []),
         ...(isAdmin ? [{ label: 'Team', href: '/users', icon: UserCog }] : []),
         { label: 'Settings', href: '/settings', icon: Settings },

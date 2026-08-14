@@ -12,20 +12,26 @@ export async function GET(req: NextRequest) {
     const auth = requireAuth(req);
     await connectDB();
 
-    if (auth.role !== 'super_admin' && auth.role !== 'org_admin' && auth.role !== 'manager') {
-      return apiError('Access denied. Post Sales is restricted to Org Admins and Managers.', 403);
+    if (auth.role === 'onsite_visitor') {
+      return apiError('Access denied. Onsite Visitors do not have access to Post Sales.', 403);
     }
 
     // Reset old real-estate demo bookings if present
     await Booking.deleteMany({ organizationId: auth.organizationId, projectName: { $regex: /Acme Height|Residency/i } });
 
-    let bookings = await Booking.find({ organizationId: auth.organizationId })
+    // Build filter query based on user role
+    const query: any = { organizationId: auth.organizationId };
+    if (auth.role === 'sales_agent') {
+      query.salesPersonId = auth.userId;
+    }
+
+    let bookings = await Booking.find(query)
       .populate('leadId', 'name email phone company status')
       .populate('salesPersonId', 'name email avatar')
       .sort({ createdAt: -1 });
 
     // Auto-seed sample SAP Enterprise Solution Bookings if empty
-    if (bookings.length === 0) {
+    if (bookings.length === 0 && (auth.role === 'super_admin' || auth.role === 'org_admin' || auth.role === 'manager')) {
       const leads = await Lead.find({ organizationId: auth.organizationId }).limit(4);
       if (leads.length > 0) {
         const sampleBookings = [
@@ -36,7 +42,9 @@ export async function GET(req: NextRequest) {
             unitNumber: 'SAP S/4HANA Cloud (Enterprise Edition)',
             projectName: 'Enterprise ERP Digital Transformation',
             totalAmount: 7500000, // ₹75 Lakhs
-            bookingDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+            bookingDate: new Date(Date.now() - 330 * 24 * 60 * 60 * 1000),
+            contractEndDate: new Date(Date.now() + 35 * 24 * 60 * 60 * 1000), // Expiring in 35 days!
+            renewalStatus: 'expiring_soon',
             status: 'implementation_in_progress',
             paymentMilestones: [
               { name: '20% Contract Signing & License Provisioning', amount: 1500000, dueDate: new Date(Date.now() - 25 * 24 * 3600 * 1000), status: 'paid', paidAmount: 1500000, paidDate: new Date(Date.now() - 25 * 24 * 3600 * 1000) },
@@ -57,6 +65,10 @@ export async function GET(req: NextRequest) {
               { item: 'Single Sign-On (SSO) & Security Audit Pass', completed: false },
               { item: 'Official Production Go-Live Certificate & Handover', completed: false },
             ],
+            upsellOpportunities: [
+              { title: 'Add-on 50 SAP Professional User Licenses', amount: 1500000, status: 'pitched', notes: 'Client requested proposal for expanded sales team' },
+              { title: 'SAP Analytics Cloud Integration Module', amount: 800000, status: 'identified', notes: 'Discussed during Q3 architecture review' }
+            ]
           },
           ...(leads.length > 1
             ? [
@@ -67,7 +79,9 @@ export async function GET(req: NextRequest) {
                   unitNumber: 'SAP SuccessFactors HXM Cloud Suite',
                   projectName: 'Global HR & Talent Management Rollout',
                   totalAmount: 12000000, // ₹1.2 Cr
-                  bookingDate: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
+                  bookingDate: new Date(Date.now() - 340 * 24 * 60 * 60 * 1000),
+                  contractEndDate: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000), // Expiring in 25 days!
+                  renewalStatus: 'expiring_soon',
                   status: 'ready_for_golive',
                   paymentMilestones: [
                     { name: '20% Execution Deposit', amount: 2400000, dueDate: new Date(Date.now() - 55 * 24 * 3600 * 1000), status: 'paid', paidAmount: 2400000, paidDate: new Date(Date.now() - 55 * 24 * 3600 * 1000) },
@@ -87,6 +101,9 @@ export async function GET(req: NextRequest) {
                     { item: 'Single Sign-On (SSO) & Security Audit Pass', completed: true },
                     { item: 'Official Production Go-Live Certificate & Handover', completed: false },
                   ],
+                  upsellOpportunities: [
+                    { title: 'Qualtrics Employee Experience Upgrade', amount: 2500000, status: 'identified', notes: 'HR Director showed interest in annual survey package' }
+                  ]
                 },
               ]
             : []),
@@ -94,7 +111,7 @@ export async function GET(req: NextRequest) {
 
         await Booking.insertMany(sampleBookings);
 
-        bookings = await Booking.find({ organizationId: auth.organizationId })
+        bookings = await Booking.find(query)
           .populate('leadId', 'name email phone company status')
           .populate('salesPersonId', 'name email avatar')
           .sort({ createdAt: -1 });
@@ -178,6 +195,30 @@ async function syncPostSalesTasks(booking: any, auth: any) {
         assignedTo: booking.salesPersonId?._id || auth.userId,
         createdBy: auth.userId,
       });
+    }
+  }
+
+  // 4. Contract Renewal Tasks (within 60 days of contractEndDate)
+  if (booking.contractEndDate && booking.renewalStatus !== 'renewed') {
+    const daysUntilExpiry = Math.ceil((new Date(booking.contractEndDate).getTime() - Date.now()) / (1000 * 3600 * 24));
+    if (daysUntilExpiry <= 60) {
+      const title = `⏰ Contract Renewal Due in ${daysUntilExpiry} days for ${booking.unitNumber}`;
+      const existing = await Task.findOne({ organizationId: auth.organizationId, bookingId: booking._id, title: { $regex: /Contract Renewal/i } });
+      if (!existing) {
+        await Task.create({
+          organizationId: auth.organizationId,
+          leadId: booking.leadId?._id || booking.leadId,
+          bookingId: booking._id,
+          category: 'renewal',
+          title,
+          description: `Contract for ${booking.projectName} expires on ${new Date(booking.contractEndDate).toLocaleDateString()}. Initiate renewal discussion and pitch license upgrades.`,
+          status: 'pending',
+          priority: daysUntilExpiry <= 30 ? 'high' : 'medium',
+          dueDate: booking.contractEndDate,
+          assignedTo: booking.salesPersonId?._id || auth.userId,
+          createdBy: auth.userId,
+        });
+      }
     }
   }
 }

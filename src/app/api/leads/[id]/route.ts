@@ -6,6 +6,8 @@ import Notification from '@/models/Notification';
 import User from '@/models/User';
 import { sendLeadAssignedEmail } from '@/lib/email';
 import AuditLog from '@/models/AuditLog';
+import Booking from '@/models/Booking';
+import Task from '@/models/Task';
 
 export async function GET(
   req: NextRequest,
@@ -98,6 +100,58 @@ export async function PATCH(
       .lean();
 
     if (!lead) return apiError('Lead not found', 404);
+
+    // Handoff Workflow: Auto-create Post-Sales Booking when lead stage changes to 'won' or 'closed_won'
+    if (newStage === 'won' || newStage === 'closed_won') {
+      try {
+        const existingBooking = await Booking.findOne({ organizationId: auth.organizationId, leadId: lead._id });
+        if (!existingBooking) {
+          const totalVal = (lead as any).value || 1000000;
+          const leadCompany = (lead as any).company || (lead as any).name || 'Client';
+
+          await Booking.create({
+            organizationId: auth.organizationId,
+            leadId: (lead as any)._id,
+            salesPersonId: (lead as any).assignedTo?._id || (lead as any).assignedTo || auth.userId,
+            unitNumber: `${(lead as any).name}'s Contract`,
+            projectName: `${leadCompany} Implementation Project`,
+            totalAmount: totalVal,
+            bookingDate: new Date(),
+            status: 'contract_signed',
+            paymentMilestones: [
+              { name: '20% Execution Deposit & Contract Signing', amount: totalVal * 0.2, dueDate: new Date(Date.now() + 7 * 86400000), status: 'pending', paidAmount: 0 },
+              { name: '40% System Blueprint & Configuration', amount: totalVal * 0.4, dueDate: new Date(Date.now() + 45 * 86400000), status: 'pending', paidAmount: 0 },
+              { name: '40% Go-Live Production Handover', amount: totalVal * 0.4, dueDate: new Date(Date.now() + 90 * 86400000), status: 'pending', paidAmount: 0 },
+            ],
+            documents: [
+              { name: 'Master Services Agreement (MSA)', status: 'pending' },
+              { name: 'Service Level Agreement (SLA)', status: 'pending' },
+              { name: 'Software License Entitlement Certificate', status: 'pending' },
+            ],
+            handoverChecklist: [
+              { item: 'Tenant Provisioning & Admin Credentials Activation', completed: false },
+              { item: 'Single Sign-On (SSO) & Security Audit Pass', completed: false },
+              { item: 'Official Production Go-Live Certificate & Handover', completed: false },
+            ],
+          });
+
+          await Task.create({
+            organizationId: auth.organizationId,
+            leadId: (lead as any)._id,
+            category: 'handover',
+            title: `🚀 Initiate Post-Sales Onboarding: ${(lead as any).name}`,
+            description: `Client "${(lead as any).name}" moved to Won! Post-Sales delivery contract created.`,
+            status: 'pending',
+            priority: 'high',
+            dueDate: new Date(Date.now() + 2 * 86400000),
+            assignedTo: (lead as any).assignedTo?._id || auth.userId,
+            createdBy: auth.userId,
+          }).catch(() => {});
+        }
+      } catch (err: any) {
+        console.error('Lead → Booking handoff warning:', err);
+      }
+    }
     
     // Handle Mark as Read by Onsite Visitor
     if (body.isReadByVisitor === true && !(previousLead as any).isReadByVisitor) {

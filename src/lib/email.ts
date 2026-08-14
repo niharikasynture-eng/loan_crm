@@ -182,3 +182,52 @@ export async function sendAdminNewLeadAlert(
     `,
   });
 }
+
+export async function sendDunningInvoiceEmail(
+  toEmail: string,
+  clientName: string,
+  milestoneName: string,
+  amount: number,
+  dueDate: Date,
+  packageName: string
+): Promise<void> {
+  const formattedDueDate = new Date(dueDate).toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+  const formattedAmount = (amount / 100000).toFixed(2);
+
+  await sendEmail({
+    to: toEmail,
+    subject: `💳 Payment Reminder: ₹${formattedAmount} Lakhs due for ${packageName}`,
+    html: `
+      <div style="font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;max-width:600px;margin:0 auto;padding:0;background:#f8fafc;">
+        <div style="background:linear-gradient(135deg,#4f46e5,#3b82f6);padding:32px 40px;border-radius:12px 12px 0 0;text-align:center;">
+          <div style="width:48px;height:48px;background:rgba(255,255,255,0.2);border-radius:12px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;">
+            <span style="font-size:24px;">💳</span>
+          </div>
+          <h1 style="color:#ffffff;font-size:22px;font-weight:800;margin:0 0 6px;">Payment Milestone Reminder</h1>
+          <p style="color:rgba(255,255,255,0.85);font-size:13px;margin:0;">Invoice Notice for ${packageName}</p>
+        </div>
+        <div style="background:#ffffff;padding:32px 40px;border:1px solid #e2e8f0;border-top:none;">
+          <p style="color:#1e293b;font-size:15px;line-height:1.6;margin:0 0 16px;">Dear <strong>${clientName}</strong>,</p>
+          <p style="color:#475569;font-size:14px;line-height:1.6;margin:0 0 20px;">
+            This is a friendly notification regarding your upcoming payment milestone for <strong>${packageName}</strong>.
+          </p>
+          <div style="background:#f1f5f9;border-left:4px solid #4f46e5;border-radius:0 8px 8px 0;padding:20px;margin:24px 0;">
+            <p style="margin:4px 0;font-size:13px;color:#64748b;">Milestone: <strong style="color:#0f172a;">${milestoneName}</strong></p>
+            <p style="margin:4px 0;font-size:13px;color:#64748b;">Amount Due: <strong style="color:#4f46e5;font-size:16px;">₹${formattedAmount} Lakhs</strong></p>
+            <p style="margin:4px 0;font-size:13px;color:#64748b;">Due Date: <strong style="color:#0f172a;">${formattedDueDate}</strong></p>
+          </div>
+          <p style="color:#64748b;font-size:13px;line-height:1.6;">
+            Please ensure timely clearance to avoid any disruption to your active implementation delivery timeline.
+          </p>
+        </div>
+        <div style="background:#f8fafc;padding:20px 40px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;text-align:center;">
+          <p style="color:#94a3b8;font-size:12px;margin:0;">© ${new Date().getFullYear()} Enterprise Post-Sales Billing Department</p>
+        </div>
+      </div>
+    `,
+  });
+}

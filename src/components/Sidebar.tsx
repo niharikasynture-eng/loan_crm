@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Users, Phone, CheckSquare, TrendingUp,
   Settings, LogOut, ChevronDown, Building2, BarChart2,
   Activity, Bell, Link2, Clock, CheckCircle, AlertCircle,
-  UserCog, ShieldCheck, Briefcase, UserCircle, MapPin, Grid, Bookmark
+  UserCog, ShieldCheck, Briefcase, UserCircle, MapPin, Grid, Bookmark, KeyRound
 } from 'lucide-react';
 
 interface Notification {
@@ -26,6 +26,7 @@ const CRM_NAV = [
   { href: '/calls', label: 'Call History', icon: Phone },
   { href: '/tasks', label: 'Tasks', icon: CheckSquare },
   { href: '/deals', label: 'Pipeline', icon: TrendingUp },
+  { href: '/post-sales', label: 'Post Sales', icon: KeyRound },
   { href: '/reports', label: 'Reports', icon: BarChart2 },
 ];
 
