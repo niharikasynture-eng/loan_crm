@@ -80,7 +80,7 @@ export default function RootPage() {
                 Close more deals with less friction.
               </h1>
               <p className="text-lg text-slate-600 mb-8 leading-relaxed max-w-xl">
-                A professional CRM built to streamline your sales pipeline, manage leads effectively, and provide actionable insights without the bloat of traditional software.
+                A professional CRM built to streamline your sales pipeline, manage leads effectively, and provide actionable insights without the bloat of traditional software   .
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
