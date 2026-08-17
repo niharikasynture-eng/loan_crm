@@ -1,11 +1,12 @@
 'use client';
 
 import * as React from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Building2, KeyRound, DollarSign, FileCheck, CheckCircle2, Clock, 
   AlertCircle, Download, FileText, Send, ShieldCheck, CheckSquare, 
   Plus, Search, Filter, Printer, ExternalLink, ArrowRight, User, Rocket, Cpu,
-  Calendar, RefreshCw, TrendingUp, Sparkles, UserCheck, ShieldAlert, Truck
+  Calendar, RefreshCw, TrendingUp, Sparkles, UserCheck, ShieldAlert, Truck, Trash2
 } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { useAuth } from '@/hooks/useAuth';
@@ -26,6 +27,11 @@ export default function PostSalesPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = React.useState<'tracker' | 'milestones' | 'documents' | 'handover' | 'renewals'>('tracker');
+  const [mounted, setMounted] = React.useState<boolean>(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const isAdmin = user?.role === 'super_admin' || user?.role === 'org_admin';
   const isManager = user?.role === 'manager';
@@ -46,6 +52,99 @@ export default function PostSalesPage() {
   const [renewalForm, setRenewalForm] = React.useState<{ extensionMonths: number; renewalAmount: number }>({ extensionMonths: 12, renewalAmount: 0 });
   const [upsellForm, setUpsellForm] = React.useState<{ title: string; amount: number; notes: string }>({ title: '', amount: 0, notes: '' });
 
+  // Delete Contract State
+  const [contractToDelete, setContractToDelete] = React.useState<IBooking | null>(null);
+  const [isDeletingContract, setIsDeletingContract] = React.useState<boolean>(false);
+
+  const handleDeleteContract = async () => {
+    if (!contractToDelete) return;
+    setIsDeletingContract(true);
+    try {
+      await api.delete(`/bookings/${contractToDelete._id}`);
+      toast('success', `Contract "${contractToDelete.unitNumber}" deleted successfully!`);
+      setContractToDelete(null);
+      fetchBookings();
+    } catch (err: any) {
+      toast('error', err.message || 'Failed to delete contract');
+    } finally {
+      setIsDeletingContract(false);
+    }
+  };
+
+  // New SAP Contract Modal State
+  const [isNewContractModalOpen, setIsNewContractModalOpen] = React.useState<boolean>(false);
+  const [availableLeads, setAvailableLeads] = React.useState<{ _id: string; name: string; company?: string; value?: number }[]>([]);
+  const [loadingLeads, setLoadingLeads] = React.useState<boolean>(false);
+  const [newContractForm, setNewContractForm] = React.useState({
+    leadId: '',
+    unitNumber: 'SAP S/4HANA Cloud (Enterprise Edition)',
+    customUnitNumber: '',
+    projectName: '',
+    totalAmount: 5000000,
+    durationMonths: 12,
+  });
+  const [submittingNewContract, setSubmittingNewContract] = React.useState<boolean>(false);
+
+  const fetchLeadsForContract = React.useCallback(async () => {
+    setLoadingLeads(true);
+    try {
+      const res = await api.get<{ leads: any[] }>('/leads?limit=1000');
+      const leadsList = res.leads || [];
+      setAvailableLeads(leadsList);
+      if (leadsList.length > 0) {
+        setNewContractForm((prev) => ({
+          ...prev,
+          leadId: prev.leadId || leadsList[0]._id,
+          projectName: prev.projectName || `${leadsList[0].company || leadsList[0].name} SAP Implementation`,
+          totalAmount: prev.totalAmount || leadsList[0].value || 5000000,
+        }));
+      }
+    } catch (err: any) {
+      console.error('Failed to load leads for SAP contract modal:', err);
+    } finally {
+      setLoadingLeads(false);
+    }
+  }, []);
+
+  const handleOpenNewContractModal = () => {
+    setIsNewContractModalOpen(true);
+    fetchLeadsForContract();
+  };
+
+  const handleCreateNewContract = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newContractForm.leadId) {
+      toast('error', 'Please select a client for the contract');
+      return;
+    }
+    const solutionName = newContractForm.unitNumber === 'custom' ? newContractForm.customUnitNumber : newContractForm.unitNumber;
+    if (!solutionName) {
+      toast('error', 'Please enter a valid SAP solution package name');
+      return;
+    }
+    setSubmittingNewContract(true);
+    try {
+      const contractEndDate = new Date();
+      contractEndDate.setMonth(contractEndDate.getMonth() + Number(newContractForm.durationMonths || 12));
+
+      await api.post('/bookings', {
+        leadId: newContractForm.leadId,
+        unitNumber: solutionName,
+        projectName: newContractForm.projectName || 'Enterprise Solution Implementation',
+        totalAmount: Number(newContractForm.totalAmount || 5000000),
+        contractEndDate,
+      });
+
+      toast('success', '🚀 New SAP Contract created successfully!');
+      setIsNewContractModalOpen(false);
+      fetchBookings();
+    } catch (err: any) {
+      toast('error', err.message || 'Failed to create SAP contract');
+    } finally {
+      setSubmittingNewContract(false);
+    }
+  };
+
   const fetchBookings = React.useCallback(async () => {
     setLoading(true);
     try {
@@ -61,6 +160,18 @@ export default function PostSalesPage() {
   React.useEffect(() => {
     fetchBookings();
   }, [fetchBookings]);
+
+  // Lock body scroll when modal is open so modal remains perfectly viewport-centered
+  React.useEffect(() => {
+    if (isNewContractModalOpen || selectedBookingForLetter || selectedBookingForRenewal || selectedBookingForUpsell || contractToDelete) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isNewContractModalOpen, selectedBookingForLetter, selectedBookingForRenewal, selectedBookingForUpsell, contractToDelete]);
 
   // Unique list of sales reps for dropdown filter
   const salesAgentsList = React.useMemo(() => {
@@ -349,7 +460,7 @@ export default function PostSalesPage() {
                 </button>
 
                 <button
-                  onClick={() => toast('info', 'Opening New SAP Contract Modal...')}
+                  onClick={handleOpenNewContractModal}
                   className="btn-primary text-xs font-bold flex items-center gap-1.5 shadow-md"
                 >
                   <Plus size={14} /> New SAP Contract
@@ -409,92 +520,95 @@ export default function PostSalesPage() {
         </div>
       </div>
 
-      {/* Navigation Sub-Tabs */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-200/80 pb-3 gap-3">
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
-          <button
-            onClick={() => setActiveTab('tracker')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
-              activeTab === 'tracker'
-                ? 'bg-indigo-600 text-white shadow-md'
-                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-            }`}
-          >
-            <Truck size={15} /> Delivery Tracker
-          </button>
-          <button
-            onClick={() => setActiveTab('milestones')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
-              activeTab === 'milestones'
-                ? 'bg-indigo-600 text-white shadow-md'
-                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-            }`}
-          >
-            <DollarSign size={15} /> Billing Schedules & Milestones
-          </button>
-          <button
-            onClick={() => setActiveTab('renewals')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
-              activeTab === 'renewals'
-                ? 'bg-amber-600 text-white shadow-md'
-                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-            }`}
-          >
-            <Calendar size={15} /> Contract Renewals & Upsells
-            {(metrics.expiring30Days > 0 || metrics.expiring60Days > 0) && (
-              <span className="w-5 h-5 rounded-full bg-amber-400 text-slate-900 font-black text-[10px] flex items-center justify-center">
-                {metrics.expiring30Days + metrics.expiring60Days}
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab('documents')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
-              activeTab === 'documents'
-                ? 'bg-indigo-600 text-white shadow-md'
-                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-            }`}
-          >
-            <FileCheck size={15} /> Enterprise Compliance Vault
-          </button>
-          <button
-            onClick={() => setActiveTab('handover')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
-              activeTab === 'handover'
-                ? 'bg-indigo-600 text-white shadow-md'
-                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-            }`}
-          >
-            <Rocket size={15} /> Production Handover
-          </button>
-        </div>
-
-        {/* Filters */}
-        <div className="flex items-center gap-2">
-          {(isAdmin || isManager) && salesAgentsList.length > 0 && (
-            <select
-              value={selectedAgentFilter}
-              onChange={(e) => setSelectedAgentFilter(e.target.value)}
-              className="h-9 px-3 text-xs rounded-xl border border-slate-200 bg-white font-medium outline-none focus:border-indigo-500"
+      {/* Navigation Sub-Tabs & Control Bar */}
+      <div className="bg-white p-2.5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-2.5">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          {/* Sub-Tabs: All 5 Tabs Visible */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button
+              onClick={() => setActiveTab('tracker')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
+                activeTab === 'tracker'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60'
+              }`}
             >
-              <option value="all">All Sales Agents</option>
-              {salesAgentsList.map((ag) => (
-                <option key={ag.id} value={ag.id}>
-                  Agent: {ag.name}
-                </option>
-              ))}
-            </select>
-          )}
+              <Truck size={14} /> Delivery Tracker
+            </button>
+            <button
+              onClick={() => setActiveTab('milestones')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
+                activeTab === 'milestones'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60'
+              }`}
+            >
+              <DollarSign size={14} /> Billing & Milestones
+            </button>
+            <button
+              onClick={() => setActiveTab('renewals')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
+                activeTab === 'renewals'
+                  ? 'bg-amber-600 text-white shadow-sm'
+                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60'
+              }`}
+            >
+              <Calendar size={14} /> Renewals & Upsells
+              {(metrics.expiring30Days > 0 || metrics.expiring60Days > 0) && (
+                <span className="w-4 h-4 rounded-full bg-amber-400 text-slate-900 font-black text-[9px] flex items-center justify-center">
+                  {metrics.expiring30Days + metrics.expiring60Days}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('documents')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
+                activeTab === 'documents'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60'
+              }`}
+            >
+              <FileCheck size={14} /> Compliance Vault
+            </button>
+            <button
+              onClick={() => setActiveTab('handover')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
+                activeTab === 'handover'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60'
+              }`}
+            >
+              <Rocket size={14} /> Production Handover
+            </button>
+          </div>
 
-          <div className="relative w-48 sm:w-56">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search contract or client..."
-              className="w-full h-9 pl-8 pr-3 text-xs rounded-xl border border-slate-200 bg-white focus:border-indigo-500 outline-none font-medium"
-            />
-            <Search size={13} className="absolute left-2.5 top-2.5 text-slate-400" />
+          {/* Filters */}
+          <div className="flex items-center gap-2 shrink-0">
+            {(isAdmin || isManager) && salesAgentsList.length > 0 && (
+              <select
+                value={selectedAgentFilter}
+                onChange={(e) => setSelectedAgentFilter(e.target.value)}
+                className="h-9 px-3 text-xs rounded-xl border border-slate-200 bg-white font-medium outline-none focus:border-indigo-500"
+              >
+                <option value="all">All Sales Agents</option>
+                {salesAgentsList.map((ag) => (
+                  <option key={ag.id} value={ag.id}>
+                    Agent: {ag.name}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            <div className="relative w-48 sm:w-56">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search contract or client..."
+                className="w-full h-9 pl-8 pr-3 text-xs rounded-xl border border-slate-200 bg-white focus:border-indigo-500 outline-none font-medium"
+              />
+              <Search size={13} className="absolute left-2.5 top-2.5 text-slate-400" />
+            </div>
           </div>
         </div>
       </div>
@@ -553,6 +667,16 @@ export default function PostSalesPage() {
                       >
                         <Send size={13} /> WhatsApp Update
                       </button>
+
+                      {(isAdmin || isManager) && (
+                        <button
+                          onClick={() => setContractToDelete(b)}
+                          className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/80 rounded-xl font-bold text-xs transition-all flex items-center gap-1 shadow-2xs"
+                          title="Delete SAP Contract Record"
+                        >
+                          <Trash2 size={13} /> Delete Contract
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -1068,222 +1192,449 @@ export default function PostSalesPage() {
         </div>
       )}
 
-      {/* ── MODAL 1: RENEW CONTRACT ── */}
-      {selectedBookingForRenewal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl border border-slate-200 animate-scale-in">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <div>
-                <h3 className="font-black text-slate-900 text-base flex items-center gap-2">
-                  <RefreshCw className="text-amber-500" size={18} /> Renew Client Contract
-                </h3>
-                <p className="text-xs text-slate-500">{selectedBookingForRenewal.unitNumber}</p>
-              </div>
-              <button
-                onClick={() => setSelectedBookingForRenewal(null)}
-                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold flex items-center justify-center text-xs"
-              >
-                ✕
-              </button>
-            </div>
+      {/* ── MODALS RENDERED IN BODY PORTAL FOR PERFECT VIEWPORT CENTERING ── */}
+      {mounted && createPortal(
+        <>
+          {/* ── MODAL 1: RENEW CONTRACT ── */}
+          {selectedBookingForRenewal && (
+            <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto min-h-screen">
+              <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl border border-slate-200 animate-scale-in my-auto max-h-[85vh] overflow-y-auto relative z-[10000]">
+                <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                  <div>
+                    <h3 className="font-black text-slate-900 text-base flex items-center gap-2">
+                      <RefreshCw className="text-amber-500" size={18} /> Renew Client Contract
+                    </h3>
+                    <p className="text-xs text-slate-500">{selectedBookingForRenewal.unitNumber}</p>
+                  </div>
+                  <button
+                    onClick={() => setSelectedBookingForRenewal(null)}
+                    className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold flex items-center justify-center text-xs"
+                  >
+                    ✕
+                  </button>
+                </div>
 
-            <div className="space-y-4 text-xs">
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Contract Renewal Extension</label>
-                <select
-                  value={renewalForm.extensionMonths}
-                  onChange={(e) => setRenewalForm({ ...renewalForm, extensionMonths: Number(e.target.value) })}
-                  className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white font-semibold outline-none focus:border-amber-500"
-                >
-                  <option value={12}>+12 Months (1 Year Standard Renewal)</option>
-                  <option value={24}>+24 Months (2 Year Multi-Year Renewal)</option>
-                  <option value={36}>+36 Months (3 Year Enterprise Agreement)</option>
-                </select>
-              </div>
+                <div className="space-y-4 text-xs">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Contract Renewal Extension</label>
+                    <select
+                      value={renewalForm.extensionMonths}
+                      onChange={(e) => setRenewalForm({ ...renewalForm, extensionMonths: Number(e.target.value) })}
+                      className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white font-semibold outline-none focus:border-amber-500"
+                    >
+                      <option value={12}>+12 Months (1 Year Standard Renewal)</option>
+                      <option value={24}>+24 Months (2 Year Multi-Year Renewal)</option>
+                      <option value={36}>+36 Months (3 Year Enterprise Agreement)</option>
+                    </select>
+                  </div>
 
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Renewal Value (₹)</label>
-                <input
-                  type="number"
-                  value={renewalForm.renewalAmount}
-                  onChange={(e) => setRenewalForm({ ...renewalForm, renewalAmount: Number(e.target.value) })}
-                  placeholder="e.g. 7500000"
-                  className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white font-mono font-bold outline-none focus:border-amber-500"
-                />
-                <p className="text-[10px] text-slate-400 mt-1">This amount will be added to the cumulative contract revenue.</p>
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Renewal Value (₹)</label>
+                    <input
+                      type="number"
+                      value={renewalForm.renewalAmount}
+                      onChange={(e) => setRenewalForm({ ...renewalForm, renewalAmount: Number(e.target.value) })}
+                      placeholder="e.g. 7500000"
+                      className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white font-mono font-bold outline-none focus:border-amber-500"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">This amount will be added to the cumulative contract revenue.</p>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
+                  <button
+                    onClick={() => setSelectedBookingForRenewal(null)}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleConfirmRenewal}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white shadow-md flex items-center gap-1.5"
+                  >
+                    <CheckCircle2 size={14} /> Confirm Renewal
+                  </button>
+                </div>
               </div>
             </div>
+          )}
 
-            <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
-              <button
-                onClick={() => setSelectedBookingForRenewal(null)}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmRenewal}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white shadow-md flex items-center gap-1.5"
-              >
-                <CheckCircle2 size={14} /> Confirm Renewal
-              </button>
+          {/* ── MODAL 2: ADD UPSELL OPPORTUNITY ── */}
+          {selectedBookingForUpsell && (
+            <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto min-h-screen">
+              <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl border border-slate-200 animate-scale-in my-auto max-h-[85vh] overflow-y-auto relative z-[10000]">
+                <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                  <div>
+                    <h3 className="font-black text-slate-900 text-base flex items-center gap-2">
+                      <Sparkles className="text-purple-600" size={18} /> Pitch Upgrade / License Add-on
+                    </h3>
+                    <p className="text-xs text-slate-500">{selectedBookingForUpsell.unitNumber}</p>
+                  </div>
+                  <button
+                    onClick={() => setSelectedBookingForUpsell(null)}
+                    className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold flex items-center justify-center text-xs"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="space-y-4 text-xs">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Expansion Module / License Title</label>
+                    <input
+                      type="text"
+                      value={upsellForm.title}
+                      onChange={(e) => setUpsellForm({ ...upsellForm, title: e.target.value })}
+                      placeholder="e.g. Add-on 25 SAP Professional Licenses"
+                      className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white font-medium outline-none focus:border-purple-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Estimated Deal Value (₹)</label>
+                    <input
+                      type="number"
+                      value={upsellForm.amount}
+                      onChange={(e) => setUpsellForm({ ...upsellForm, amount: Number(e.target.value) })}
+                      placeholder="e.g. 500000"
+                      className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white font-mono font-bold outline-none focus:border-purple-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Client Discussion Notes</label>
+                    <textarea
+                      rows={3}
+                      value={upsellForm.notes}
+                      onChange={(e) => setUpsellForm({ ...upsellForm, notes: e.target.value })}
+                      placeholder="e.g. Requested during Q3 strategy sync with VP of Engineering"
+                      className="w-full p-3 rounded-xl border border-slate-200 bg-white font-medium outline-none focus:border-purple-500 resize-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
+                  <button
+                    onClick={() => setSelectedBookingForUpsell(null)}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleAddUpsell}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-md flex items-center gap-1.5"
+                  >
+                    <Plus size={14} /> Log Upsell Pitch
+                  </button>
+                </div>
+              </div>
             </div>
+          )}
+
+          {/* ── PRINTABLE SAP MILESTONE INVOICE MODAL ── */}
+          {selectedBookingForLetter && (
+            <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto min-h-screen">
+              <div className="bg-white rounded-3xl max-w-2xl w-full p-8 space-y-6 shadow-2xl border border-slate-200 animate-scale-in my-auto max-h-[85vh] overflow-y-auto relative z-[10000]">
+                <div className="flex justify-between items-start border-b border-slate-200 pb-6">
+                  <div>
+                    <h2 className="text-xl font-black text-slate-900">SAP B2B Enterprise Solutions & Services Ltd.</h2>
+                    <p className="text-xs text-slate-500">Official Milestone Invoice & License Entitlement Statement</p>
+                  </div>
+                  <button
+                    onClick={() => setSelectedBookingForLetter(null)}
+                    className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold flex items-center justify-center text-sm"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {/* Letter Content */}
+                <div className="space-y-4 text-xs leading-relaxed text-slate-700">
+                  <div className="flex justify-between bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Enterprise Client</p>
+                      <p className="font-bold text-slate-900 text-sm">{((selectedBookingForLetter.booking.leadId as any)?.name) || 'Valued Client'}</p>
+                      <p className="text-slate-500">Account Contact: {((selectedBookingForLetter.booking.leadId as any)?.email) || 'N/A'}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Solution Package</p>
+                      <p className="font-bold text-indigo-700 text-sm">{selectedBookingForLetter.booking.unitNumber}</p>
+                      <p className="text-slate-500">{selectedBookingForLetter.booking.projectName}</p>
+                    </div>
+                  </div>
+
+                  <p>
+                    Dear <strong>{((selectedBookingForLetter.booking.leadId as any)?.name) || 'Client'}</strong>,
+                  </p>
+                  <p>
+                    This invoice serves as confirmation that deployment milestone <strong className="text-indigo-900 font-bold">{selectedBookingForLetter.milestone.name}</strong> for your solution <strong>{selectedBookingForLetter.booking.unitNumber}</strong> is ready for billing.
+                  </p>
+
+                  <div className="p-4 bg-indigo-50/50 border border-indigo-100 rounded-2xl space-y-2">
+                    <div className="flex justify-between font-bold">
+                      <span>Contract Milestone Stage:</span>
+                      <span className="text-slate-900">{selectedBookingForLetter.milestone.name}</span>
+                    </div>
+                    <div className="flex justify-between font-bold">
+                      <span>Milestone Billing Amount:</span>
+                      <span className="text-indigo-900 font-mono text-base">₹{selectedBookingForLetter.milestone.amount.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-[11px] text-slate-500">
+                      <span>Payment Due Date:</span>
+                      <span>{new Date(selectedBookingForLetter.milestone.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-slate-500 italic">
+                    Please remit the invoice amount via wire transfer / electronic payment payable to SAP B2B Enterprise Solutions & Services Ltd.
+                  </p>
+                </div>
+
+                <div className="flex justify-end gap-3 border-t border-slate-200 pt-4">
+                  <button
+                    onClick={() => {
+                      window.print();
+                    }}
+                    className="btn-primary text-xs font-bold flex items-center gap-2"
+                  >
+                    <Printer size={14} /> Print Invoice
+                  </button>
+                  <button
+                    onClick={() => {
+                      toast('success', `Milestone invoice emailed to client!`);
+                      setSelectedBookingForLetter(null);
+                    }}
+                    className="btn-secondary text-xs font-bold flex items-center gap-2"
+                  >
+                    <Send size={14} /> Email Invoice
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── NEW SAP CONTRACT CREATION MODAL ── */}
+          {isNewContractModalOpen && (
+            <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto min-h-screen">
+              <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 space-y-6 shadow-2xl border border-slate-200 animate-scale-in my-auto max-h-[85vh] overflow-y-auto relative z-[10000]">
+                <div className="flex justify-between items-start border-b border-slate-100 pb-4">
+                  <div>
+                    <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
+                      <Cpu className="text-indigo-600" size={22} />
+                      Create New SAP Contract
+                    </h2>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Execute a new post-sales enterprise agreement, solution package & payment milestones
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setIsNewContractModalOpen(false)}
+                    className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold flex items-center justify-center text-sm"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <form onSubmit={handleCreateNewContract} className="space-y-4 text-xs">
+                  {/* Select Client / Lead */}
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">
+                      Select Enterprise Client <span className="text-rose-500">*</span>
+                    </label>
+                    {loadingLeads ? (
+                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-400 italic">
+                        Loading clients list...
+                      </div>
+                    ) : (
+                      <select
+                        value={newContractForm.leadId}
+                        onChange={(e) => {
+                          const selectedId = e.target.value;
+                          const selectedLead = availableLeads.find((l) => l._id === selectedId);
+                          setNewContractForm((prev) => ({
+                            ...prev,
+                            leadId: selectedId,
+                            projectName: selectedLead ? `${selectedLead.company || selectedLead.name} SAP Implementation` : prev.projectName,
+                            totalAmount: selectedLead?.value || prev.totalAmount,
+                          }));
+                        }}
+                        className="w-full p-3 rounded-xl border border-slate-200 bg-white font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                        required
+                      >
+                        {availableLeads.length === 0 && <option value="">No clients found</option>}
+                        {availableLeads.map((lead) => (
+                          <option key={lead._id} value={lead._id}>
+                            {lead.name} {lead.company ? `(${lead.company})` : ''} — ₹{((lead.value || 0) / 100000).toFixed(1)}L
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+
+                  {/* SAP Solution Package */}
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">
+                      SAP Solution Package <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      value={newContractForm.unitNumber}
+                      onChange={(e) => setNewContractForm({ ...newContractForm, unitNumber: e.target.value })}
+                      className="w-full p-3 rounded-xl border border-slate-200 bg-white font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    >
+                      <option value="SAP S/4HANA Cloud (Enterprise Edition)">SAP S/4HANA Cloud (Enterprise Edition)</option>
+                      <option value="SAP SuccessFactors HXM Cloud Suite">SAP SuccessFactors HXM Cloud Suite</option>
+                      <option value="SAP Analytics Cloud & Datasphere">SAP Analytics Cloud & Datasphere</option>
+                      <option value="SAP Ariba Digital Procurement Suite">SAP Ariba Digital Procurement Suite</option>
+                      <option value="SAP CX & Customer Data Platform">SAP CX & Customer Data Platform</option>
+                      <option value="custom">Other / Custom SAP Solution Package</option>
+                    </select>
+                  </div>
+
+                  {newContractForm.unitNumber === 'custom' && (
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">Specify Custom Solution Name</label>
+                      <input
+                        type="text"
+                        value={newContractForm.customUnitNumber}
+                        onChange={(e) => setNewContractForm({ ...newContractForm, customUnitNumber: e.target.value })}
+                        placeholder="e.g. SAP Business One Cloud Custom Tier"
+                        className="w-full p-3 rounded-xl border border-slate-200 bg-white font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                        required
+                      />
+                    </div>
+                  )}
+
+                  {/* Project Name */}
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Project / Implementation Name</label>
+                    <input
+                      type="text"
+                      value={newContractForm.projectName}
+                      onChange={(e) => setNewContractForm({ ...newContractForm, projectName: e.target.value })}
+                      placeholder="e.g. Acme Corp ERP Digital Transformation"
+                      className="w-full p-3 rounded-xl border border-slate-200 bg-white font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                      required
+                    />
+                  </div>
+
+                  {/* Total Contract Amount & Duration */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">
+                        Total Contract Value (₹) <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        value={newContractForm.totalAmount}
+                        onChange={(e) => setNewContractForm({ ...newContractForm, totalAmount: Number(e.target.value) })}
+                        placeholder="5000000"
+                        className="w-full p-3 rounded-xl border border-slate-200 bg-white font-mono font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                        required
+                      />
+                      <p className="text-[10px] text-slate-400 mt-1">₹{((newContractForm.totalAmount || 0) / 100000).toFixed(1)} Lakhs</p>
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">Contract Duration</label>
+                      <select
+                        value={newContractForm.durationMonths}
+                        onChange={(e) => setNewContractForm({ ...newContractForm, durationMonths: Number(e.target.value) })}
+                        className="w-full p-3 rounded-xl border border-slate-200 bg-white font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                      >
+                        <option value={12}>12 Months (1 Year)</option>
+                        <option value={24}>24 Months (2 Years)</option>
+                        <option value={36}>36 Months (3 Years)</option>
+                        <option value={60}>60 Months (5 Years)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Default Milestones Summary Box */}
+                  <div className="p-4 bg-indigo-50/60 border border-indigo-100 rounded-2xl space-y-2">
+                    <p className="text-[11px] font-bold text-indigo-900 flex items-center gap-1.5">
+                      <Sparkles size={14} className="text-indigo-600" /> Auto-Generated Milestones & Vault:
+                    </p>
+                    <ul className="text-[11px] text-indigo-800/90 space-y-1 list-disc list-inside">
+                      <li>20% Contract Signing Deposit (₹{(((newContractForm.totalAmount || 0) * 0.2) / 100000).toFixed(1)}L)</li>
+                      <li>40% Solution Blueprint & Configuration Signoff</li>
+                      <li>40% Go-Live Production Handover</li>
+                      <li>Standard Compliance Vault (MSA, SLA, Entitlement Certificate)</li>
+                    </ul>
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setIsNewContractModalOpen(false)}
+                      className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={submittingNewContract}
+                      className="btn-primary text-xs font-bold px-5 py-2.5 shadow-md flex items-center gap-2"
+                    >
+                      {submittingNewContract ? 'Creating Contract...' : '🚀 Create SAP Contract'}
+                    </button>
+                  </div>
+                </form>
+              </div>
           </div>
-        </div>
-      )}
+          )}
 
-      {/* ── MODAL 2: ADD UPSELL OPPORTUNITY ── */}
-      {selectedBookingForUpsell && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl border border-slate-200 animate-scale-in">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <div>
-                <h3 className="font-black text-slate-900 text-base flex items-center gap-2">
-                  <Sparkles className="text-purple-600" size={18} /> Pitch Upgrade / License Add-on
-                </h3>
-                <p className="text-xs text-slate-500">{selectedBookingForUpsell.unitNumber}</p>
-              </div>
-              <button
-                onClick={() => setSelectedBookingForUpsell(null)}
-                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold flex items-center justify-center text-xs"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="space-y-4 text-xs">
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Expansion Module / License Title</label>
-                <input
-                  type="text"
-                  value={upsellForm.title}
-                  onChange={(e) => setUpsellForm({ ...upsellForm, title: e.target.value })}
-                  placeholder="e.g. Add-on 25 SAP Professional Licenses"
-                  className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white font-medium outline-none focus:border-purple-500"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Estimated Deal Value (₹)</label>
-                <input
-                  type="number"
-                  value={upsellForm.amount}
-                  onChange={(e) => setUpsellForm({ ...upsellForm, amount: Number(e.target.value) })}
-                  placeholder="e.g. 500000"
-                  className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white font-mono font-bold outline-none focus:border-purple-500"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Client Discussion Notes</label>
-                <textarea
-                  rows={3}
-                  value={upsellForm.notes}
-                  onChange={(e) => setUpsellForm({ ...upsellForm, notes: e.target.value })}
-                  placeholder="e.g. Requested during Q3 strategy sync with VP of Engineering"
-                  className="w-full p-3 rounded-xl border border-slate-200 bg-white font-medium outline-none focus:border-purple-500 resize-none"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
-              <button
-                onClick={() => setSelectedBookingForUpsell(null)}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddUpsell}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-md flex items-center gap-1.5"
-              >
-                <Plus size={14} /> Log Upsell Pitch
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── PRINTABLE SAP MILESTONE INVOICE MODAL ── */}
-      {selectedBookingForLetter && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-8 space-y-6 shadow-2xl border border-slate-200 animate-scale-in">
-            <div className="flex justify-between items-start border-b border-slate-200 pb-6">
-              <div>
-                <h2 className="text-xl font-black text-slate-900">SAP B2B Enterprise Solutions & Services Ltd.</h2>
-                <p className="text-xs text-slate-500">Official Milestone Invoice & License Entitlement Statement</p>
-              </div>
-              <button
-                onClick={() => setSelectedBookingForLetter(null)}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold flex items-center justify-center text-sm"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Letter Content */}
-            <div className="space-y-4 text-xs leading-relaxed text-slate-700">
-              <div className="flex justify-between bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
-                <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Enterprise Client</p>
-                  <p className="font-bold text-slate-900 text-sm">{((selectedBookingForLetter.booking.leadId as any)?.name) || 'Valued Client'}</p>
-                  <p className="text-slate-500">Account Contact: {((selectedBookingForLetter.booking.leadId as any)?.email) || 'N/A'}</p>
+          {/* ── MODAL 5: DELETE CONTRACT CONFIRMATION ── */}
+          {contractToDelete && (
+            <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto min-h-screen">
+              <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl border border-rose-100 animate-scale-in my-auto max-h-[85vh] overflow-y-auto relative z-[10000]">
+                <div className="flex justify-between items-start border-b border-slate-100 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center font-bold">
+                      <Trash2 size={18} />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-slate-900 text-base">Delete SAP Contract</h3>
+                      <p className="text-xs text-rose-600 font-medium">This action cannot be undone</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setContractToDelete(null)}
+                    className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold flex items-center justify-center text-xs"
+                  >
+                    ✕
+                  </button>
                 </div>
-                <div className="text-right">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Solution Package</p>
-                  <p className="font-bold text-indigo-700 text-sm">{selectedBookingForLetter.booking.unitNumber}</p>
-                  <p className="text-slate-500">{selectedBookingForLetter.booking.projectName}</p>
+
+                <div className="p-4 bg-rose-50/70 border border-rose-100 rounded-2xl space-y-1.5 text-xs text-rose-900">
+                  <p className="font-bold">Are you sure you want to permanently delete this contract?</p>
+                  <p className="font-semibold text-slate-700 mt-1">• Solution Package: <span className="font-bold text-slate-900">{contractToDelete.unitNumber}</span></p>
+                  <p className="font-semibold text-slate-700">• Project: <span className="font-bold text-slate-900">{contractToDelete.projectName}</span></p>
+                  <p className="font-semibold text-slate-700">• Total Value: <span className="font-bold text-slate-900">₹{((contractToDelete.totalAmount || 0) / 100000).toFixed(1)}L</span></p>
+                </div>
+
+                <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setContractToDelete(null)}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isDeletingContract}
+                    onClick={handleDeleteContract}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-md transition-all flex items-center gap-1.5"
+                  >
+                    <Trash2 size={14} />
+                    {isDeletingContract ? 'Deleting...' : 'Yes, Delete Contract'}
+                  </button>
                 </div>
               </div>
-
-              <p>
-                Dear <strong>{((selectedBookingForLetter.booking.leadId as any)?.name) || 'Client'}</strong>,
-              </p>
-              <p>
-                This invoice serves as confirmation that deployment milestone <strong className="text-indigo-900 font-bold">{selectedBookingForLetter.milestone.name}</strong> for your solution <strong>{selectedBookingForLetter.booking.unitNumber}</strong> is ready for billing.
-              </p>
-
-              <div className="p-4 bg-indigo-50/50 border border-indigo-100 rounded-2xl space-y-2">
-                <div className="flex justify-between font-bold">
-                  <span>Contract Milestone Stage:</span>
-                  <span className="text-slate-900">{selectedBookingForLetter.milestone.name}</span>
-                </div>
-                <div className="flex justify-between font-bold">
-                  <span>Milestone Billing Amount:</span>
-                  <span className="text-indigo-900 font-mono text-base">₹{selectedBookingForLetter.milestone.amount.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-[11px] text-slate-500">
-                  <span>Payment Due Date:</span>
-                  <span>{new Date(selectedBookingForLetter.milestone.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
-                </div>
-              </div>
-
-              <p className="text-[11px] text-slate-500 italic">
-                Please remit the invoice amount via wire transfer / electronic payment payable to SAP B2B Enterprise Solutions & Services Ltd.
-              </p>
             </div>
-
-            <div className="flex justify-end gap-3 border-t border-slate-200 pt-4">
-              <button
-                onClick={() => {
-                  window.print();
-                }}
-                className="btn-primary text-xs font-bold flex items-center gap-2"
-              >
-                <Printer size={14} /> Print Invoice
-              </button>
-              <button
-                onClick={() => {
-                  toast('success', `Milestone invoice emailed to client!`);
-                  setSelectedBookingForLetter(null);
-                }}
-                className="btn-secondary text-xs font-bold flex items-center gap-2"
-              >
-                <Send size={14} /> Email Invoice
-              </button>
-            </div>
-          </div>
-        </div>
+          )}
+        </>,
+        document.body
       )}
     </div>
   );

@@ -33,7 +33,11 @@ export default function DealsPage() {
   const handleDrop = async (stageId: string, leadId: string) => {
     try {
       await api.patch(`/leads/${leadId}`, { pipelineStage: stageId, status: stageId });
-      toast('success', `Moved to ${stageId}`);
+      if (stageId === 'won' || stageId === 'closed_won') {
+        toast('success', '🎉 Deal Closed Won! Post-Sales SAP Contract initiated.');
+      } else {
+        toast('success', `Moved to ${stageId}`);
+      }
       refresh();
     } catch {
       toast('error', 'Failed to update pipeline stage');

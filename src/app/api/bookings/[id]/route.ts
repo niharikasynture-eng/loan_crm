@@ -40,3 +40,29 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return apiError(err.message, 500);
   }
 }
+
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const auth = requireAuth(req);
+    await connectDB();
+
+    if (auth.role !== 'super_admin' && auth.role !== 'org_admin' && auth.role !== 'manager') {
+      return apiError('Access denied. Contract deletion is restricted to Admins and Managers.', 403);
+    }
+
+    const { id } = await params;
+    const booking = await Booking.findOneAndDelete({
+      _id: id,
+      organizationId: auth.organizationId,
+    });
+
+    if (!booking) {
+      return apiError('Contract record not found', 404);
+    }
+
+    return apiSuccess({ id }, 'SAP Contract deleted successfully');
+  } catch (err: any) {
+    if (err.message === 'UNAUTHORIZED') return apiError('Unauthorized', 401);
+    return apiError(err.message, 500);
+  }
+}

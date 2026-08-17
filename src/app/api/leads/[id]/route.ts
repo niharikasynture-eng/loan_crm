@@ -104,19 +104,28 @@ export async function PATCH(
     // Handoff Workflow: Auto-create Post-Sales Booking when lead stage changes to 'won' or 'closed_won'
     if (newStage === 'won' || newStage === 'closed_won') {
       try {
-        const existingBooking = await Booking.findOne({ organizationId: auth.organizationId, leadId: lead._id });
-        if (!existingBooking) {
-          const totalVal = (lead as any).value || 1000000;
-          const leadCompany = (lead as any).company || (lead as any).name || 'Client';
+        const assignedObj = (lead as any).assignedTo;
+        const salesPersonId = assignedObj && typeof assignedObj === 'object' && assignedObj._id 
+          ? assignedObj._id 
+          : typeof assignedObj === 'string' && assignedObj 
+            ? assignedObj 
+            : auth.userId;
 
-          await Booking.create({
+        const totalVal = (lead as any).value || 1000000;
+        const leadCompany = (lead as any).company || (lead as any).name || 'Client';
+
+        let existingBooking = await Booking.findOne({ organizationId: auth.organizationId, leadId: lead._id });
+        if (!existingBooking) {
+          existingBooking = await Booking.create({
             organizationId: auth.organizationId,
             leadId: (lead as any)._id,
-            salesPersonId: (lead as any).assignedTo?._id || (lead as any).assignedTo || auth.userId,
-            unitNumber: `${(lead as any).name}'s Contract`,
+            salesPersonId,
+            unitNumber: `${(lead as any).name}'s SAP Contract`,
             projectName: `${leadCompany} Implementation Project`,
             totalAmount: totalVal,
             bookingDate: new Date(),
+            contractEndDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+            renewalStatus: 'active',
             status: 'contract_signed',
             paymentMilestones: [
               { name: '20% Execution Deposit & Contract Signing', amount: totalVal * 0.2, dueDate: new Date(Date.now() + 7 * 86400000), status: 'pending', paidAmount: 0 },
@@ -144,9 +153,23 @@ export async function PATCH(
             status: 'pending',
             priority: 'high',
             dueDate: new Date(Date.now() + 2 * 86400000),
-            assignedTo: (lead as any).assignedTo?._id || auth.userId,
+            assignedTo: salesPersonId,
             createdBy: auth.userId,
           }).catch(() => {});
+        } else {
+          // If existing booking exists, ensure total amount or assigned salesperson is synchronized
+          let dirty = false;
+          if (totalVal && existingBooking.totalAmount !== totalVal) {
+            existingBooking.totalAmount = totalVal;
+            dirty = true;
+          }
+          if (existingBooking.status === undefined) {
+            existingBooking.status = 'contract_signed';
+            dirty = true;
+          }
+          if (dirty) {
+            await existingBooking.save();
+          }
         }
       } catch (err: any) {
         console.error('Lead → Booking handoff warning:', err);
