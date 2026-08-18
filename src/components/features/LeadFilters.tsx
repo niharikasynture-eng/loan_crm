@@ -37,7 +37,7 @@ export function LeadFilters({
   const isManager = user?.role === 'manager';
   const isOrgAdmin = user?.role === 'org_admin';
   const canAssign = isOrgAdmin || isManager;
-  const canAddLead = isOrgAdmin || isManager;
+  const canAddLead = user?.role !== 'super_admin';
   const canImportExport = isOrgAdmin || isManager;
 
   const selectOptions = [

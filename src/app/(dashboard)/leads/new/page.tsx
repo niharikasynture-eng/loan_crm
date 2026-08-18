@@ -48,7 +48,7 @@ export default function NewClientPage() {
   const [projects, setProjects] = useState<{_id: string, name: string}[]>([]);
 
   useEffect(() => {
-    if (user && !isAdmin && user.role !== 'manager') {
+    if (user && user.role === 'super_admin') {
       router.push('/leads');
       return;
     }
@@ -58,7 +58,7 @@ export default function NewClientPage() {
     api.get<{ projects: {_id: string, name: string}[] }>('/projects')
       .then(d => setProjects(d.projects))
       .catch(console.error);
-  }, [user, isAdmin, router]);
+  }, [user, router]);
 
   useEffect(() => {
     setForm(prev => ({ ...prev, timeOfVisit: `${timeHour}:${timeMinute} ${timePeriod}` }));
@@ -77,7 +77,7 @@ export default function NewClientPage() {
         ...form,
         value: form.value ? parseFloat(form.value) : undefined,
         tags: form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
-        assignedTo: form.assignedTo || undefined,
+        assignedTo: form.assignedTo || (user?.role === 'sales_agent' ? user._id : undefined),
         familyAges: Object.fromEntries(Object.entries(form.familyAges).map(([k, v]) => [k, v ? parseInt(v) : undefined])),
       };
       const data = await api.post<{ lead: { _id: string } }>('/leads', payload);
