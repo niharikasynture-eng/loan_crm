@@ -19,7 +19,7 @@ interface TaskListProps {
 
 export function TaskList({ tasks, loading, onToggleComplete }: TaskListProps) {
   const { user } = useAuth();
-  
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -51,7 +51,7 @@ export function TaskList({ tasks, loading, onToggleComplete }: TaskListProps) {
         const canComplete = (task as any).assignedTo?._id === user?.id || (task as any).assignedTo === user?.id;
 
         return (
-          <Card 
+          <Card
             key={task._id.toString()}
             padding="none"
             className={cn(
@@ -100,7 +100,7 @@ export function TaskList({ tasks, loading, onToggleComplete }: TaskListProps) {
                     {isOverdue && <AlertCircle size={12} />}
                     Due {new Date(task.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                   </span>
-                  
+
                   {task.leadId && (
                     <span className="text-gray-400">
                       Lead: <span className="text-gray-900">{(task as any).leadId?.name || 'Unknown'}</span>
@@ -126,12 +126,12 @@ export function TaskList({ tasks, loading, onToggleComplete }: TaskListProps) {
                   <p className="text-xs font-black text-gray-900 tracking-tight">
                     {(task as any).assignedTo?.name || 'Unassigned'}
                   </p>
-                  <p className="text-[10px] text-gray-400 uppercase tracking-widest">Assignee</p>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-widest">Assignee .</p>
                 </div>
-                <Avatar 
-                  name={(task as any).assignedTo?.name || '?'} 
-                  src={(task as any).assignedTo?.avatar} 
-                  size="sm" 
+                <Avatar
+                  name={(task as any).assignedTo?.name || '?'}
+                  src={(task as any).assignedTo?.avatar}
+                  size="sm"
                 />
               </div>
             </div>
