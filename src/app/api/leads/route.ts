@@ -25,6 +25,9 @@ export async function GET(req: NextRequest) {
     const assignedTo = searchParams.get('assignedTo');
     const source = searchParams.get('source');
     const search = searchParams.get('search');
+    const industry = searchParams.get('industry');
+    const region = searchParams.get('region');
+    const dateRange = searchParams.get('dateRange');
 
     const query: Record<string, unknown> = { organizationId: auth.organizationId };
 
@@ -33,9 +36,41 @@ export async function GET(req: NextRequest) {
       query.assignedTo = auth.userId;
     }
 
-    if (status) query.status = status;
-    if (assignedTo && auth.role !== ROLES.SALES_AGENT) query.assignedTo = assignedTo;
-    if (source) query.source = source;
+    if (status && status !== 'all') query.status = status;
+    if (assignedTo && assignedTo !== 'all' && auth.role !== ROLES.SALES_AGENT) query.assignedTo = assignedTo;
+    if (source && source !== 'all') query.source = source;
+    if (industry && industry !== 'all') {
+      query.industry = { $regex: industry.split(' ')[0], $options: 'i' };
+    }
+    if (region && region !== 'all') {
+      query.region = { $regex: region.split(' ')[0], $options: 'i' };
+    }
+
+    if (dateRange && dateRange !== 'all') {
+      const now = new Date();
+      let start: Date | null = null;
+      let end: Date | null = null;
+
+      if (dateRange === 'today') {
+        start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      } else if (dateRange === 'yesterday') {
+        start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+        end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      } else if (dateRange === '7days') {
+        start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      } else if (dateRange === '30days') {
+        start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      } else if (dateRange === 'thisMonth') {
+        start = new Date(now.getFullYear(), now.getMonth(), 1);
+      }
+
+      if (start && end) {
+        query.createdAt = { $gte: start, $lt: end };
+      } else if (start) {
+        query.createdAt = { $gte: start };
+      }
+    }
+
     if (search) {
       query.$text = { $search: search };
     }
@@ -73,7 +108,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { 
       name, phone, email, company, source, status, assignedTo, value, notes, tags,
-      secondaryPhone, address, flatNo, landmark, area, pincode, income, occupation, education,
+      secondaryPhone, address, flatNo, landmark, area, pincode, region, industry, income, occupation, education,
       dateOfVisit, timeOfVisit, mapLink, hasMedeclaim, sumAssured, insuranceCompany, healthStatus,
       familyAges, tseName, tlName, visitDate, customFields
     } = body;
@@ -98,7 +133,7 @@ export async function POST(req: NextRequest) {
       value,
       notes,
       tags: tags || [],
-      secondaryPhone, address, flatNo, landmark, area, pincode, income, occupation, education,
+      secondaryPhone, address, flatNo, landmark, area, pincode, region, industry, income, occupation, education,
       dateOfVisit, timeOfVisit, mapLink, hasMedeclaim, sumAssured, insuranceCompany, healthStatus,
       familyAges, tseName, tlName, visitDate,
       customFields: customFields || {},

@@ -37,6 +37,8 @@ interface Lead {
   landmark?: string;
   area?: string;
   pincode?: string;
+  region?: string;
+  industry?: string;
   income?: string;
   occupation?: string;
   education?: string;
@@ -497,8 +499,12 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                       <h2 className="text-[12px] font-bold uppercase tracking-wider text-slate-500">Physical Address</h2>
                     </div>
                     <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-6 gap-y-4">
-                      <DetailItem label="Street / Flat" value={lead.address || '—'} icon={MapPin} />
-                      <DetailItem label="Area & Post" value={`${lead.area || ''} ${lead.pincode || ''}`} icon={Building} />
+                      <DetailItem label="Flat / Unit No." value={lead.flatNo || '—'} icon={Building} />
+                      <DetailItem label="Street / Premises" value={lead.address || '—'} icon={MapPin} />
+                      <DetailItem label="Landmark" value={lead.landmark || '—'} icon={Building} />
+                      <DetailItem label="Area & Pincode" value={`${lead.area || ''} ${lead.pincode ? `- ${lead.pincode}` : ''}`.trim() || '—'} icon={Building} />
+                      <DetailItem label="Pune Region Zone" value={lead.region || '—'} icon={MapPin} />
+                      <DetailItem label="Industry / Domain" value={lead.industry || '—'} icon={Building} />
                     </div>
                     {lead.mapLink && (
                       <div className="pt-4">

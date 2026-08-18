@@ -7,7 +7,9 @@ import { Plus, IndianRupee } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { useLeads } from '@/hooks/useLeads';
 import { useToast } from '@/hooks/useToast';
+import { useDebounce } from '@/hooks/useDebounce';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { LeadFilters } from '@/components/features/LeadFilters';
 import { cn } from '@/lib/cn';
 
 const STAGES = [
@@ -22,7 +24,22 @@ const STAGES = [
 export default function DealsPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { leads, loading, refresh } = useLeads({ limit: 1000 });
+
+  const [search, setSearch] = React.useState('');
+  const [industry, setIndustry] = React.useState('all');
+  const [region, setRegion] = React.useState('all');
+  const [dateRange, setDateRange] = React.useState('all');
+
+  const debouncedSearch = useDebounce(search, 300);
+
+  const { leads, loading, refresh } = useLeads({
+    search: debouncedSearch,
+    industry,
+    region,
+    dateRange,
+    limit: 1000,
+  });
+
   const [dragging, setDragging] = React.useState<string | null>(null);
 
   React.useEffect(() => {
@@ -50,12 +67,37 @@ export default function DealsPage() {
       <PageHeader
         title="Sales Pipeline"
         subtitle="Drag leads across stages to update their status"
-        action={
-          <button className="btn-primary text-sm" onClick={() => router.push('/leads/new')}>
-            <Plus size={15} /> Add Lead
-          </button>
-        }
       />
+
+      {/* Filter Options Container Box */}
+      <div className="bg-white p-6 sm:p-7 rounded-2xl border border-slate-200/80 shadow-sm">
+        <LeadFilters
+          search={search}
+          onSearchChange={setSearch}
+          onSearchSubmit={(e) => e.preventDefault()}
+          industry={industry}
+          onIndustryChange={setIndustry}
+          region={region}
+          onRegionChange={setRegion}
+          dateRange={dateRange}
+          onDateRangeChange={setDateRange}
+          status="all"
+          onStatusChange={() => {}}
+          selectedCount={0}
+          bulkSelectCount={0}
+          onBulkSelectChange={() => {}}
+          onBulkAssign={() => {}}
+          onImport={() => {}}
+          onExport={() => {}}
+          onAddLead={() => router.push('/leads/new')}
+          onResetFilters={() => {
+            setSearch('');
+            setIndustry('all');
+            setRegion('all');
+            setDateRange('all');
+          }}
+        />
+      </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-24">

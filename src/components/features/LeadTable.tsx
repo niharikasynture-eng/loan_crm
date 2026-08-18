@@ -134,6 +134,28 @@ export function LeadTable({
       ),
     },
     {
+      key: 'createdBy',
+      header: 'Added By',
+      render: (lead) => {
+        const creator = (lead as any).createdBy;
+        if (creator && typeof creator === 'object' && creator.name) {
+          return (
+            <div className="flex items-center gap-2">
+              <Avatar name={creator.name} size="sm" />
+              <span className="text-xs font-semibold text-gray-700">
+                {creator.name}
+              </span>
+            </div>
+          );
+        }
+        return (
+          <span className="text-xs font-semibold text-gray-400">
+            System / Admin
+          </span>
+        );
+      },
+    },
+    {
       key: 'assignment',
       header: 'Responsible',
       render: (lead) => {

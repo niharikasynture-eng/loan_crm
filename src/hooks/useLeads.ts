@@ -7,6 +7,9 @@ import { ILead } from '@/models/Lead';
 interface UseLeadsOptions {
   status?: string;
   search?: string;
+  industry?: string;
+  region?: string;
+  dateRange?: string;
   limit?: number;
   skip?: number;
 }
@@ -22,8 +25,11 @@ export function useLeads(options: UseLeadsOptions = {}) {
     setError(null);
     try {
       const query = new URLSearchParams();
-      if (options.status) query.append('status', options.status);
+      if (options.status && options.status !== 'all') query.append('status', options.status);
       if (options.search) query.append('search', options.search);
+      if (options.industry && options.industry !== 'all') query.append('industry', options.industry);
+      if (options.region && options.region !== 'all') query.append('region', options.region);
+      if (options.dateRange && options.dateRange !== 'all') query.append('dateRange', options.dateRange);
       if (options.limit) query.append('limit', options.limit.toString());
       if (options.skip) query.append('skip', options.skip.toString());
 
@@ -35,7 +41,7 @@ export function useLeads(options: UseLeadsOptions = {}) {
     } finally {
       setLoading(false);
     }
-  }, [options.status, options.search, options.limit, options.skip]);
+  }, [options.status, options.search, options.industry, options.region, options.dateRange, options.limit, options.skip]);
 
   useEffect(() => {
     fetchLeads();

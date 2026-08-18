@@ -78,6 +78,7 @@ export interface ILead extends Document {
   companyDomain?: string;
   companySize?: string;
   companyRevenue?: string;
+  region?: string;
   industry?: string;
   avatarUrl?: string;
   companyLogoUrl?: string;
@@ -131,6 +132,7 @@ const LeadSchema = new Schema<ILead>(
     companySize: { type: String },
     companyRevenue: { type: String },
     industry: { type: String },
+    region: { type: String, trim: true },
     avatarUrl: { type: String },
     companyLogoUrl: { type: String },
     isEnriched: { type: Boolean, default: false },

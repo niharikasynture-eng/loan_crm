@@ -53,7 +53,7 @@ export async function PATCH(
 
     // Field restrictions based on role
     const newFields = [
-      'secondaryPhone', 'address', 'flatNo', 'landmark', 'area', 'pincode', 'income', 'occupation', 'education',
+      'secondaryPhone', 'address', 'flatNo', 'landmark', 'area', 'pincode', 'region', 'industry', 'income', 'occupation', 'education',
       'dateOfVisit', 'timeOfVisit', 'mapLink', 'hasMedeclaim', 'sumAssured', 'insuranceCompany', 'healthStatus',
       'familyAges', 'tseName', 'tlName', 'visitDate'
     ];

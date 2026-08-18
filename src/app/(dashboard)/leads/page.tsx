@@ -25,6 +25,10 @@ export default function LeadsPage() {
   const { open: openModal, close: closeModal } = useModal();
 
   const [search, setSearch] = React.useState('');
+  const [industry, setIndustry] = React.useState('all');
+  const [region, setRegion] = React.useState('all');
+  const [dateRange, setDateRange] = React.useState('all');
+  const [status, setStatus] = React.useState('all');
   const [page, setPage] = React.useState(1);
   const [selectedLeads, setSelectedLeads] = React.useState<Set<string>>(new Set());
   const [bulkSelectCount, setBulkSelectCount] = React.useState(0);
@@ -36,6 +40,10 @@ export default function LeadsPage() {
   // Data fetching
   const { leads, loading, refresh, total } = useLeads({
     search: debouncedSearch,
+    industry,
+    region,
+    dateRange,
+    status,
     limit: 10,
     skip: (page - 1) * 10
   });
@@ -270,6 +278,7 @@ export default function LeadsPage() {
         'Company': l.company || '',
         'Status': l.status,
         'Source': l.source,
+        'Added By': (l as any).createdBy?.name || 'System / Admin',
         'Assigned To': (l as any).assignedTo?.name || 'Unassigned',
         'Created': new Date(l.createdAt).toLocaleDateString(),
       }));
@@ -289,11 +298,19 @@ export default function LeadsPage() {
       />
 
       {/* Filters Card */}
-      <div className="card">
+      <div className="bg-white p-6 sm:p-7 rounded-2xl border border-slate-200/80 shadow-sm">
         <LeadFilters
           search={search}
-          onSearchChange={setSearch}
+          onSearchChange={(v) => { setSearch(v); setPage(1); }}
           onSearchSubmit={handleSearchSubmit}
+          industry={industry}
+          onIndustryChange={(v) => { setIndustry(v); setPage(1); }}
+          region={region}
+          onRegionChange={(v) => { setRegion(v); setPage(1); }}
+          dateRange={dateRange}
+          onDateRangeChange={(v) => { setDateRange(v); setPage(1); }}
+          status={status}
+          onStatusChange={(v) => { setStatus(v); setPage(1); }}
           selectedCount={selectedLeads.size}
           bulkSelectCount={bulkSelectCount}
           onBulkSelectChange={handleBulkSelectChange}
@@ -301,6 +318,14 @@ export default function LeadsPage() {
           onImport={() => setIsImportOpen(true)}
           onExport={handleExport}
           onAddLead={() => router.push('/leads/new')}
+          onResetFilters={() => {
+            setSearch('');
+            setIndustry('all');
+            setRegion('all');
+            setDateRange('all');
+            setStatus('all');
+            setPage(1);
+          }}
         />
       </div>
 
