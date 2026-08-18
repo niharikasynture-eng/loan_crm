@@ -69,15 +69,15 @@ function ModalComponent({
 
   return (
     <div 
-      className={`fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+      className={`fixed inset-0 z-50 overflow-y-auto overscroll-contain touch-pan-y p-3 sm:p-6 flex min-h-full items-center justify-center transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
       onKeyDown={(e) => e.key === 'Escape' && close()}
     >
       <div 
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm" 
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm" 
         onClick={close}
       />
       <div 
-        className={`relative w-full max-h-[calc(100dvh-1.5rem)] sm:max-h-[85vh] flex flex-col my-auto ${sizeClasses[size]} bg-white rounded-2xl shadow-modal overflow-hidden transform transition-transform duration-300 ${isOpen ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'}`}
+        className={`relative w-full max-h-[calc(100dvh-2rem)] sm:max-h-[85vh] flex flex-col my-auto shrink-0 z-10 pointer-events-auto ${sizeClasses[size]} bg-white rounded-2xl shadow-modal overflow-hidden transform transition-transform duration-300 ${isOpen ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'}`}
       >
         {(title || showClose) && (
           <div className="flex items-center justify-between p-4 sm:p-6 border-b border-surface-100 shrink-0">
@@ -95,7 +95,10 @@ function ModalComponent({
           </div>
         )}
         
-        <div className="p-4 sm:p-6 overflow-y-auto flex-1 overscroll-contain touch-pan-y">
+        <div 
+          className="p-4 sm:p-6 overflow-y-auto flex-1 overscroll-contain touch-pan-y"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
           {content}
         </div>
 

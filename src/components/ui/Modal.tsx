@@ -48,17 +48,17 @@ export function Modal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 md:p-8 overflow-hidden">
+    <div className="fixed inset-0 z-50 overflow-y-auto overscroll-contain touch-pan-y p-3 sm:p-6 flex min-h-full items-center justify-center">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-black/60 backdrop-blur-[2px] animate-in fade-in duration-300" 
+        className="fixed inset-0 bg-black/60 backdrop-blur-[2px] animate-in fade-in duration-300" 
         onClick={onClose}
       />
       
       {/* Content */}
       <div 
         className={cn(
-          "relative w-full max-h-[calc(100dvh-1.5rem)] sm:max-h-[85vh] bg-white rounded-2xl sm:rounded-card shadow-modal overflow-hidden flex flex-col my-auto transform transition-all animate-in zoom-in-95 slide-in-from-bottom-4 duration-300",
+          "relative w-full max-h-[calc(100dvh-2rem)] sm:max-h-[85vh] bg-white rounded-2xl sm:rounded-card shadow-modal overflow-hidden flex flex-col my-auto shrink-0 transform transition-all animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 pointer-events-auto z-10",
           sizeClasses[size],
           className
         )}
@@ -79,7 +79,10 @@ export function Modal({
         </div>
 
         {/* Body */}
-        <div className="p-4 sm:p-6 overflow-y-auto flex-1 overscroll-contain touch-pan-y">
+        <div 
+          className="p-4 sm:p-6 overflow-y-auto flex-1 overscroll-contain touch-pan-y"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
           {children}
         </div>
 
