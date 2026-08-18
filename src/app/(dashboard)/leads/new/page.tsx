@@ -99,7 +99,7 @@ export default function NewClientPage() {
       const payload = {
         ...form,
         value: form.value ? parseFloat(form.value) : undefined,
-        assignedTo: form.assignedTo || (user?.role === 'sales_agent' ? user._id : undefined),
+        assignedTo: form.assignedTo || (user?.role === 'sales_agent' ? user.id : undefined),
       };
       const data = await api.post<{ lead: { _id: string } }>('/leads', payload);
       setSaved(true);
