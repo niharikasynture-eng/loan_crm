@@ -157,24 +157,24 @@ export function PostCallDispositionModal({
       isOpen={isOpen}
       onClose={onClose}
       title="📞 Post-Call Outcome & Follow-up"
-      size="lg"
+      size="xl"
     >
-      <div className="space-y-6">
-        <div className="bg-gradient-to-r from-indigo-50 to-sky-50 p-4 rounded-2xl border border-indigo-100/80 flex items-center justify-between">
+      <div className="space-y-4 sm:space-y-5">
+        <div className="bg-gradient-to-r from-indigo-50 to-sky-50 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-indigo-100/80 flex items-center justify-between">
           <div>
-            <p className="text-xs font-bold text-indigo-500 uppercase tracking-widest">Calling Client</p>
-            <h3 className="text-lg font-bold text-slate-800">{lead.name}</h3>
+            <p className="text-[10px] sm:text-xs font-bold text-indigo-500 uppercase tracking-widest">Calling Client</p>
+            <h3 className="text-base sm:text-lg font-bold text-slate-800">{lead.name}</h3>
           </div>
-          <span className="px-3 py-1 bg-white border border-indigo-100 rounded-full text-xs font-mono font-bold text-indigo-600 shadow-sm">
+          <span className="px-2.5 py-1 bg-white border border-indigo-100 rounded-full text-[11px] sm:text-xs font-mono font-bold text-indigo-600 shadow-sm">
             {lead.phone || 'Phone call'}
           </span>
         </div>
 
-        <p className="text-xs font-black text-slate-400 uppercase tracking-widest">
+        <p className="text-[11px] sm:text-xs font-black text-slate-400 uppercase tracking-widest">
           Select Call Outcome:
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-3.5">
           {DISPOSITIONS.map((disp) => {
             const Icon = disp.icon;
             const isSelected = selectedDisposition === disp.id;
@@ -184,17 +184,17 @@ export function PostCallDispositionModal({
                 type="button"
                 disabled={submitting}
                 onClick={() => setSelectedDisposition(disp.id)}
-                className={`p-4 rounded-2xl border-2 text-left transition-all relative overflow-hidden group shadow-sm hover:shadow-md ${disp.color} ${
-                  isSelected ? 'ring-2 ring-indigo-500 border-indigo-500 scale-[0.99] shadow-md' : 'opacity-80 hover:opacity-100'
+                className={`p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border-2 text-left transition-all relative overflow-hidden group shadow-sm hover:shadow-md ${disp.color} ${
+                  isSelected ? 'ring-2 ring-indigo-500 border-indigo-500 scale-[0.99] shadow-md' : 'opacity-85 hover:opacity-100'
                 }`}
               >
-                <div className="flex items-center gap-3 mb-2">
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shadow-sm shrink-0 ${disp.iconBg}`}>
-                    <Icon size={18} />
+                <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
+                  <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center shadow-sm shrink-0 ${disp.iconBg}`}>
+                    <Icon size={15} />
                   </div>
-                  <span className="font-bold text-sm tracking-tight leading-snug">{disp.label}</span>
+                  <span className="font-bold text-xs sm:text-sm tracking-tight leading-snug">{disp.label}</span>
                 </div>
-                <p className="text-[11px] opacity-80 leading-relaxed font-medium pl-0.5">
+                <p className="text-[10px] sm:text-[11px] opacity-80 leading-snug sm:leading-relaxed font-medium pl-0.5">
                   {disp.desc}
                 </p>
               </button>
@@ -204,16 +204,16 @@ export function PostCallDispositionModal({
 
         {/* Call Back Later Timing Options */}
         {selectedDisposition === 'contacted' && (
-          <div className="p-4 bg-amber-50/80 border border-amber-200/80 rounded-2xl space-y-3">
+          <div className="p-3 sm:p-4 bg-amber-50/80 border border-amber-200/80 rounded-xl sm:rounded-2xl space-y-2.5 sm:space-y-3">
             <p className="text-xs font-bold text-amber-800 flex items-center gap-1.5">
               <Clock size={15} className="text-amber-600" /> Choose Call Back Reminder Timing:
             </p>
 
-            <div className="grid sm:grid-cols-2 gap-3">
+            <div className="grid sm:grid-cols-2 gap-2.5 sm:gap-3">
               <button
                 type="button"
                 onClick={() => setCallbackTimingMode('24h')}
-                className={`p-3 rounded-xl border text-xs font-bold flex items-center gap-2 transition-all ${
+                className={`p-2.5 sm:p-3 rounded-xl border text-xs font-bold flex items-center gap-2 transition-all ${
                   callbackTimingMode === '24h'
                     ? 'bg-amber-500 text-white border-amber-600 shadow-sm'
                     : 'bg-white text-slate-700 border-amber-200 hover:bg-amber-100/50'
@@ -225,7 +225,7 @@ export function PostCallDispositionModal({
               <button
                 type="button"
                 onClick={() => setCallbackTimingMode('custom')}
-                className={`p-3 rounded-xl border text-xs font-bold flex items-center gap-2 transition-all ${
+                className={`p-2.5 sm:p-3 rounded-xl border text-xs font-bold flex items-center gap-2 transition-all ${
                   callbackTimingMode === 'custom'
                     ? 'bg-amber-500 text-white border-amber-600 shadow-sm'
                     : 'bg-white text-slate-700 border-amber-200 hover:bg-amber-100/50'
@@ -236,15 +236,15 @@ export function PostCallDispositionModal({
             </div>
 
             {callbackTimingMode === 'custom' && (
-              <div className="pt-2">
-                <label className="text-[11px] font-black text-amber-800 uppercase tracking-widest block mb-1.5">
+              <div className="pt-1.5">
+                <label className="text-[10px] sm:text-[11px] font-black text-amber-800 uppercase tracking-widest block mb-1">
                   Specific Call Back Time:
                 </label>
                 <input
                   type="datetime-local"
                   value={followUpDate}
                   onChange={(e) => setFollowUpDate(e.target.value)}
-                  className="w-full h-11 px-4 text-xs rounded-xl border border-amber-300 bg-white focus:ring-2 focus:ring-amber-500 outline-none transition-all"
+                  className="w-full h-10 sm:h-11 px-3 sm:px-4 text-xs rounded-xl border border-amber-300 bg-white focus:ring-2 focus:ring-amber-500 outline-none transition-all"
                 />
               </div>
             )}
@@ -252,9 +252,9 @@ export function PostCallDispositionModal({
         )}
 
         {/* Optional Notes */}
-        <div className="space-y-4 pt-2 border-t border-slate-100">
+        <div className="space-y-3 sm:space-y-4 pt-2 border-t border-slate-100">
           <div>
-            <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest block mb-1.5 flex items-center gap-1">
+            <label className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-widest block mb-1 flex items-center gap-1">
               <StickyNote size={13} /> Call Notes (Optional)
             </label>
             <input
@@ -262,7 +262,7 @@ export function PostCallDispositionModal({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="e.g. Requested brochure or details on WhatsApp"
-              className="w-full h-11 px-4 text-xs rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:border-indigo-400 outline-none transition-all"
+              className="w-full h-10 sm:h-11 px-3 sm:px-4 text-xs rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:border-indigo-400 outline-none transition-all"
             />
           </div>
 
@@ -270,7 +270,7 @@ export function PostCallDispositionModal({
             type="button"
             onClick={handleSaveDisposition}
             disabled={submitting || (selectedDisposition === 'contacted' && callbackTimingMode === 'custom' && !followUpDate)}
-            className="btn-primary w-full h-12 text-sm font-bold shadow-md hover:shadow-lg transition-all"
+            className="btn-primary w-full h-11 sm:h-12 text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all"
           >
             {submitting ? 'Saving Outcome...' : 'Save Call Outcome & Schedule Reminder'}
           </button>

@@ -69,7 +69,7 @@ function ModalComponent({
 
   return (
     <div 
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+      className={`fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
       onKeyDown={(e) => e.key === 'Escape' && close()}
     >
       <div 
@@ -77,10 +77,10 @@ function ModalComponent({
         onClick={close}
       />
       <div 
-        className={`relative w-full ${sizeClasses[size]} bg-white rounded-card shadow-modal overflow-hidden transform transition-transform duration-300 ${isOpen ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'}`}
+        className={`relative w-full max-h-[calc(100dvh-1.5rem)] sm:max-h-[85vh] flex flex-col my-auto ${sizeClasses[size]} bg-white rounded-2xl shadow-modal overflow-hidden transform transition-transform duration-300 ${isOpen ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'}`}
       >
         {(title || showClose) && (
-          <div className="flex items-center justify-between p-6 border-b border-surface-100">
+          <div className="flex items-center justify-between p-4 sm:p-6 border-b border-surface-100 shrink-0">
             {title && <h3 className="text-lg font-bold text-gray-900 tracking-tight">{title}</h3>}
             {showClose && (
               <button 
@@ -95,12 +95,12 @@ function ModalComponent({
           </div>
         )}
         
-        <div className="p-6 overflow-y-auto max-h-[80vh]">
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 overscroll-contain touch-pan-y">
           {content}
         </div>
 
         {footer && (
-          <div className="p-6 border-t border-surface-100 bg-surface-50">
+          <div className="p-4 sm:p-6 border-t border-surface-100 bg-surface-50 shrink-0">
             {footer}
           </div>
         )}
