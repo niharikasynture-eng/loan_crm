@@ -114,7 +114,7 @@ export function TaskList({ tasks, loading, onToggleComplete }: TaskListProps) {
                       rel="noopener noreferrer"
                       className="text-brand-600 hover:text-brand-700 flex items-center gap-1 transition-colors"
                     >
-                      Action Details <ExternalLink size={12} />
+                      Action Details<ExternalLink size={12} />
                     </a>
                   )}
                 </div>
