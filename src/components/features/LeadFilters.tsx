@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Search, Plus, Upload, Download, UserCheck, Calendar, Filter, RotateCcw, Building2, MapPin, Trash2 } from 'lucide-react';
+import { Search, Plus, Upload, Download, UserCheck, Calendar, Filter, RotateCcw, Building2, MapPin, Trash2, User } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -19,6 +19,9 @@ interface LeadFiltersProps {
   onDateRangeChange: (value: string) => void;
   status: string;
   onStatusChange: (value: string) => void;
+  assignedTo?: string;
+  onAssignedToChange?: (value: string) => void;
+  agents?: Array<{ _id: any; name: string; email: string }>;
   selectedCount: number;
   onBulkAssign?: () => void;
   onBulkDelete?: () => void;
@@ -87,6 +90,9 @@ export function LeadFilters({
   onDateRangeChange,
   status,
   onStatusChange,
+  assignedTo,
+  onAssignedToChange,
+  agents = [],
   selectedCount,
   onBulkAssign,
   onBulkDelete,
@@ -100,11 +106,21 @@ export function LeadFilters({
   const canAddLead = user?.role !== 'super_admin';
   const canImportExport = user?.role !== 'super_admin';
   const canAssign = user?.role === 'org_admin' || user?.role === 'manager';
+  const showAgentFilter = user?.role === 'org_admin' || user?.role === 'manager' || user?.role === 'super_admin';
+
+  const agentOptions = React.useMemo(() => {
+    const list = [{ label: 'All Sales Agents', value: 'all' }];
+    agents.forEach((a) => {
+      list.push({ label: `${a.name}${a.email ? ` (${a.email})` : ''}`, value: a._id.toString() });
+    });
+    return list;
+  }, [agents]);
 
   const hasActiveFilters = (industry && industry !== 'all') || 
                            (region && region !== 'all') || 
                            (dateRange && dateRange !== 'all') || 
                            (status && status !== 'all') || 
+                           (assignedTo && assignedTo !== 'all') ||
                            !!search;
 
   return (
@@ -174,7 +190,22 @@ export function LeadFilters({
 
       {/* Filter Options Container Box */}
       <div className="pt-4 border-t border-slate-100">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className={`grid grid-cols-1 sm:grid-cols-2 ${showAgentFilter ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4`}>
+          {/* Sales Agent Filter (Visible for Org Admin, Manager, Super Admin) */}
+          {showAgentFilter && onAssignedToChange && (
+            <div className="space-y-1.5">
+              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5 ml-0.5">
+                <User size={13} className="text-violet-600" /> Sales Agent / Member
+              </label>
+              <Select
+                value={assignedTo || 'all'}
+                onChange={(e) => onAssignedToChange(e.target.value)}
+                options={agentOptions}
+                className="h-11 text-xs font-semibold rounded-xl border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white transition-all w-full"
+              />
+            </div>
+          )}
+
           {/* Category / Domain Filter */}
           <div className="space-y-1.5">
             <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5 ml-0.5">

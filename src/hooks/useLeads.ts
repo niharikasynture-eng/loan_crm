@@ -10,6 +10,7 @@ interface UseLeadsOptions {
   industry?: string;
   region?: string;
   dateRange?: string;
+  assignedTo?: string;
   limit?: number;
   skip?: number;
 }
@@ -30,6 +31,7 @@ export function useLeads(options: UseLeadsOptions = {}) {
       if (options.industry && options.industry !== 'all') query.append('industry', options.industry);
       if (options.region && options.region !== 'all') query.append('region', options.region);
       if (options.dateRange && options.dateRange !== 'all') query.append('dateRange', options.dateRange);
+      if (options.assignedTo && options.assignedTo !== 'all') query.append('assignedTo', options.assignedTo);
       if (options.limit) query.append('limit', options.limit.toString());
       if (options.skip) query.append('skip', options.skip.toString());
 
@@ -41,7 +43,7 @@ export function useLeads(options: UseLeadsOptions = {}) {
     } finally {
       setLoading(false);
     }
-  }, [options.status, options.search, options.industry, options.region, options.dateRange, options.limit, options.skip]);
+  }, [options.status, options.search, options.industry, options.region, options.dateRange, options.assignedTo, options.limit, options.skip]);
 
   useEffect(() => {
     fetchLeads();

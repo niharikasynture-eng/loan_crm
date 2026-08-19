@@ -28,6 +28,7 @@ export default function LeadsPage() {
   const [region, setRegion] = React.useState('all');
   const [dateRange, setDateRange] = React.useState('all');
   const [status, setStatus] = React.useState('all');
+  const [assignedTo, setAssignedTo] = React.useState('all');
   const [page, setPage] = React.useState(1);
   const [selectedLeads, setSelectedLeads] = React.useState<Set<string>>(new Set());
   const [isImportOpen, setIsImportOpen] = React.useState(false);
@@ -42,15 +43,16 @@ export default function LeadsPage() {
     region,
     dateRange,
     status,
+    assignedTo,
     limit: 10,
     skip: (page - 1) * 10
   });
 
   const totalPages = Math.ceil(total / 10);
 
-  // Fetch users for assignment
+  // Fetch users for assignment & filtering
   React.useEffect(() => {
-    api.get<{ users: IUser[] }>('/users?role=sales_agent,onsite_visitor')
+    api.get<{ users: IUser[] }>('/users?role=sales_agent,onsite_visitor,manager')
       .then(d => setOrgUsers(d.users))
       .catch(console.error);
   }, []);
@@ -98,59 +100,54 @@ export default function LeadsPage() {
             />
           </div>
 
-          <Button
-            size="lg"
-            className="w-full h-14 text-lg shadow-lg shadow-brand-500/20"
-            isLoading={isAssigning}
-            disabled={!selectedAgent}
-            onClick={async () => {
-              setIsAssigning(true);
-              try {
-                await api.patch(`/leads/${lead._id}`, { assignedTo: selectedAgent });
-                toast('success', `Assigned to ${orgUsers.find(u => u._id.toString() === selectedAgent)?.name}`);
-                refresh();
-                closeModal();
-              } catch (err: any) {
-                toast('error', err.message || 'Assignment failed');
-              } finally {
-                setIsAssigning(false);
-              }
-            }}
-          >
-            Assign Client
-          </Button>
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+            <Button variant="secondary" onClick={closeModal}>Cancel</Button>
+            <Button
+              disabled={!selectedAgent || isAssigning}
+              onClick={async () => {
+                setIsAssigning(true);
+                try {
+                  await api.patch(`/leads/${lead._id}`, { assignedTo: selectedAgent });
+                  toast('success', 'Lead assigned successfully');
+                  refresh();
+                  closeModal();
+                } catch (err: any) {
+                  toast('error', err.message || 'Assignment failed');
+                } finally {
+                  setIsAssigning(false);
+                }
+              }}
+            >
+              {isAssigning ? 'Updating Ownership...' : 'Confirm Assignment'}
+            </Button>
+          </div>
         </div>
       );
     };
 
     openModal({
-      title: 'Direct Assignment',
-      content: <AssignContent />,
-      size: 'md'
+      title: 'Reassign Account Ownership',
+      content: <AssignContent />
     });
   };
 
-  // --- Bulk Assign Modal (Org Admin & Manager) ---
+  // --- Bulk Assign Dialog ---
   const handleBulkAssign = () => {
+    if (selectedLeads.size === 0) return;
+
     const BulkAssignContent = () => {
       const [selectedAgent, setSelectedAgent] = React.useState('');
       const [isAssigning, setIsAssigning] = React.useState(false);
 
       return (
         <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="p-6 bg-gray-50 rounded-xl border border-gray-200">
-              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Batch Size</p>
-              <p className="text-xl font-bold text-gray-900">{selectedLeads.size} Leads</p>
-            </div>
-            <div className="p-6 bg-brand-50 rounded-xl border border-brand-100">
-              <p className="text-[10px] font-black uppercase tracking-widest text-brand-400 mb-1">Target</p>
-              <p className="text-xl font-bold text-brand-900 truncate">Selected Leads</p>
-            </div>
+          <div className="bg-brand-50 p-6 rounded-xl border border-brand-100">
+            <p className="text-sm text-brand-900 font-bold mb-1">Bulk Assignment Queue</p>
+            <p className="text-2xl font-black text-brand-700">{selectedLeads.size} Accounts Selected</p>
           </div>
 
           <div className="space-y-3">
-            <p className="text-xs font-black uppercase tracking-widest text-gray-400">Option 1: Assign to Specific Sales Agent</p>
+            <p className="text-xs font-black uppercase tracking-widest text-gray-400">Target Sales Agent</p>
             <AgentSelector
               agents={orgUsers}
               selectedId={selectedAgent}
@@ -158,85 +155,52 @@ export default function LeadsPage() {
             />
           </div>
 
-          <Button
-            size="lg"
-            className="w-full h-12 text-base"
-            isLoading={isAssigning}
-            disabled={!selectedAgent}
-            onClick={async () => {
-              setIsAssigning(true);
-              try {
-                await api.patch('/leads/bulk', {
-                  leadIds: Array.from(selectedLeads),
-                  assignedTo: selectedAgent
-                });
-                toast('success', `Successfully assigned ${selectedLeads.size} leads`);
-                setSelectedLeads(new Set());
-                refresh();
-                closeModal();
-              } catch (err: any) {
-                toast('error', err.message || 'Bulk assignment failed');
-              } finally {
-                setIsAssigning(false);
-              }
-            }}
-          >
-            Assign to Selected Agent
-          </Button>
-
-          <div className="relative py-2 flex items-center justify-center">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200" /></div>
-            <span className="relative px-3 bg-white text-xs font-bold text-gray-400 uppercase tracking-widest">OR</span>
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+            <Button variant="secondary" onClick={closeModal}>Cancel</Button>
+            <Button
+              disabled={!selectedAgent || isAssigning}
+              onClick={async () => {
+                setIsAssigning(true);
+                try {
+                  const leadIdArray = Array.from(selectedLeads);
+                  const res = await api.patch<{ modifiedCount: number }>('/leads/bulk', {
+                    leadIds: leadIdArray,
+                    assignedTo: selectedAgent
+                  });
+                  toast('success', `Successfully reassigned ${res.modifiedCount || leadIdArray.length} leads`);
+                  setSelectedLeads(new Set());
+                  refresh();
+                  closeModal();
+                } catch (err: any) {
+                  toast('error', err.message || 'Bulk assignment failed');
+                } finally {
+                  setIsAssigning(false);
+                }
+              }}
+            >
+              {isAssigning ? 'Reassigning Accounts...' : 'Execute Bulk Reassignment'}
+            </Button>
           </div>
-
-          <Button
-            size="lg"
-            variant="secondary"
-            className="w-full h-12 text-base text-indigo-600 border-indigo-200 bg-indigo-50/50 hover:bg-indigo-100"
-            isLoading={isAssigning}
-            onClick={async () => {
-              setIsAssigning(true);
-              try {
-                await api.post('/leads/auto-route', {
-                  leadIds: Array.from(selectedLeads)
-                });
-                toast('success', `Successfully auto-routed ${selectedLeads.size} leads using Smart Round-Robin`);
-                setSelectedLeads(new Set());
-                refresh();
-                closeModal();
-              } catch (err: any) {
-                toast('error', err.message || 'Auto-routing failed');
-              } finally {
-                setIsAssigning(false);
-              }
-            }}
-          >
-            ⚡ Auto-Distribute (Smart Round Robin)
-          </Button>
         </div>
       );
     };
 
     openModal({
-      title: `Bulk Assign (${selectedLeads.size} Selected Leads)`,
-      content: <BulkAssignContent />,
-      size: 'md'
+      title: 'Bulk Reassign Accounts',
+      content: <BulkAssignContent />
     });
   };
 
-  // --- Bulk Delete Modal ---
+  // --- Bulk Delete Dialog ---
   const handleBulkDelete = () => {
+    if (selectedLeads.size === 0) return;
+
     openModal({
-      title: `Delete ${selectedLeads.size} Selected Lead(s)`,
+      title: 'Delete Selected Leads',
       content: (
-        <div className="space-y-4">
-          <p className="text-sm text-gray-600 font-medium leading-relaxed">
-            Are you sure you want to permanently delete the <span className="font-bold text-gray-900">{selectedLeads.size}</span> selected lead(s)?
-          </p>
-          <div className="p-3 bg-rose-50 rounded-xl border border-rose-100 text-xs font-semibold text-rose-700">
-            ⚠️ This will permanently remove the selected leads and their history from your system.
-          </div>
-        </div>
+        <p className="text-sm text-gray-600 font-medium leading-relaxed">
+          Are you sure you want to permanently delete <span className="font-bold text-rose-600">{selectedLeads.size} selected lead(s)</span>? This action cannot be undone.
+        </p>
       ),
       footer: (
         <div className="flex justify-end gap-3">
@@ -310,13 +274,14 @@ export default function LeadsPage() {
       const ws = XLSX.utils.json_to_sheet(rows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Leads');
-      XLSX.writeFile(wb, `leads_export_${new Date().toISOString().slice(0, 10)}.xlsx`);
-      toast('success', 'Export completed');
-    } catch (err) { toast('error', 'Export failed'); }
+      XLSX.writeFile(wb, `Leads_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
+    } catch (err: any) {
+      toast('error', 'Export failed');
+    }
   };
 
   return (
-    <div className="animate-fade-in pb-10 flex flex-col gap-8">
+    <div className="space-y-6 animate-fade-in">
       <PageHeader
         title="Lead Intelligence"
         subtitle="Global view of all inbound and qualified opportunities"
@@ -336,6 +301,9 @@ export default function LeadsPage() {
           onDateRangeChange={(v) => { setDateRange(v); setPage(1); }}
           status={status}
           onStatusChange={(v) => { setStatus(v); setPage(1); }}
+          assignedTo={assignedTo}
+          onAssignedToChange={(v) => { setAssignedTo(v); setPage(1); }}
+          agents={orgUsers}
           selectedCount={selectedLeads.size}
           onBulkAssign={handleBulkAssign}
           onBulkDelete={handleBulkDelete}
@@ -348,6 +316,7 @@ export default function LeadsPage() {
             setRegion('all');
             setDateRange('all');
             setStatus('all');
+            setAssignedTo('all');
             setPage(1);
           }}
         />
