@@ -29,6 +29,8 @@ export default function DealsPage() {
   const [industry, setIndustry] = React.useState('all');
   const [region, setRegion] = React.useState('all');
   const [dateRange, setDateRange] = React.useState('all');
+  const [assignedTo, setAssignedTo] = React.useState('all');
+  const [orgUsers, setOrgUsers] = React.useState<any[]>([]);
 
   const debouncedSearch = useDebounce(search, 300);
 
@@ -37,6 +39,7 @@ export default function DealsPage() {
     industry,
     region,
     dateRange,
+    assignedTo,
     limit: 1000,
   });
 
@@ -45,6 +48,10 @@ export default function DealsPage() {
   React.useEffect(() => {
     // Auto-trigger stale deal cleanup SLA check on mount
     api.get('/cron/stale-deals').catch((err) => console.error('Stale deal check error:', err));
+
+    api.get<{ users: any[] }>('/users?role=sales_agent,onsite_visitor,manager')
+      .then(d => setOrgUsers(d.users))
+      .catch(console.error);
   }, []);
 
   const handleDrop = async (stageId: string, leadId: string) => {
@@ -83,6 +90,9 @@ export default function DealsPage() {
           onDateRangeChange={setDateRange}
           status="all"
           onStatusChange={() => {}}
+          assignedTo={assignedTo}
+          onAssignedToChange={setAssignedTo}
+          agents={orgUsers}
           selectedCount={0}
           onBulkAssign={() => {}}
           onImport={() => {}}
@@ -93,6 +103,7 @@ export default function DealsPage() {
             setIndustry('all');
             setRegion('all');
             setDateRange('all');
+            setAssignedTo('all');
           }}
         />
       </div>
