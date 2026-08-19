@@ -30,10 +30,11 @@ export async function POST(req: NextRequest) {
       await sendPasswordResetEmail(user.email, user.name, resetToken);
     }
 
-    // Always return clean success message to prevent user enumeration
+    const message = 'If an account exists for this email address, a password reset link has been sent.';
+
     return apiSuccess(
-      null,
-      'If an account exists for this email address, a password reset link has been sent.'
+      { message },
+      message
     );
   } catch (err: unknown) {
     console.error('[FORGOT_PASSWORD_ERROR]', err);

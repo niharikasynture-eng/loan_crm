@@ -63,8 +63,8 @@ export default function LoginPage() {
     setForgotSubmitting(true);
 
     try {
-      const res = await api.post<{ message: string }>('/auth/forgot-password', { email: forgotEmail });
-      setForgotSuccess(res.message || 'If an account exists for this email address, a password reset link has been sent.');
+      const res = await api.post<{ message?: string }>('/auth/forgot-password', { email: forgotEmail });
+      setForgotSuccess(res?.message || 'If an account exists for this email address, a password reset link has been sent.');
     } catch (err: unknown) {
       setForgotError(err instanceof Error ? err.message : 'Failed to send reset link.');
     } finally {
