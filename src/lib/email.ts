@@ -7,10 +7,55 @@ interface EmailOptions {
 }
 
 export async function sendEmail(opts: EmailOptions): Promise<void> {
+  const brevoApiKey = process.env.BREVO_API_KEY || '';
+  const from = process.env.SMTP_FROM || 'DealByte CRM <info@synturesolutions.com>';
+
+  // Parse sender name & email from "Name <email>" string
+  let senderName = 'DealByte CRM';
+  let senderEmail = 'info@synturesolutions.com';
+  const match = from.match(/^(?:"?([^"]*)"?\s)?<([^>]+)>$/);
+  if (match) {
+    if (match[1]) senderName = match[1].trim();
+    if (match[2]) senderEmail = match[2].trim();
+  } else if (from.includes('@')) {
+    senderEmail = from.trim();
+  }
+
+  // 1. Primary Engine: Brevo HTTP REST API (Bypasses SMTP port 502/587 blocks)
+  if (brevoApiKey) {
+    try {
+      console.log(`[EMAIL] Attempting send via Brevo HTTPS REST API to ${opts.to}...`);
+      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'accept': 'application/json',
+          'api-key': brevoApiKey,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          sender: { name: senderName, email: senderEmail },
+          to: [{ email: opts.to }],
+          subject: opts.subject,
+          htmlContent: opts.html,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        console.log(`✅ [EMAIL SUCCESS via Brevo API] Sent to ${opts.to} | MessageId: ${data.messageId || JSON.stringify(data)}`);
+        return;
+      } else {
+        console.warn(`⚠️ [EMAIL] Brevo HTTP API response (${res.status}):`, data);
+      }
+    } catch (apiErr) {
+      console.warn(`⚠️ [EMAIL] Brevo HTTP API fetch failed:`, apiErr);
+    }
+  }
+
+  // 2. Fallback Engine: Nodemailer SMTP
   const host = process.env.SMTP_HOST;
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS?.replace(/\s+/g, '');
-  const from = process.env.SMTP_FROM || 'DealByte CRM <info@synturesolutions.com>';
 
   if (!host || !user || !pass) {
     console.warn('⚠️  [EMAIL] SMTP not configured — email was NOT sent.');
@@ -27,18 +72,18 @@ export async function sendEmail(opts: EmailOptions): Promise<void> {
     const transporter = nodemailer.default.createTransport({
       host,
       port,
-      secure, // false for port 587 (STARTTLS), true for port 465
+      secure,
       auth: { user, pass },
       connectionTimeout: 10000,
       greetingTimeout: 10000,
       socketTimeout: 15000,
     });
 
-    console.log(`[EMAIL] Attempting SMTP send via ${host}:${port} to ${opts.to}...`);
+    console.log(`[EMAIL] Attempting fallback SMTP send via ${host}:${port} to ${opts.to}...`);
     const info = await transporter.sendMail({ from, ...opts });
-    console.log(`✅ [EMAIL SUCCESS] Sent to ${opts.to} | MessageId: ${info.messageId}`);
+    console.log(`✅ [EMAIL SUCCESS via SMTP] Sent to ${opts.to} | MessageId: ${info.messageId}`);
   } catch (err) {
-    console.error(`❌ [EMAIL FAILURE] Failed to send to ${opts.to}:`, err);
+    console.error(`❌ [EMAIL FAILURE via SMTP] Failed to send to ${opts.to}:`, err);
   }
 }
 
