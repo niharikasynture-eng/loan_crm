@@ -103,10 +103,13 @@ export function LeadFilters({
 }: LeadFiltersProps) {
   const { user } = useAuth();
 
-  const canAddLead = user?.role !== 'super_admin';
-  const canImportExport = user?.role !== 'super_admin';
-  const canAssign = user?.role === 'org_admin' || user?.role === 'manager';
-  const showAgentFilter = user?.role === 'org_admin' || user?.role === 'manager' || user?.role === 'super_admin';
+  const userRole = (user?.role || '').toLowerCase();
+  const isSalesPersonOnly = userRole === 'sales_agent' || userRole === 'onsite_visitor';
+
+  const canAddLead = userRole !== 'super_admin';
+  const canImportExport = userRole !== 'super_admin';
+  const canAssign = userRole === 'org_admin' || userRole === 'manager' || userRole === 'super_admin';
+  const showAgentFilter = Boolean(onAssignedToChange) && !isSalesPersonOnly;
 
   const agentOptions = React.useMemo(() => {
     const list = [{ label: 'All Sales Agents', value: 'all' }];
@@ -191,15 +194,15 @@ export function LeadFilters({
       {/* Filter Options Container Box */}
       <div className="pt-4 border-t border-slate-100">
         <div className={`grid grid-cols-1 sm:grid-cols-2 ${showAgentFilter ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4`}>
-          {/* Sales Agent Filter (Visible for Org Admin, Manager, Super Admin) */}
-          {showAgentFilter && onAssignedToChange && (
+          {/* Sales Agent Filter */}
+          {showAgentFilter && (
             <div className="space-y-1.5">
               <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5 ml-0.5">
                 <User size={13} className="text-violet-600" /> Sales Agent / Member
               </label>
               <Select
                 value={assignedTo || 'all'}
-                onChange={(e) => onAssignedToChange(e.target.value)}
+                onChange={(e) => onAssignedToChange && onAssignedToChange(e.target.value)}
                 options={agentOptions}
                 className="h-11 text-xs font-semibold rounded-xl border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white transition-all w-full"
               />
