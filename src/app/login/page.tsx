@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-import { Eye, EyeOff, BarChart2, Users, TrendingUp, CheckSquare, ChevronDown, Check, Building2 } from 'lucide-react';
+import { Eye, EyeOff, BarChart2, Users, TrendingUp, CheckSquare, ChevronDown, Check, Building2, KeyRound, X, Loader2, Mail, CheckCircle2 } from 'lucide-react';
+import { api } from '@/lib/api-client';
 
 const ROLE_OPTIONS = [
   { value: 'super_admin', label: 'Super Admin', desc: 'Full platform control', color: '#7c3aed' },
@@ -23,6 +24,13 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Forgot password modal state
+  const [isForgotOpen, setIsForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSubmitting, setForgotSubmitting] = useState(false);
+  const [forgotSuccess, setForgotSuccess] = useState('');
+  const [forgotError, setForgotError] = useState('');
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -45,6 +53,22 @@ export default function LoginPage() {
       setError(err instanceof Error ? err.message : 'Login failed. Please check your credentials.');
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function handleForgotSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setForgotError('');
+    setForgotSuccess('');
+    setForgotSubmitting(true);
+
+    try {
+      const res = await api.post<{ message: string }>('/auth/forgot-password', { email: forgotEmail });
+      setForgotSuccess(res.message || 'If an account exists for this email address, a password reset link has been sent.');
+    } catch (err: unknown) {
+      setForgotError(err instanceof Error ? err.message : 'Failed to send reset link.');
+    } finally {
+      setForgotSubmitting(false);
     }
   }
 
@@ -209,9 +233,18 @@ export default function LoginPage() {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
               <label style={{ fontSize: 13, fontWeight: 600, color: '#4a5568' }}>Password</label>
-              <a href="#" style={{ fontSize: 12, color: '#1a73e8', fontWeight: 500, textDecoration: 'none' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setForgotError('');
+                  setForgotSuccess('');
+                  setForgotEmail(email);
+                  setIsForgotOpen(true);
+                }}
+                style={{ fontSize: 12, color: '#1a73e8', fontWeight: 600, border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}
+              >
                 Forgot Password?
-              </a>
+              </button>
             </div>
             <div style={{ position: 'relative' }}>
               <input
@@ -375,6 +408,90 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      {/* ── FORGOT PASSWORD MODAL ── */}
+      {isForgotOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden border border-slate-200 animate-scale-in">
+            <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-slate-50">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
+                  <KeyRound size={18} />
+                </div>
+                <h2 className="text-sm font-bold text-slate-900">Reset Account Password</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsForgotOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleForgotSubmit} className="p-6 space-y-4">
+              <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                Enter your registered account email below. We will send you a secure link to reset your password.
+              </p>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                  Account Email Address
+                </label>
+                <div className="relative">
+                  <input
+                    type="email"
+                    required
+                    placeholder="name@company.com"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    className="w-full h-11 pl-10 pr-3 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                  <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                </div>
+              </div>
+
+              {forgotSuccess && (
+                <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-semibold flex items-start gap-2 animate-fade-in">
+                  <CheckCircle2 size={16} className="text-emerald-600 shrink-0 mt-0.5" />
+                  <span>{forgotSuccess}</span>
+                </div>
+              )}
+
+              {forgotError && (
+                <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-semibold flex items-start gap-2 animate-fade-in">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-600 shrink-0 mt-1.5" />
+                  <span>{forgotError}</span>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsForgotOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={forgotSubmitting}
+                  className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-xs font-bold text-white shadow-md flex items-center justify-center gap-1.5 transition-all"
+                >
+                  {forgotSubmitting ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>Sending...</span>
+                    </>
+                  ) : (
+                    'Send Reset Link'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
