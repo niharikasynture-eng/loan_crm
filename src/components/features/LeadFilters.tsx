@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Search, Plus, Upload, Download, UserCheck, Calendar, Filter, RotateCcw, Building2, MapPin, X } from 'lucide-react';
+import { Search, Plus, Upload, Download, UserCheck, Calendar, Filter, RotateCcw, Building2, MapPin, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -20,9 +20,8 @@ interface LeadFiltersProps {
   status: string;
   onStatusChange: (value: string) => void;
   selectedCount: number;
-  bulkSelectCount: number;
-  onBulkSelectChange: (count: number) => void;
-  onBulkAssign: () => void;
+  onBulkAssign?: () => void;
+  onBulkDelete?: () => void;
   onImport: () => void;
   onExport: () => void;
   onAddLead: () => void;
@@ -31,6 +30,9 @@ interface LeadFiltersProps {
 
 const DOMAINS = [
   { label: 'All Categories', value: 'all' },
+  { label: 'Finance / Financial Services', value: 'FINANCE' },
+  { label: 'Jewellery / Gems & Ornaments', value: 'Jewellery' },
+  { label: 'Banking & Financial', value: 'Banking' },
   { label: 'Healthcare / Hospital', value: 'Healthcare' },
   { label: 'Educational Institute', value: 'Educational' },
   { label: 'Real Estate / Construction', value: 'Real Estate' },
@@ -38,7 +40,6 @@ const DOMAINS = [
   { label: 'Manufacturing / Industrial', value: 'Manufacturing' },
   { label: 'Retail / E-commerce', value: 'Retail' },
   { label: 'Hospitality / Hotel', value: 'Hospitality' },
-  { label: 'Banking / Finance', value: 'Banking' },
   { label: 'Corporate / Enterprise', value: 'Corporate' },
   { label: 'Government', value: 'Government' },
   { label: 'Other Category', value: 'Other' },
@@ -87,9 +88,8 @@ export function LeadFilters({
   status,
   onStatusChange,
   selectedCount,
-  bulkSelectCount,
-  onBulkSelectChange,
   onBulkAssign,
+  onBulkDelete,
   onImport,
   onExport,
   onAddLead,
@@ -97,11 +97,9 @@ export function LeadFilters({
 }: LeadFiltersProps) {
   const { user } = useAuth();
 
-  const isManager = user?.role === 'manager';
-  const isOrgAdmin = user?.role === 'org_admin';
-  const canAssign = isOrgAdmin || isManager;
   const canAddLead = user?.role !== 'super_admin';
-  const canImportExport = isOrgAdmin || isManager;
+  const canImportExport = user?.role !== 'super_admin';
+  const canAssign = user?.role === 'org_admin' || user?.role === 'manager';
 
   const hasActiveFilters = (industry && industry !== 'all') || 
                            (region && region !== 'all') || 
@@ -121,38 +119,34 @@ export function LeadFilters({
               placeholder="Search by client name, company, phone..."
               value={search}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="h-11 pl-10 pr-4 shadow-sm rounded-xl text-xs font-medium bg-slate-50/50 focus:bg-white transition-all"
+              className="h-11 pl-11 pr-4 shadow-sm rounded-xl text-xs font-medium bg-slate-50/50 focus:bg-white transition-all"
             />
-            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           </form>
         </div>
 
         {/* Right Actions Toolbar */}
         <div className="flex flex-wrap items-center gap-3">
-          {canAssign && (
-            <div className="flex items-center gap-2">
-              <div className="w-[115px]">
-                <Select
-                  value={bulkSelectCount}
-                  onChange={(e) => {
-                    const val = Number(e.target.value);
-                    onBulkSelectChange(val);
-                    if (val > 0) setTimeout(onBulkAssign, 50);
-                  }}
-                  options={[
-                    { label: 'Select', value: 0 },
-                    ...[10, 20, 30, 40, 50].map(n => ({ label: `${n}`, value: n }))
-                  ]}
-                  className="h-11 shadow-sm rounded-xl text-xs font-bold bg-slate-50/50"
-                />
-              </div>
-              {selectedCount > 0 && (
+          {/* Action Buttons: Visible when 1+ items selected */}
+          {selectedCount > 0 && (
+            <div className="flex items-center gap-2 animate-fade-in">
+              {canAssign && onBulkAssign && (
                 <Button
                   onClick={onBulkAssign}
-                  className="h-11 px-5 bg-indigo-600 hover:bg-indigo-700 shadow-sm text-xs font-bold rounded-xl text-white"
+                  className="h-11 px-4 bg-indigo-600 hover:bg-indigo-700 shadow-sm text-xs font-bold rounded-xl text-white flex items-center gap-1.5"
                 >
                   <UserCheck size={16} />
-                  <span className="ml-1.5 font-semibold">Assign ({selectedCount})</span>
+                  <span>Assign Lead ({selectedCount})</span>
+                </Button>
+              )}
+
+              {onBulkDelete && (
+                <Button
+                  onClick={onBulkDelete}
+                  className="h-11 px-4 bg-rose-600 hover:bg-rose-700 shadow-sm text-xs font-bold rounded-xl text-white flex items-center gap-1.5"
+                >
+                  <Trash2 size={16} />
+                  <span>Delete Lead ({selectedCount})</span>
                 </Button>
               )}
             </div>
@@ -160,11 +154,11 @@ export function LeadFilters({
 
           {canImportExport && (
             <div className="flex items-center gap-2">
-              <Button variant="secondary" onClick={onImport} className="h-11 px-4 rounded-xl text-xs font-bold border-slate-200 hover:bg-slate-50">
-                <Upload size={14} /> <span className="ml-1.5">Import</span>
+              <Button variant="secondary" onClick={onImport} className="h-11 px-4 rounded-xl text-xs font-bold border-slate-200 hover:bg-slate-50 text-slate-700">
+                <Upload size={14} className="text-brand-600" /> <span className="ml-1.5 font-bold">Import</span>
               </Button>
-              <Button variant="secondary" onClick={onExport} className="h-11 px-4 rounded-xl text-xs font-bold border-slate-200 hover:bg-slate-50">
-                <Download size={14} /> <span className="ml-1.5">Export</span>
+              <Button variant="secondary" onClick={onExport} className="h-11 px-4 rounded-xl text-xs font-bold border-slate-200 hover:bg-slate-50 text-slate-700">
+                <Download size={14} className="text-brand-600" /> <span className="ml-1.5 font-bold">Export</span>
               </Button>
             </div>
           )}

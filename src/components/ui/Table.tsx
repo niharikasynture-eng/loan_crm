@@ -4,7 +4,7 @@ import { ChevronUp, ChevronDown } from 'lucide-react';
 
 export interface Column<T> {
   key: keyof T | string;
-  header: string;
+  header: React.ReactNode;
   render?: (item: T) => React.ReactNode;
   sortable?: boolean;
   className?: string;
@@ -32,69 +32,76 @@ export function Table<T>({
   className,
 }: TableProps<T>) {
   return (
-    <div className={cn("w-full overflow-x-auto rounded-card border border-gray-100 my-6 shadow-sm", className)}>
-      <table className="w-full text-left border-collapse min-w-[640px]">
+    <div className="w-full overflow-x-auto rounded-xl border border border-slate-200/80 shadow-xs bg-white">
+      <table className={cn('w-full border-collapse text-left text-xs', className)}>
         <thead>
-          <tr className="bg-gray-50/50 border-b border-gray-100">
-            {columns.map((col) => (
-              <th
-                key={col.key.toString()}
-                className={cn(
-                  "px-8 py-5 text-xs font-black uppercase tracking-widest text-gray-500",
-                  col.sortable && "cursor-pointer hover:text-brand-600 transition-colors",
-                  col.className
-                )}
-                onClick={() => col.sortable && onSort?.(col.key.toString(), sortDirection === 'asc' ? 'desc' : 'asc')}
-              >
-                <div className="flex items-center gap-2">
-                  {col.header}
-                  {col.sortable && sortKey === col.key && (
-                    <span className="text-brand-500">
-                      {sortDirection === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                    </span>
+          <tr className="bg-slate-50 border-b border-slate-200/80 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
+            {columns.map((col) => {
+              const isSorted = sortKey === col.key;
+
+              return (
+                <th
+                  key={String(col.key)}
+                  className={cn(
+                    'py-3.5 px-4 select-none',
+                    col.sortable && 'cursor-pointer hover:bg-slate-100/80 transition-colors',
+                    col.className
                   )}
-                </div>
-              </th>
-            ))}
+                  onClick={() => {
+                    if (!col.sortable || !onSort) return;
+                    const nextDir = isSorted && sortDirection === 'asc' ? 'desc' : 'asc';
+                    onSort(String(col.key), nextDir);
+                  }}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>{col.header}</span>
+                    {col.sortable && (
+                      <span className="flex flex-col text-slate-400">
+                        {isSorted ? (
+                          sortDirection === 'asc' ? (
+                            <ChevronUp size={14} className="text-indigo-600 font-bold" />
+                          ) : (
+                            <ChevronDown size={14} className="text-indigo-600 font-bold" />
+                          )
+                        ) : (
+                          <ChevronDown size={14} className="opacity-40" />
+                        )}
+                      </span>
+                    )}
+                  </div>
+                </th>
+              );
+            })}
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-50">
+
+        <tbody className="divide-y divide-slate-100 bg-white">
           {isLoading ? (
-            Array.from({ length: 5 }).map((_, i) => (
-              <tr key={i} className="animate-pulse">
-                {columns.map((col) => (
-                  <td key={col.key.toString()} className="px-8 py-5">
-                    <div className="h-4 bg-gray-100 rounded-md w-3/4" />
-                  </td>
-                ))}
-              </tr>
-            ))
-          ) : data.length > 0 ? (
-            data.map((item, i) => (
-              <tr 
-                key={(item as any)._id || (item as any).id || i}
-                className="hover:bg-gray-50/50 transition-colors"
-              >
-                {columns.map((col) => (
-                  <td 
-                    key={col.key.toString()} 
-                    className={cn("px-8 py-5 text-sm font-semibold text-gray-700", col.className)}
-                  >
-                    {col.render ? col.render(item) : (item[col.key as keyof T] as any)}
-                  </td>
-                ))}
-              </tr>
-            ))
-          ) : (
             <tr>
-              <td colSpan={columns.length} className="px-6 py-12 text-center">
-                {emptyState || (
-                  <div className="flex flex-col items-center gap-2 text-gray-400">
-                    <p className="text-sm font-bold">No data found</p>
-                  </div>
-                )}
+              <td colSpan={columns.length} className="py-16 text-center text-slate-400">
+                <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                <span className="text-xs font-semibold">Loading records...</span>
               </td>
             </tr>
+          ) : data.length === 0 ? (
+            <tr>
+              <td colSpan={columns.length} className="py-12 text-center text-slate-500">
+                {emptyState || <span className="text-xs font-medium">No records found</span>}
+              </td>
+            </tr>
+          ) : (
+            data.map((item, rowIdx) => (
+              <tr
+                key={(item as any)._id?.toString() || rowIdx}
+                className="hover:bg-slate-50/70 transition-colors"
+              >
+                {columns.map((col) => (
+                  <td key={String(col.key)} className={cn('py-3.5 px-4 text-slate-700', col.className)}>
+                    {col.render ? col.render(item) : String((item as any)[col.key] ?? '—')}
+                  </td>
+                ))}
+              </tr>
+            ))
           )}
         </tbody>
       </table>

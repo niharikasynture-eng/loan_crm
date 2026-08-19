@@ -1,26 +1,77 @@
 import { NextRequest } from 'next/server';
+import mongoose from 'mongoose';
+
 import { connectDB } from '@/lib/db';
 import { requireAuth, apiError, apiSuccess, ROLES } from '@/lib/auth';
 import Lead from '@/models/Lead';
-import User from '@/models/User';
-import Notification from '@/models/Notification';
-import { sendLeadAssignedEmail } from '@/lib/email';
-import { getAutoAssignedAgent } from '@/lib/lead-routing';
+import Deal from '@/models/Deal';
+import AuditLog from '@/models/AuditLog';
 
-// GET /api/leads
+export async function notifyNewLead(
+  orgIdOrLead: any,
+  leadId?: string,
+  name?: string,
+  assignedAgentId?: string,
+  extra?: any
+) {
+  try {
+    const Notification = (await import('@/models/Notification')).default;
+    const User = (await import('@/models/User')).default;
+
+    let orgId: string | undefined;
+    let targetLeadId: string | undefined;
+    let leadName: string | undefined;
+    let targetAgentId: string | undefined = assignedAgentId;
+
+    if (typeof orgIdOrLead === 'object' && orgIdOrLead !== null) {
+      orgId = orgIdOrLead.organizationId?.toString();
+      targetLeadId = orgIdOrLead._id?.toString();
+      leadName = orgIdOrLead.name;
+      targetAgentId = orgIdOrLead.assignedTo?.toString();
+    } else {
+      orgId = orgIdOrLead;
+      targetLeadId = leadId;
+      leadName = name;
+    }
+
+    let targetUserId = targetAgentId;
+    if (!targetUserId && orgId) {
+      const admin = await User.findOne({ organizationId: orgId, role: 'org_admin' });
+      targetUserId = admin?._id?.toString();
+    }
+
+    if (targetUserId && orgId) {
+      await Notification.create({
+        userId: targetUserId,
+        organizationId: orgId,
+        type: 'lead_assigned',
+        title: 'New Lead Created',
+        message: `New lead "${leadName || 'Lead'}" has been submitted/created.`,
+        link: `/leads/${targetLeadId}`,
+      });
+    }
+  } catch (err) {
+    console.error('Failed to notify new lead:', err);
+  }
+}
+
+// GET /api/leads — List leads with search, filters, pagination
 export async function GET(req: NextRequest) {
   try {
     const auth = requireAuth(req);
     await connectDB();
 
-    // Super admin cannot access org CRM data
+    // Super Admin does not manage leads directly
     if (auth.role === ROLES.SUPER_ADMIN) {
-      return apiError('Super admin cannot access organization data', 403);
+      return apiSuccess({ leads: [], total: 0, page: 1, limit: 20 });
     }
 
     const { searchParams } = req.nextUrl;
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
+    const skipParam = searchParams.get('skip');
+    const skip = skipParam !== null ? parseInt(skipParam) : (page - 1) * limit;
+
     const status = searchParams.get('status');
     const assignedTo = searchParams.get('assignedTo');
     const source = searchParams.get('source');
@@ -29,21 +80,57 @@ export async function GET(req: NextRequest) {
     const region = searchParams.get('region');
     const dateRange = searchParams.get('dateRange');
 
-    const query: Record<string, unknown> = { organizationId: auth.organizationId };
+    const query: Record<string, any> = { organizationId: auth.organizationId };
 
-    // Sales agent and Onsite Visitor can only see their own leads
+    // Sales agent and Onsite Visitor can see leads assigned to them OR created/imported by them
     if (auth.role === ROLES.SALES_AGENT || auth.role === ROLES.ONSITE_VISITOR) {
-      query.assignedTo = auth.userId;
+      const userObjId = new mongoose.Types.ObjectId(auth.userId);
+      query.$or = [
+        { assignedTo: userObjId },
+        { createdBy: userObjId }
+      ];
     }
 
     if (status && status !== 'all') query.status = status;
     if (assignedTo && assignedTo !== 'all' && auth.role !== ROLES.SALES_AGENT) query.assignedTo = assignedTo;
     if (source && source !== 'all') query.source = source;
+    
     if (industry && industry !== 'all') {
-      query.industry = { $regex: industry.split(' ')[0], $options: 'i' };
+      const reg = new RegExp(industry.split(' ')[0], 'i');
+      const domainFilter = [
+        { industry: reg },
+        { companyDomain: reg },
+        { company: reg },
+      ];
+      if (query.$or) {
+        query.$and = [
+          { $or: query.$or },
+          { $or: domainFilter }
+        ];
+        delete query.$or;
+      } else {
+        query.$or = domainFilter;
+      }
     }
+
     if (region && region !== 'all') {
-      query.region = { $regex: region.split(' ')[0], $options: 'i' };
+      const regPattern = new RegExp(region.split(' ')[0], 'i');
+      const regionFilter = [
+        { region: regPattern },
+        { address: regPattern },
+        { area: regPattern },
+      ];
+      if (query.$and && Array.isArray(query.$and)) {
+        query.$and.push({ $or: regionFilter });
+      } else if (query.$or) {
+        query.$and = [
+          { $or: query.$or },
+          { $or: regionFilter }
+        ];
+        delete query.$or;
+      } else {
+        query.$or = regionFilter;
+      }
     }
 
     if (dateRange && dateRange !== 'all') {
@@ -64,15 +151,32 @@ export async function GET(req: NextRequest) {
         start = new Date(now.getFullYear(), now.getMonth(), 1);
       }
 
-      if (start && end) {
-        query.createdAt = { $gte: start, $lt: end };
-      } else if (start) {
-        query.createdAt = { $gte: start };
+      if (start) {
+        const dateFilter: Record<string, Date> = { $gte: start };
+        if (end) dateFilter.$lt = end;
+        query.createdAt = dateFilter;
       }
     }
 
     if (search) {
-      query.$text = { $search: search };
+      const searchRegex = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      const searchConditions = [
+        { name: searchRegex },
+        { company: searchRegex },
+        { email: searchRegex },
+        { phone: searchRegex },
+      ];
+      if (query.$and && Array.isArray(query.$and)) {
+        query.$and.push({ $or: searchConditions });
+      } else if (query.$or) {
+        query.$and = [
+          { $or: query.$or },
+          { $or: searchConditions },
+        ];
+        delete query.$or;
+      } else {
+        query.$or = searchConditions;
+      }
     }
 
     const [leads, total] = await Promise.all([
@@ -81,146 +185,90 @@ export async function GET(req: NextRequest) {
         .populate('createdBy', 'name email')
         .populate('lastStageChangedBy', 'name email avatar')
         .sort({ createdAt: -1 })
-        .skip((page - 1) * limit)
+        .skip(skip)
         .limit(limit)
         .lean(),
       Lead.countDocuments(query),
     ]);
 
-    return apiSuccess({ leads, total, page, limit, pages: Math.ceil(total / limit) });
+    return apiSuccess({ leads, total, page, limit });
   } catch (err: unknown) {
-    if (err instanceof Error && err.message === 'UNAUTHORIZED') return apiError('Unauthorized', 401);
+    if (err instanceof Error) {
+      if (err.message === 'UNAUTHORIZED') return apiError('Unauthorized', 401);
+      if (err.message === 'FORBIDDEN') return apiError('Forbidden', 403);
+    }
+    console.error('[GET /api/leads ERROR]', err);
     return apiError('Failed to fetch leads', 500);
   }
 }
 
-// POST /api/leads
+// POST /api/leads — Create single lead manually
 export async function POST(req: NextRequest) {
   try {
     const auth = requireAuth(req);
     await connectDB();
 
-    // Super admin cannot create leads
     if (auth.role === ROLES.SUPER_ADMIN) {
-      return apiError('Super admin cannot access organization data', 403);
+      return apiError('Super admin cannot create leads', 403);
     }
 
     const body = await req.json();
-    const { 
-      name, phone, email, company, source, status, assignedTo, value, notes, tags,
-      secondaryPhone, address, flatNo, landmark, area, pincode, region, industry, income, occupation, education,
-      dateOfVisit, timeOfVisit, mapLink, hasMedeclaim, sumAssured, insuranceCompany, healthStatus,
-      familyAges, tseName, tlName, visitDate, customFields
-    } = body;
+    const { name, email, phone, company, value, source, region, notes, assignedTo } = body;
 
     if (!name) return apiError('Lead name is required');
 
-    let targetAssignedTo = assignedTo || null;
-    if (!targetAssignedTo) {
-      targetAssignedTo = await getAutoAssignedAgent(auth.organizationId);
-    }
+    // Sales agents always assign leads to themselves
+    const finalAssignedTo =
+      auth.role === ROLES.SALES_AGENT || auth.role === ROLES.ONSITE_VISITOR
+        ? auth.userId
+        : assignedTo || auth.userId;
 
     const lead = await Lead.create({
       organizationId: auth.organizationId,
       name,
-      phone,
       email,
+      phone,
       company,
-      source: source || 'Other',
-      status: status || 'new',
-      assignedTo: targetAssignedTo || undefined,
-      assignedAt: targetAssignedTo ? new Date() : undefined,
-      value,
+      value: value ? Number(value) : 0,
+      source: source || 'other',
+      region: region || 'Central',
       notes,
-      tags: tags || [],
-      secondaryPhone, address, flatNo, landmark, area, pincode, region, industry, income, occupation, education,
-      dateOfVisit, timeOfVisit, mapLink, hasMedeclaim, sumAssured, insuranceCompany, healthStatus,
-      familyAges, tseName, tlName, visitDate,
-      customFields: customFields || {},
+      assignedTo: finalAssignedTo,
       createdBy: auth.userId,
+      status: 'new',
+      pipelineStage: 'new',
     });
 
-    const populated = await Lead.findById(lead._id)
-      .populate('assignedTo', 'name email avatar')
-      .populate('createdBy', 'name email')
-      .lean();
+    // Create deal entry for pipeline
+    await Deal.create({
+      organizationId: auth.organizationId,
+      leadId: lead._id,
+      title: `${name}${company ? ` - ${company}` : ''}`,
+      value: value ? Number(value) : 0,
+      stage: 'new',
+      assignedTo: finalAssignedTo,
+      createdBy: auth.userId,
+      position: 0,
+    });
 
-    // Trigger notifications: org_admin + managers + assigned agent
-    await notifyNewLead(auth.organizationId, lead._id.toString(), name, targetAssignedTo, { value, tags, income });
+    await notifyNewLead(lead);
 
-    // Background Auto-Data Enrichment (Non-blocking)
-    if (email) {
-      import('@/lib/lead-enrichment').then(({ enrichLeadData }) => {
-        enrichLeadData(lead._id.toString()).catch((err) => console.error('Enrichment error:', err));
-      });
-    }
+    // Audit log
+    await AuditLog.create({
+      action: 'lead_created',
+      performedBy: auth.userId,
+      targetId: lead._id,
+      targetType: 'Lead',
+      metadata: { leadName: name, company },
+    });
 
-    return apiSuccess({ lead: populated }, 'Lead created', 201);
+    return apiSuccess({ lead }, 'Lead created successfully', 201);
   } catch (err: unknown) {
-    if (err instanceof Error && err.message === 'UNAUTHORIZED') return apiError('Unauthorized', 401);
+    if (err instanceof Error) {
+      if (err.message === 'UNAUTHORIZED') return apiError('Unauthorized', 401);
+      if (err.message === 'FORBIDDEN') return apiError('Forbidden', 403);
+    }
+    console.error('[POST /api/leads ERROR]', err);
     return apiError('Failed to create lead', 500);
-  }
-}
-
-// Helper: notify assigned sales agents, org_admin, and managers about new/assigned leads
-export async function notifyNewLead(
-  organizationId: string,
-  leadId: string,
-  leadName: string,
-  assignedToId?: string,
-  leadData?: { value?: number; tags?: string[]; income?: string }
-) {
-  try {
-    const isHighPriority =
-      (leadData?.value && leadData.value >= 50000) ||
-      (leadData?.tags && leadData.tags.some((t) => ['urgent', 'high-priority', 'hot', 'vip'].includes(t.toLowerCase()))) ||
-      (leadData?.income && ['high', '10lakh+', '50lakh+', 'crore'].some((k) => leadData.income?.toLowerCase().includes(k)));
-
-    // 1. Find org admins and managers to notify of new client arrival
-    const recipients = await User.find({
-      organizationId,
-      role: { $in: [ROLES.ORG_ADMIN, ROLES.MANAGER] },
-      isActive: true,
-    }).select('_id').lean();
-
-    if (recipients.length > 0) {
-      await Notification.insertMany(
-        recipients.map((r) => ({
-          userId: r._id,
-          organizationId,
-          type: 'new_lead',
-          title: isHighPriority ? '🚨 HIGH PRIORITY: New Client Received' : '📋 New Client Received',
-          message: isHighPriority
-            ? `High-value client "${leadName}" has entered the system!`
-            : `A new client "${leadName}" has been added to the system.`,
-          link: `/leads/${leadId}`,
-        }))
-      );
-    }
-
-    // 2. Notify assigned salesperson instantly
-    if (assignedToId) {
-      const assignedUser = await User.findById(assignedToId).select('name email role');
-      if (assignedUser) {
-        const title = isHighPriority ? '🚨 HIGH PRIORITY: Urgent Client Assigned!' : '📋 New Client Assigned to You';
-        const message = isHighPriority
-          ? `Urgent: High-value client "${leadName}" has been assigned to you. Contact within 2 hours!`
-          : `You have been assigned the client: "${leadName}".`;
-
-        await Notification.create({
-          userId: assignedToId,
-          organizationId,
-          type: 'lead_assigned',
-          title,
-          message,
-          link: `/leads/${leadId}`,
-        });
-
-        // Also send email alert to assigned agent
-        await sendLeadAssignedEmail(assignedUser.email, assignedUser.name, leadName, leadId);
-      }
-    }
-  } catch (err) {
-    console.error('Failed to send lead notifications:', err);
   }
 }

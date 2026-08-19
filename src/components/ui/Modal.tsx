@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
@@ -31,6 +32,12 @@ export function Modal({
   size = 'md',
   className,
 }: ModalProps) {
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
   React.useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -45,54 +52,58 @@ export function Modal({
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-y-auto overscroll-contain touch-pan-y p-3 sm:p-6 flex min-h-full items-center justify-center">
+  const modalContent = (
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 overflow-hidden">
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-black/60 backdrop-blur-[2px] animate-in fade-in duration-300" 
+        className="fixed inset-0 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200" 
         onClick={onClose}
       />
       
-      {/* Content */}
+      {/* Content Box */}
       <div 
         className={cn(
-          "relative w-full max-h-[calc(100dvh-2rem)] sm:max-h-[85vh] bg-white rounded-2xl sm:rounded-card shadow-modal overflow-hidden flex flex-col my-auto shrink-0 transform transition-all animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 pointer-events-auto z-10",
+          "relative w-full max-h-[85vh] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col shrink-0 transform transition-all animate-in zoom-in-95 duration-200 pointer-events-auto z-10 my-auto",
           sizeClasses[size],
           className
         )}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-100 bg-white/80 backdrop-blur-sm sticky top-0 z-10 shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 sm:px-6 border-b border-gray-100 bg-white sticky top-0 z-10 shrink-0">
           {title ? (
-            <h3 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight">{title}</h3>
+            <h3 className="text-base sm:text-lg font-extrabold text-gray-900 tracking-tight">{title}</h3>
           ) : (
             <div />
           )}
           <button 
+            type="button"
             onClick={onClose}
             className="p-1.5 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
-        {/* Body */}
+        {/* Scrollable Body */}
         <div 
-          className="p-4 sm:p-6 overflow-y-auto flex-1 overscroll-contain touch-pan-y"
+          className="p-4 sm:p-6 overflow-y-auto flex-1 overscroll-contain"
           style={{ WebkitOverflowScrolling: 'touch' }}
         >
           {children}
         </div>
 
-        {/* Footer */}
+        {/* Sticky Footer */}
         {footer && (
-          <div className="p-4 sm:p-6 bg-gray-50/50 border-t border-gray-100 flex flex-wrap items-center justify-end gap-3 shrink-0">
+          <div className="px-5 py-3.5 sm:px-6 sm:py-4 bg-gray-50/80 border-t border-gray-100 flex flex-wrap items-center justify-end gap-3 shrink-0">
             {footer}
           </div>
         )}
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }

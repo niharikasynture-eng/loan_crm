@@ -84,8 +84,6 @@ export default function DealsPage() {
           status="all"
           onStatusChange={() => {}}
           selectedCount={0}
-          bulkSelectCount={0}
-          onBulkSelectChange={() => {}}
           onBulkAssign={() => {}}
           onImport={() => {}}
           onExport={() => {}}

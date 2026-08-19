@@ -80,18 +80,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const res = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, role: selectedRole }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Login failed');
 
     const { token: t, user: u, organization: o } = data.data;
 
-    // Role enforcement: Auto-route to user's actual role
+    // Save token and state
     localStorage.setItem('crm_token', t);
     setToken(t);
     setUser(u);
     setOrganization(o);
+
     // Route based on actual role
     if (u.role === 'super_admin') {
       router.push('/super-admin');

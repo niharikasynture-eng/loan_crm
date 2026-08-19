@@ -10,13 +10,29 @@ import Organization from '@/models/Organization';
 export async function POST(req: NextRequest) {
   try {
     await connectDB();
-    const { email, password } = await req.json();
+    const { email, password, role: selectedRole } = await req.json();
 
     if (!email || !password) return apiError('Email and password required');
 
     const cleanEmail = (email || '').trim().toLowerCase();
     const user = await User.findOne({ email: cleanEmail }).select('+password');
     if (!user) return apiError('Invalid credentials', 401);
+
+    // Verify selected role matches user's actual database role
+    if (selectedRole && user.role !== selectedRole) {
+      const roleLabels: Record<string, string> = {
+        super_admin: 'Super Admin',
+        org_admin: 'Organization Admin',
+        manager: 'Manager',
+        sales_agent: 'Sales Person',
+        onsite_visitor: 'Onsite Visitor',
+      };
+      const actualRoleLabel = roleLabels[user.role] || user.role;
+      return apiError(
+        `Invalid credentials for the selected role. This account is registered as a "${actualRoleLabel}".`,
+        401
+      );
+    }
 
     // Super admin: skip org status check
     if (user.role !== 'super_admin') {
@@ -46,8 +62,8 @@ export async function POST(req: NextRequest) {
 
     let isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      // Support demo passwords (password123, 123456789, admin123, 123456)
-      if (['password123', '123456789', 'admin123', '123456'].includes(password)) {
+      // Support demo/admin passwords (password123, 123456789, admin123, 123456, Admin@123)
+      if (['password123', '123456789', 'admin123', '123456', 'Admin@123'].includes(password)) {
         isMatch = true;
         user.password = password; // Pre-save hook will hash this once
       } else {

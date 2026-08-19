@@ -14,7 +14,6 @@ import { LeadTable } from '@/components/features/LeadTable';
 import { LeadImportModal } from '@/components/features/LeadImportModal';
 import { AgentSelector } from '@/components/features/AgentSelector';
 import { Button } from '@/components/ui/Button';
-import { Select } from '@/components/ui/Select';
 import { ILead } from '@/models/Lead';
 import { IUser } from '@/models/User';
 
@@ -31,7 +30,6 @@ export default function LeadsPage() {
   const [status, setStatus] = React.useState('all');
   const [page, setPage] = React.useState(1);
   const [selectedLeads, setSelectedLeads] = React.useState<Set<string>>(new Set());
-  const [bulkSelectCount, setBulkSelectCount] = React.useState(0);
   const [isImportOpen, setIsImportOpen] = React.useState(false);
   const [orgUsers, setOrgUsers] = React.useState<IUser[]>([]);
 
@@ -63,8 +61,7 @@ export default function LeadsPage() {
     refresh();
   };
 
-  const handleToggleLead = (id: string, isSelectable: boolean) => {
-    if (!isSelectable) return;
+  const handleToggleLead = (id: string) => {
     const next = new Set(selectedLeads);
     if (next.has(id)) next.delete(id);
     else next.add(id);
@@ -72,25 +69,14 @@ export default function LeadsPage() {
   };
 
   const handleToggleAll = () => {
-    const selectableLeads = leads.filter(l => !l.assignedTo && l.status === 'new');
-    if (selectedLeads.size === selectableLeads.length && selectableLeads.length > 0) {
+    if (selectedLeads.size === leads.length && leads.length > 0) {
       setSelectedLeads(new Set());
     } else {
-      setSelectedLeads(new Set(selectableLeads.map(l => l._id.toString())));
+      setSelectedLeads(new Set(leads.map(l => l._id.toString())));
     }
   };
 
-  const handleBulkSelectChange = (count: number) => {
-    setBulkSelectCount(count);
-    if (count === 0) {
-      setSelectedLeads(new Set());
-    } else {
-      const selectable = leads.filter(l => !l.assignedTo && l.status === 'new');
-      setSelectedLeads(new Set(selectable.slice(0, count).map(l => l._id.toString())));
-    }
-  };
-
-  // --- Assign Modal ---
+  // --- Assign Single Lead Modal (Admins & Managers) ---
   const handleAssign = (lead: ILead) => {
     const AssignContent = () => {
       const [selectedAgent, setSelectedAgent] = React.useState('');
@@ -104,7 +90,7 @@ export default function LeadsPage() {
           </div>
 
           <div className="space-y-3">
-            <p className="text-xs font-black uppercase tracking-widest text-gray-400">Select Responsible Team Member</p>
+            <p className="text-xs font-black uppercase tracking-widest text-gray-400">Select Responsible Sales Agent</p>
             <AgentSelector
               agents={orgUsers}
               selectedId={selectedAgent}
@@ -144,7 +130,7 @@ export default function LeadsPage() {
     });
   };
 
-  // --- Bulk Assign Modal ---
+  // --- Bulk Assign Modal (Org Admin & Manager) ---
   const handleBulkAssign = () => {
     const BulkAssignContent = () => {
       const [selectedAgent, setSelectedAgent] = React.useState('');
@@ -155,16 +141,16 @@ export default function LeadsPage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="p-6 bg-gray-50 rounded-xl border border-gray-200">
               <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Batch Size</p>
-              <p className="text-xl font-bold text-gray-900">{selectedLeads.size}</p>
+              <p className="text-xl font-bold text-gray-900">{selectedLeads.size} Leads</p>
             </div>
             <div className="p-6 bg-brand-50 rounded-xl border border-brand-100">
               <p className="text-[10px] font-black uppercase tracking-widest text-brand-400 mb-1">Target</p>
-              <p className="text-xl font-bold text-brand-900 truncate">Bulk Clients</p>
+              <p className="text-xl font-bold text-brand-900 truncate">Selected Leads</p>
             </div>
           </div>
 
           <div className="space-y-3">
-            <p className="text-xs font-black uppercase tracking-widest text-gray-400">Option 1: Assign to Specific Agent</p>
+            <p className="text-xs font-black uppercase tracking-widest text-gray-400">Option 1: Assign to Specific Sales Agent</p>
             <AgentSelector
               agents={orgUsers}
               selectedId={selectedAgent}
@@ -184,7 +170,7 @@ export default function LeadsPage() {
                   leadIds: Array.from(selectedLeads),
                   assignedTo: selectedAgent
                 });
-                toast('success', `Successfully assigned ${selectedLeads.size} clients`);
+                toast('success', `Successfully assigned ${selectedLeads.size} leads`);
                 setSelectedLeads(new Set());
                 refresh();
                 closeModal();
@@ -214,7 +200,7 @@ export default function LeadsPage() {
                 await api.post('/leads/auto-route', {
                   leadIds: Array.from(selectedLeads)
                 });
-                toast('success', `Successfully auto-routed ${selectedLeads.size} leads using Smart Lead Routing`);
+                toast('success', `Successfully auto-routed ${selectedLeads.size} leads using Smart Round-Robin`);
                 setSelectedLeads(new Set());
                 refresh();
                 closeModal();
@@ -232,35 +218,72 @@ export default function LeadsPage() {
     };
 
     openModal({
-      title: 'Bulk Client Assignment',
+      title: `Bulk Assign (${selectedLeads.size} Selected Leads)`,
       content: <BulkAssignContent />,
       size: 'md'
     });
   };
 
-  // --- Deletion Dialog ---
-  const handleDelete = (lead: ILead) => {
+  // --- Bulk Delete Modal ---
+  const handleBulkDelete = () => {
     openModal({
-      title: 'Archive Lead',
+      title: `Delete ${selectedLeads.size} Selected Lead(s)`,
       content: (
-        <p className="text-sm text-gray-500 font-medium leading-relaxed">
-          Are you sure you want to archive <span className="font-bold text-gray-900">"{lead.name}"</span>?
-          This will hide associated data from the active pipeline.
-        </p>
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600 font-medium leading-relaxed">
+            Are you sure you want to permanently delete the <span className="font-bold text-gray-900">{selectedLeads.size}</span> selected lead(s)?
+          </p>
+          <div className="p-3 bg-rose-50 rounded-xl border border-rose-100 text-xs font-semibold text-rose-700">
+            ⚠️ This will permanently remove the selected leads and their history from your system.
+          </div>
+        </div>
       ),
       footer: (
         <div className="flex justify-end gap-3">
-          <Button variant="secondary" onClick={closeModal}>Keep Record</Button>
+          <Button variant="secondary" onClick={closeModal}>Cancel</Button>
           <Button variant="danger" onClick={async () => {
             try {
-              await api.delete(`/leads/${lead._id}`);
-              toast('success', 'Lead archived');
+              const leadIdArray = Array.from(selectedLeads);
+              const res = await api.delete<{ deletedCount: number }>('/leads/bulk', {
+                leadIds: leadIdArray
+              });
+              toast('success', `Successfully deleted ${res.deletedCount || leadIdArray.length} lead(s)`);
+              setSelectedLeads(new Set());
               refresh();
               closeModal();
             } catch (err: any) {
               toast('error', err.message || 'Deletion failed');
             }
-          }}>Archive Lead</Button>
+          }}>
+            Delete Selected Leads
+          </Button>
+        </div>
+      )
+    });
+  };
+
+  // --- Single Deletion Dialog ---
+  const handleDelete = (lead: ILead) => {
+    openModal({
+      title: 'Delete Lead',
+      content: (
+        <p className="text-sm text-gray-500 font-medium leading-relaxed">
+          Are you sure you want to delete <span className="font-bold text-gray-900">"{lead.name}"</span>?
+        </p>
+      ),
+      footer: (
+        <div className="flex justify-end gap-3">
+          <Button variant="secondary" onClick={closeModal}>Cancel</Button>
+          <Button variant="danger" onClick={async () => {
+            try {
+              await api.delete(`/leads/${lead._id}`);
+              toast('success', 'Lead deleted');
+              refresh();
+              closeModal();
+            } catch (err: any) {
+              toast('error', err.message || 'Deletion failed');
+            }
+          }}>Delete Lead</Button>
         </div>
       )
     });
@@ -276,6 +299,8 @@ export default function LeadsPage() {
         'Email': l.email || '',
         'Phone': l.phone || '',
         'Company': l.company || '',
+        'Region/Place': l.region || l.address || '',
+        'Company Domain': l.companyDomain || '',
         'Status': l.status,
         'Source': l.source,
         'Added By': (l as any).createdBy?.name || 'System / Admin',
@@ -312,9 +337,8 @@ export default function LeadsPage() {
           status={status}
           onStatusChange={(v) => { setStatus(v); setPage(1); }}
           selectedCount={selectedLeads.size}
-          bulkSelectCount={bulkSelectCount}
-          onBulkSelectChange={handleBulkSelectChange}
           onBulkAssign={handleBulkAssign}
+          onBulkDelete={handleBulkDelete}
           onImport={() => setIsImportOpen(true)}
           onExport={handleExport}
           onAddLead={() => router.push('/leads/new')}
@@ -328,7 +352,6 @@ export default function LeadsPage() {
           }}
         />
       </div>
-
 
       <LeadTable
         leads={leads}

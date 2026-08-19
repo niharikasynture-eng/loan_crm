@@ -1,6 +1,7 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 interface ModalConfig {
   title?: string;
@@ -29,7 +30,6 @@ export function ModalProvider({ children }: { children: ReactNode }) {
 
   const close = useCallback(() => {
     setIsOpen(false);
-    // Let animation finish before clearing config
     setTimeout(() => setConfig(null), 300);
   }, []);
 
@@ -47,7 +47,6 @@ export function ModalProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// Internal Modal component to handle animations and layout
 function ModalComponent({ 
   isOpen, 
   close, 
@@ -57,7 +56,14 @@ function ModalComponent({
   close: () => void; 
   config: ModalConfig 
 }) {
+  const [mounted, setMounted] = useState(false);
   const { title, content, footer, size = 'md', showClose = true } = config;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
 
   const sizeClasses = {
     sm: 'max-w-sm',
@@ -67,25 +73,25 @@ function ModalComponent({
     full: 'max-w-4xl',
   };
 
-  return (
+  const portalContent = (
     <div 
-      className={`fixed inset-0 z-50 overflow-y-auto overscroll-contain touch-pan-y p-3 sm:p-6 flex min-h-full items-center justify-center transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+      className={`fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 transition-opacity duration-200 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
       onKeyDown={(e) => e.key === 'Escape' && close()}
     >
       <div 
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm" 
+        className="fixed inset-0 bg-black/60 backdrop-blur-xs" 
         onClick={close}
       />
       <div 
-        className={`relative w-full max-h-[calc(100dvh-2rem)] sm:max-h-[85vh] flex flex-col my-auto shrink-0 z-10 pointer-events-auto ${sizeClasses[size]} bg-white rounded-2xl shadow-modal overflow-hidden transform transition-transform duration-300 ${isOpen ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'}`}
+        className={`relative w-full max-h-[85vh] flex flex-col my-auto shrink-0 z-10 pointer-events-auto ${sizeClasses[size]} bg-white rounded-2xl shadow-2xl overflow-hidden transform transition-transform duration-200 ${isOpen ? 'scale-100' : 'scale-95'}`}
       >
         {(title || showClose) && (
-          <div className="flex items-center justify-between p-4 sm:p-6 border-b border-surface-100 shrink-0">
+          <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-100 bg-white shrink-0">
             {title && <h3 className="text-lg font-bold text-gray-900 tracking-tight">{title}</h3>}
             {showClose && (
               <button 
                 onClick={close}
-                className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+                className="p-1.5 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
                   <path d="M18 6L6 18M6 6l12 12"></path>
@@ -96,20 +102,22 @@ function ModalComponent({
         )}
         
         <div 
-          className="p-4 sm:p-6 overflow-y-auto flex-1 overscroll-contain touch-pan-y"
+          className="p-4 sm:p-6 overflow-y-auto flex-1 overscroll-contain"
           style={{ WebkitOverflowScrolling: 'touch' }}
         >
           {content}
         </div>
 
         {footer && (
-          <div className="p-4 sm:p-6 border-t border-surface-100 bg-surface-50 shrink-0">
+          <div className="p-4 sm:p-6 border-t border-gray-100 bg-gray-50/80 shrink-0">
             {footer}
           </div>
         )}
       </div>
     </div>
   );
+
+  return createPortal(portalContent, document.body);
 }
 
 export function useModal() {

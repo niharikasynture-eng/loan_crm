@@ -63,6 +63,70 @@ export async function GET(req: NextRequest) {
   }
 }
 
+// POST /api/admin/organizations — Super Admin directly creates new Organization + Org Admin
+export async function POST(req: NextRequest) {
+  try {
+    const auth = requireRole(req, [ROLES.SUPER_ADMIN]);
+    await connectDB();
+
+    const { name, adminName, adminEmail, password, subscription } = await req.json();
+
+    if (!name || !adminName || !adminEmail || !password) {
+      return apiError('Organization name, admin name, admin email, and password are required');
+    }
+
+    const cleanEmail = adminEmail.trim().toLowerCase();
+    const existingUser = await User.findOne({ email: cleanEmail });
+    if (existingUser) {
+      return apiError('A user with this email address already exists');
+    }
+
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'org-' + Date.now();
+    const leadFormToken = uuidv4();
+
+    const org = await Organization.create({
+      name,
+      slug,
+      email: cleanEmail,
+      subscription: subscription || 'pro',
+      status: 'active',
+      isActive: true,
+      leadFormToken,
+      approvedBy: auth.userId,
+      approvedAt: new Date(),
+    });
+
+    const adminUser = await User.create({
+      organizationId: org._id,
+      name: adminName,
+      email: cleanEmail,
+      password,
+      role: 'org_admin',
+      isActive: true,
+    });
+
+    await AuditLog.create({
+      action: 'org_created_by_superadmin',
+      performedBy: auth.userId,
+      targetId: org._id,
+      targetType: 'Organization',
+      metadata: { orgName: org.name, adminEmail: cleanEmail },
+    });
+
+    return apiSuccess({
+      organization: org,
+      admin: { id: adminUser._id, name: adminUser.name, email: adminUser.email, role: adminUser.role }
+    }, 'Organization created successfully', 201);
+  } catch (err: unknown) {
+    console.error('[CREATE_ORG_ERROR]', err);
+    if (err instanceof Error) {
+      if (err.message === 'UNAUTHORIZED') return apiError('Unauthorized', 401);
+      if (err.message === 'FORBIDDEN') return apiError('Forbidden', 403);
+    }
+    return apiError('Failed to create organization', 500);
+  }
+}
+
 // PATCH /api/admin/organizations — approve, reject, activate, deactivate, delete
 export async function PATCH(req: NextRequest) {
   try {
@@ -78,11 +142,9 @@ export async function PATCH(req: NextRequest) {
     const superAdmin = await User.findById(auth.userId);
 
     if (action === 'approve') {
-      // Find the pending org_admin user
       const adminUser = await User.findOne({ organizationId: org._id, role: 'org_admin' });
       if (!adminUser) return apiError('No pending admin found for this organization', 404);
 
-      // Generate secure password-set token (24h expiry)
       const token = uuidv4();
       const expiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
@@ -90,17 +152,14 @@ export async function PATCH(req: NextRequest) {
       adminUser.passwordSetExpiry = expiry;
       await adminUser.save();
 
-      // Update org status
       org.status = 'active';
       org.isActive = true;
       org.approvedBy = superAdmin?._id;
       org.approvedAt = new Date();
       await org.save();
 
-      // Send approval email
       await sendOrgApprovalEmail(adminUser.email, org.name, adminUser.name, token);
 
-      // Notify the admin user (in-app)
       await Notification.create({
         userId: adminUser._id,
         organizationId: org._id,
@@ -110,7 +169,6 @@ export async function PATCH(req: NextRequest) {
         link: '/dashboard',
       });
 
-      // Log audit
       await AuditLog.create({
         action: 'org_approved',
         performedBy: auth.userId,

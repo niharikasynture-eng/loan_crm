@@ -1,0 +1,41 @@
+{
+  "name": "DealByte Sales CRM",
+  "short_name": "DealByte CRM",
+  "description": "Enterprise Real Estate Sales & Lead Management Platform",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#1a73e8",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/dealbyte.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "View Leads",
+      "short_name": "Leads",
+      "description": "View all CRM leads",
+      "url": "/leads",
+      "icons": [{ "src": "/icons/icon.svg", "sizes": "192x192" }]
+    },
+    {
+      "name": "Sales Dashboard",
+      "short_name": "Dashboard",
+      "description": "Open sales metrics dashboard",
+      "url": "/dashboard",
+      "icons": [{ "src": "/icons/icon.svg", "sizes": "192x192" }]
+    }
+  ]
+}

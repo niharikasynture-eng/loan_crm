@@ -8,14 +8,14 @@ import AuditLog from '@/models/AuditLog';
 import { sendLeadAssignedEmail } from '@/lib/email';
 import mongoose from 'mongoose';
 
+// PATCH /api/leads/bulk - Bulk Assign Leads
 export async function PATCH(req: NextRequest) {
   try {
     const auth = requireAuth(req);
     await connectDB();
 
-    // Only managers and admins can bulk assign
-    if (auth.role !== ROLES.ORG_ADMIN && auth.role !== ROLES.MANAGER) {
-      return apiError('Access denied. Managers only.', 403);
+    if (auth.role === ROLES.SUPER_ADMIN) {
+      return apiError('Super admin cannot modify organization data', 403);
     }
 
     const { leadIds, assignedTo } = await req.json();
@@ -26,20 +26,25 @@ export async function PATCH(req: NextRequest) {
 
     if (!assignedTo) return apiError('Select a salesperson to assign leads to');
 
-    // 1. Verify assigned user exists and is a salesperson
+    // 1. Verify assigned user exists
     const targetUser = await User.findById(assignedTo).select('name email role');
     if (!targetUser) return apiError('Assigned user not found');
 
+    const leadObjectIds = leadIds.map(id => new mongoose.Types.ObjectId(id));
+    const query: Record<string, any> = {
+      _id: { $in: leadObjectIds },
+      organizationId: auth.organizationId,
+    };
+
     // 2. Bulk Update
     const result = await Lead.updateMany(
-      { _id: { $in: leadIds }, organizationId: auth.organizationId },
+      query,
       { $set: { assignedTo: new mongoose.Types.ObjectId(assignedTo), assignedAt: new Date(), ghostAlertSent: false, isGhost: false } }
     );
 
     // 3. Process Notifications & Audits for each lead
-    const leads = await Lead.find({ _id: { $in: leadIds } }).select('name').lean();
+    const leads = await Lead.find({ _id: { $in: leadObjectIds } }).select('name').lean();
     
-    // Create notifications and audit logs in batch
     const notifications = leads.map(l => ({
       userId: assignedTo,
       organizationId: auth.organizationId,
@@ -63,18 +68,9 @@ export async function PATCH(req: NextRequest) {
       AuditLog.insertMany(auditLogs)
     ]);
 
-    // 4. Send a single summary email instead of multiple individual ones (best practice)
     if (targetUser.role === ROLES.SALES_AGENT) {
-      // If only one lead, send the standard template
-      if (leads.length === 1) {
-        await sendLeadAssignedEmail(targetUser.email, targetUser.name, leads[0].name, leads[0]._id.toString());
-      } else {
-        // Simple summary email implementation
-        // For now, we'll just send individual emails or we could implement a bulk template.
-        // Let's stick to individual for consistency unless requested otherwise.
-        for (const l of leads) {
-          await sendLeadAssignedEmail(targetUser.email, targetUser.name, l.name, l._id.toString());
-        }
+      for (const l of leads.slice(0, 10)) {
+        await sendLeadAssignedEmail(targetUser.email, targetUser.name, l.name, l._id.toString()).catch(() => {});
       }
     }
 
@@ -83,5 +79,54 @@ export async function PATCH(req: NextRequest) {
     console.error('Bulk Assign Error:', err);
     if (err instanceof Error && err.message === 'UNAUTHORIZED') return apiError('Unauthorized', 401);
     return apiError('Failed to perform bulk assignment', 500);
+  }
+}
+
+// DELETE /api/leads/bulk - Bulk Delete Leads
+export async function DELETE(req: NextRequest) {
+  try {
+    const auth = requireAuth(req);
+    await connectDB();
+
+    if (auth.role === ROLES.SUPER_ADMIN) {
+      return apiError('Super admin cannot delete organization data', 403);
+    }
+
+    let leadIds: string[] = [];
+    try {
+      const body = await req.json();
+      leadIds = body.leadIds || body.ids || [];
+    } catch {
+      const { searchParams } = req.nextUrl;
+      const idsParam = searchParams.get('ids');
+      if (idsParam) leadIds = idsParam.split(',').filter(Boolean);
+    }
+
+    if (!Array.isArray(leadIds) || leadIds.length === 0) {
+      return apiError('No lead IDs provided for deletion');
+    }
+
+    const leadObjectIds = leadIds.map((id: string) => new mongoose.Types.ObjectId(id));
+    const query: Record<string, any> = {
+      _id: { $in: leadObjectIds },
+      organizationId: auth.organizationId,
+    };
+
+    // Sales Agent and Onsite Visitor can delete leads assigned to or created by them
+    if (auth.role === ROLES.SALES_AGENT || auth.role === ROLES.ONSITE_VISITOR) {
+      const userObjId = new mongoose.Types.ObjectId(auth.userId);
+      query.$or = [
+        { assignedTo: userObjId },
+        { createdBy: userObjId }
+      ];
+    }
+
+    const result = await Lead.deleteMany(query);
+
+    return apiSuccess({ deletedCount: result.deletedCount }, `Successfully deleted ${result.deletedCount} leads`);
+  } catch (err: unknown) {
+    console.error('Bulk Delete Error:', err);
+    if (err instanceof Error && err.message === 'UNAUTHORIZED') return apiError('Unauthorized', 401);
+    return apiError('Failed to perform bulk deletion', 500);
   }
 }

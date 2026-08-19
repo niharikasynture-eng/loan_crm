@@ -3,7 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Trash2, UserCheck, Eye } from 'lucide-react';
+import { Trash2, UserCheck, Eye, MapPin, Globe } from 'lucide-react';
 import { Table, Column } from '@/components/ui/Table';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -35,28 +35,34 @@ export function LeadTable({
   const { user } = useAuth();
   const isAdmin = user?.role === 'org_admin' || user?.role === 'super_admin' || user?.role === 'manager';
 
-  const selectableLeads = leads.filter(l => !l.assignedTo && l.status === 'new');
-  const isAllSelected = leads.length > 0 && selectedLeads.size === selectableLeads.length && selectableLeads.length > 0;
+  const isAllSelected = leads.length > 0 && leads.every(l => selectedLeads.has(l._id.toString()));
 
   const columns: Column<ILead>[] = [
     {
       key: 'selection',
-      header: '',
+      header: (
+        <input
+          type="checkbox"
+          checked={isAllSelected}
+          onChange={(e) => {
+            e.stopPropagation();
+            onToggleAll();
+          }}
+          className="w-4 h-4 cursor-pointer accent-brand-600 rounded border-gray-200"
+          title="Select / Deselect All Leads"
+        />
+      ),
       render: (lead) => {
-        const isSelectable = !lead.assignedTo && lead.status === 'new';
+        const isChecked = selectedLeads.has(lead._id.toString());
         return (
           <input
             type="checkbox"
-            disabled={!isSelectable}
-            checked={selectedLeads.has(lead._id.toString())}
+            checked={isChecked}
             onChange={(e) => {
               e.stopPropagation();
-              onToggleLead(lead._id.toString(), isSelectable);
+              onToggleLead(lead._id.toString(), true);
             }}
-            className={cn(
-              "w-4 h-4 cursor-pointer accent-brand-600 rounded border-gray-200 transition-all",
-              !isSelectable && "opacity-20 cursor-not-allowed"
-            )}
+            className="w-4 h-4 cursor-pointer accent-brand-600 rounded border-gray-200 transition-all"
           />
         );
       },
@@ -64,26 +70,48 @@ export function LeadTable({
     },
     {
       key: 'name',
-      header: 'Client Details',
+      header: 'Client & Contact',
       render: (lead) => (
         <Link href={`/leads/${lead._id}`} className="flex flex-col group/name">
           <span className="text-sm font-bold text-gray-900 group-hover/name:text-indigo-600 transition-colors underline-offset-2 hover:underline">
             {lead.name}
           </span>
-          <span className="text-xs font-medium text-gray-400 tabular-nums">
-            {lead.email || lead.phone || 'No contact info'}
+          <span className="text-xs font-mono font-medium text-indigo-600">
+            {lead.phone || lead.email || 'No phone'}
           </span>
         </Link>
       ),
     },
     {
+      key: 'place',
+      header: 'Place / Region',
+      render: (lead) => {
+        const placeVal = lead.region || lead.address || lead.area || '—';
+        return (
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
+            {placeVal !== '—' && <MapPin size={13} className="text-slate-400 shrink-0" />}
+            <span className="truncate max-w-[140px]">{placeVal}</span>
+          </div>
+        );
+      },
+    },
+    {
       key: 'company',
-      header: 'Organization',
-      render: (lead) => (
-        <span className="text-sm font-semibold text-gray-500">
-          {lead.company || '—'}
-        </span>
-      ),
+      header: 'Organization & Domain',
+      render: (lead) => {
+        const domainVal = lead.companyDomain || (lead.company?.includes('.') ? lead.company : undefined);
+        const compVal = lead.company || '—';
+        return (
+          <div className="flex flex-col text-xs font-semibold">
+            <span className="text-gray-900 font-bold">{compVal}</span>
+            {domainVal && (
+              <span className="text-[11px] font-mono text-brand-600 flex items-center gap-1">
+                <Globe size={11} /> {domainVal}
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: 'status',
@@ -134,28 +162,6 @@ export function LeadTable({
       ),
     },
     {
-      key: 'createdBy',
-      header: 'Added By',
-      render: (lead) => {
-        const creator = (lead as any).createdBy;
-        if (creator && typeof creator === 'object' && creator.name) {
-          return (
-            <div className="flex items-center gap-2">
-              <Avatar name={creator.name} size="sm" />
-              <span className="text-xs font-semibold text-gray-700">
-                {creator.name}
-              </span>
-            </div>
-          );
-        }
-        return (
-          <span className="text-xs font-semibold text-gray-400">
-            System / Admin
-          </span>
-        );
-      },
-    },
-    {
       key: 'assignment',
       header: 'Responsible',
       render: (lead) => {
@@ -169,19 +175,22 @@ export function LeadTable({
             </div>
           );
         }
-        return (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 px-3 text-[10px] font-black uppercase tracking-widest"
-            onClick={(e) => {
-              e.stopPropagation();
-              onAssignLead(lead);
-            }}
-          >
-            <UserCheck size={12} /> Assign
-          </Button>
-        );
+        if (isAdmin) {
+          return (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 px-3 text-[10px] font-black uppercase tracking-widest"
+              onClick={(e) => {
+                e.stopPropagation();
+                onAssignLead(lead);
+              }}
+            >
+              <UserCheck size={12} /> Assign
+            </Button>
+          );
+        }
+        return <span className="text-xs text-slate-400 font-semibold">—</span>;
       },
     },
     {
@@ -199,19 +208,17 @@ export function LeadTable({
           >
             <Eye size={16} />
           </Button>
-          {isAdmin && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-gray-300 hover:text-danger-600 hover:bg-danger-50"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDeleteLead(lead);
-              }}
-            >
-              <Trash2 size={16} />
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-gray-300 hover:text-danger-600 hover:bg-danger-50"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDeleteLead(lead);
+            }}
+          >
+            <Trash2 size={16} />
+          </Button>
         </div>
       ),
       className: "text-right px-8",
@@ -223,7 +230,7 @@ export function LeadTable({
       columns={columns}
       data={leads}
       isLoading={loading}
-      onSort={() => {}} // TODO: Implement sorting in hook
+      onSort={() => {}}
       className="bg-white p-4 sm:p-6 shadow-sm rounded-xl"
       emptyState={
         <div className="py-20 flex flex-col items-center gap-4">
