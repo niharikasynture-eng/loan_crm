@@ -36,7 +36,7 @@ export async function PATCH(
     const { id } = await params;
     await connectDB();
 
-    const allowed = [ROLES.ORG_ADMIN, ROLES.SUPER_ADMIN] as string[];
+    const allowed = [ROLES.ORG_ADMIN, ROLES.SUPER_ADMIN, ROLES.MANAGER] as string[];
     const isSelf = auth.userId === id;
     if (!isSelf && !allowed.includes(auth.role)) {
       return apiError('Forbidden', 403);
@@ -50,7 +50,7 @@ export async function PATCH(
     if (phone !== undefined) updates.phone = phone;
     if (avatar !== undefined) updates.avatar = avatar;
     if (callSyncToken !== undefined) updates.callSyncToken = callSyncToken;
-    // Only admins can change roles
+    // Admins and Managers can change roles
     if (role && allowed.includes(auth.role)) updates.role = role;
     if (managerId !== undefined) updates.managerId = managerId;
     if (isActive !== undefined && allowed.includes(auth.role)) updates.isActive = isActive;
@@ -76,7 +76,7 @@ export async function DELETE(
 ) {
   try {
     const auth = requireAuth(req);
-    const allowed = [ROLES.ORG_ADMIN, ROLES.SUPER_ADMIN] as string[];
+    const allowed = [ROLES.ORG_ADMIN, ROLES.SUPER_ADMIN, ROLES.MANAGER] as string[];
     if (!allowed.includes(auth.role)) {
       return apiError('Forbidden', 403);
     }

@@ -222,7 +222,7 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
               <p style={sectionLabel}>{isSalesAgent ? 'Account' : 'Control Center'}</p>
             )}
             <div className={`px-4 space-y-2 ${isCollapsed ? 'flex flex-col items-center px-0' : ''}`}>
-              {isOrgAdmin && (
+              {(isOrgAdmin || isManager) && (
                 <Link
                   href="/users"
                   title={isCollapsed ? 'Team Members' : ''}
