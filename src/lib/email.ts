@@ -10,7 +10,7 @@ export async function sendEmail(opts: EmailOptions): Promise<void> {
   const host = process.env.SMTP_HOST;
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS?.replace(/\s+/g, '');
-  const from = process.env.SMTP_FROM || 'DealByte CRM <noreply@dealbyte.com>';
+  const from = process.env.SMTP_FROM || 'DealByte CRM <info@synturesolutions.com>';
 
   if (!host || !user || !pass) {
     console.warn('⚠️  [EMAIL] SMTP not configured — email was NOT sent.');
@@ -21,12 +21,20 @@ export async function sendEmail(opts: EmailOptions): Promise<void> {
 
   try {
     const nodemailer = await import('nodemailer');
+    const port = parseInt(process.env.SMTP_PORT || '587');
+    const secure = process.env.SMTP_SECURE === 'true';
+
     const transporter = nodemailer.default.createTransport({
       host,
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: process.env.SMTP_SECURE === 'true',
+      port,
+      secure, // false for port 587 (STARTTLS), true for port 465
       auth: { user, pass },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
     });
+
+    console.log(`[EMAIL] Attempting SMTP send via ${host}:${port} to ${opts.to}...`);
     const info = await transporter.sendMail({ from, ...opts });
     console.log(`✅ [EMAIL SUCCESS] Sent to ${opts.to} | MessageId: ${info.messageId}`);
   } catch (err) {

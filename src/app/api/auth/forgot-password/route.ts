@@ -16,10 +16,16 @@ export async function POST(req: NextRequest) {
       return apiError('Email address is required', 400);
     }
 
-    const cleanEmail = email.trim().toLowerCase();
-    const user = await User.findOne({ email: cleanEmail });
+    const cleanEmail = email.trim();
+    console.log(`[FORGOT_PASSWORD] Processing request for email: "${cleanEmail}"`);
+
+    // Case-insensitive exact match
+    const user = await User.findOne({
+      email: { $regex: new RegExp(`^${cleanEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
+    });
 
     if (user) {
+      console.log(`[FORGOT_PASSWORD] ✅ User found in DB: "${user.email}" (${user.name})`);
       // Generate 24-hour reset token
       const resetToken = crypto.randomBytes(32).toString('hex');
       user.passwordSetToken = resetToken;
@@ -28,6 +34,8 @@ export async function POST(req: NextRequest) {
 
       // Trigger email send
       await sendPasswordResetEmail(user.email, user.name, resetToken);
+    } else {
+      console.warn(`[FORGOT_PASSWORD] ⚠️  No user found matching email: "${cleanEmail}"`);
     }
 
     const message = 'If an account exists for this email address, a password reset link has been sent.';
