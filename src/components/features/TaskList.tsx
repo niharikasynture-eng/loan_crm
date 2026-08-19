@@ -126,7 +126,7 @@ export function TaskList({ tasks, loading, onToggleComplete }: TaskListProps) {
                   <p className="text-xs font-black text-gray-900 tracking-tight">
                     {(task as any).assignedTo?.name || 'Unassigned'}
                   </p>
-                  <p className="text-[10px] text-gray-400 uppercase tracking-widest">Assignee.</p>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-widest">Assignee .</p>
                 </div>
                 <Avatar
                   name={(task as any).assignedTo?.name || '?'}
