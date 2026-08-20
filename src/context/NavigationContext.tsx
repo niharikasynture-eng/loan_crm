@@ -19,20 +19,27 @@ const NavigationContext = React.createContext<NavigationContextType>({
 
 const STORAGE_KEY = 'dealbyte_nav_history';
 
-export function NavigationProvider({ children }: { children: React.ReactNode }) {
+function NavigationTracker({ onPathChange }: { onPathChange: (path: string) => void }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const router = useRouter();
 
-  const [history, setHistory] = React.useState<string[]>([]);
-  const isBackNavigationRef = React.useRef(false);
-
-  // Construct current full relative path
   const searchStr = searchParams?.toString();
   const currentPath = React.useMemo(() => {
     if (!pathname) return '/';
     return searchStr ? `${pathname}?${searchStr}` : pathname;
   }, [pathname, searchStr]);
+
+  React.useEffect(() => {
+    onPathChange(currentPath);
+  }, [currentPath, onPathChange]);
+
+  return null;
+}
+
+export function NavigationProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const [history, setHistory] = React.useState<string[]>([]);
+  const isBackNavigationRef = React.useRef(false);
 
   // Load initial history from sessionStorage on mount
   React.useEffect(() => {
@@ -49,15 +56,12 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     }
   }, []);
 
-  // Update history stack whenever currentPath changes
-  React.useEffect(() => {
+  const handlePathChange = React.useCallback((currentPath: string) => {
     if (!currentPath) return;
 
     setHistory((prevStack) => {
-      // If navigating back, reset flag and return stack
       if (isBackNavigationRef.current) {
         isBackNavigationRef.current = false;
-        // Ensure stack's top is currentPath or update if needed
         if (prevStack[prevStack.length - 1] !== currentPath) {
           const updated = [...prevStack];
           if (updated.includes(currentPath)) {
@@ -69,14 +73,12 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
         return prevStack;
       }
 
-      // Avoid adding duplicate consecutive entries
       const lastPath = prevStack[prevStack.length - 1];
       if (lastPath === currentPath) {
         return prevStack;
       }
 
       const updated = [...prevStack, currentPath];
-      // Limit memory history to last 50 pages to keep performance high
       const trimmed = updated.slice(-50);
       try {
         sessionStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
@@ -85,7 +87,7 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
       }
       return trimmed;
     });
-  }, [currentPath]);
+  }, []);
 
   const previousPage = React.useMemo(() => {
     if (history.length < 2) return null;
@@ -107,7 +109,6 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
       }
       router.push(targetPage);
     } else {
-      // Fallback if history stack is 1 or empty
       router.back();
     }
   }, [history, router]);
@@ -121,6 +122,9 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
         goBack,
       }}
     >
+      <React.Suspense fallback={null}>
+        <NavigationTracker onPathChange={handlePathChange} />
+      </React.Suspense>
       {children}
     </NavigationContext.Provider>
   );

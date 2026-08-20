@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import * as React from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { api } from '@/lib/api-client';
 import { Phone, Calendar, Mail, MessageCircle, FileText, CheckCircle2, Clock, Filter, User as UserIcon, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -45,7 +46,7 @@ const formatDuration = (s: number) => {
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 };
 
-export default function ActivitiesPage() {
+function ActivitiesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user: authUser } = useAuth();
@@ -287,5 +288,19 @@ export default function ActivitiesPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function ActivitiesPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin border-indigo-600" />
+        </div>
+      }
+    >
+      <ActivitiesContent />
+    </React.Suspense>
   );
 }

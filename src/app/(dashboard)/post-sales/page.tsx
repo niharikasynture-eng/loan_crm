@@ -24,7 +24,7 @@ const DELIVERY_STAGES = [
   { id: 'active_ams', stepNum: 6, label: 'Active AMS Support', shortLabel: 'AMS Support', description: 'Ongoing Support & Renewals', icon: ShieldCheck },
 ] as const;
 
-export default function PostSalesPage() {
+function PostSalesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get('tab') as 'tracker' | 'milestones' | 'documents' | 'handover' | 'renewals' | null;
@@ -1659,5 +1659,19 @@ export default function PostSalesPage() {
         document.body
       )}
     </div>
+  );
+}
+
+export default function PostSalesPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin border-indigo-600" />
+        </div>
+      }
+    >
+      <PostSalesContent />
+    </React.Suspense>
   );
 }

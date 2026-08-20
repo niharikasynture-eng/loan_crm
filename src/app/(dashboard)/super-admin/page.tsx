@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import * as React from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { api } from '@/lib/api-client';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -19,7 +20,7 @@ interface Organization {
 }
 type Tab = 'pending' | 'active' | 'all';
 
-export default function SuperAdminPage() {
+function SuperAdminContent() {
   const { user } = useAuth();
   const router = useRouter();
   const [orgs, setOrgs] = useState<Organization[]>([]);
@@ -536,5 +537,19 @@ export default function SuperAdminPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function SuperAdminPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin border-indigo-600" />
+        </div>
+      }
+    >
+      <SuperAdminContent />
+    </React.Suspense>
   );
 }

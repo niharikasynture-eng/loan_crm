@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/Button';
 import { ILead } from '@/models/Lead';
 import { IUser } from '@/models/User';
 
-export default function LeadsPage() {
+function LeadsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
@@ -401,5 +401,19 @@ export default function LeadsPage() {
         onSuccess={refresh}
       />
     </div>
+  );
+}
+
+export default function LeadsPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin border-indigo-600" />
+        </div>
+      }
+    >
+      <LeadsContent />
+    </React.Suspense>
   );
 }

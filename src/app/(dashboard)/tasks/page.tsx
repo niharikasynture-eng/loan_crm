@@ -19,7 +19,7 @@ interface LeadOption {
   company?: string;
 }
 
-export default function TasksPage() {
+function TasksContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get('tab') as 'all' | 'sales' | 'post_sales' | 'overdue' | null;
@@ -530,5 +530,19 @@ function TaskRow({ task, userId, onToggle }: { task: any; userId?: string; onTog
         </div>
       </div>
     </div>
+  );
+}
+
+export default function TasksPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin border-indigo-600" />
+        </div>
+      }
+    >
+      <TasksContent />
+    </React.Suspense>
   );
 }
