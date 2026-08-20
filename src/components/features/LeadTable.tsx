@@ -122,22 +122,25 @@ export function LeadTable({
           lead.assignedAt &&
           (!lead.lastContactedAt || new Date(lead.lastContactedAt) < new Date(lead.assignedAt)) &&
           lead.status === 'new' &&
-          (Date.now() - new Date(lead.assignedAt).getTime() > 2 * 60 * 60 * 1000)
+          (Date.now() - new Date(lead.assignedAt).getTime() > 24 * 60 * 60 * 1000)
         );
 
         let slaBadge = null;
         if (isGhost) {
           slaBadge = (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-500/10 text-red-600 border border-red-200 rounded text-[11px] font-bold animate-pulse">
-              👻 Ghost (2h+ Overdue)
+              👻 Ghost (24h+ Overdue)
             </span>
           );
         } else if (lead.assignedTo && lead.assignedAt && lead.status === 'new' && (!lead.lastContactedAt || new Date(lead.lastContactedAt) < new Date(lead.assignedAt))) {
           const msPassed = Date.now() - new Date(lead.assignedAt).getTime();
-          const minsLeft = Math.max(0, Math.ceil((2 * 60 * 60 * 1000 - msPassed) / 60000));
+          const minsLeft = Math.max(0, Math.ceil((24 * 60 * 60 * 1000 - msPassed) / 60000));
+          const hoursLeft = Math.floor(minsLeft / 60);
+          const remainingMins = minsLeft % 60;
+          const timeString = hoursLeft > 0 ? `${hoursLeft}h ${remainingMins}m left` : `${minsLeft}m left`;
           slaBadge = (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-600 border border-amber-200 rounded text-[11px] font-semibold">
-              ⏱️ {minsLeft}m left
+              ⏱️ {timeString}
             </span>
           );
         }

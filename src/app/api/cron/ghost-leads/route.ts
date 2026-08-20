@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { requireAuth, apiError, apiSuccess, ROLES } from '@/lib/auth';
 import { runGhostLeadCheck } from '@/lib/ghost-checker';
 
-// GET / POST /api/cron/ghost-leads — Trigger 2-Hour SLA Ghost Lead check
+// GET / POST /api/cron/ghost-leads — Trigger 24-Hour SLA Ghost Lead check
 export async function GET(req: NextRequest) {
   try {
     const auth = requireAuth(req);

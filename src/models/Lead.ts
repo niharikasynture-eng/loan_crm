@@ -24,6 +24,7 @@ export interface ILead extends Document {
   lastStageChangedAt?: Date;
   previousStage?: string;
   ghostAlertSent?: boolean;
+  lastGhostAlertSentAt?: Date;
   isGhost?: boolean;
   lastContactedAt?: Date;
   lastCalledAt?: Date;
@@ -117,6 +118,7 @@ const LeadSchema = new Schema<ILead>(
     lastStageChangedAt: { type: Date },
     previousStage: { type: String },
     ghostAlertSent: { type: Boolean, default: false },
+    lastGhostAlertSentAt: { type: Date },
     isGhost: { type: Boolean, default: false },
     value: { type: Number },
     notes: { type: String },

@@ -38,7 +38,7 @@ export default function DashboardPage() {
   };
 
   React.useEffect(() => {
-    // Automatically trigger 2-Hour SLA Ghost Lead check
+    // Automatically trigger 24-Hour SLA Ghost Lead check
     api.get('/cron/ghost-leads').catch(console.error);
 
     api.get<{ metrics: DashboardMetrics; recentActivities: any[] }>('/dashboard')
