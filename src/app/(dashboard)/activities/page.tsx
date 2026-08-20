@@ -7,6 +7,8 @@ import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import { PageHeader } from '@/components/layout/PageHeader';
 
+import { useRouter, useSearchParams } from 'next/navigation';
+
 interface Activity {
   _id: string;
   type: string;
@@ -44,16 +46,46 @@ const formatDuration = (s: number) => {
 };
 
 export default function ActivitiesPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { user: authUser } = useAuth();
   const isAdminOrManager = authUser?.role === 'admin' || authUser?.role === 'manager';
+
+  const pageParam = parseInt(searchParams.get('page') || '1', 10);
+  const typeParam = searchParams.get('type') || 'all';
+  const userParam = searchParams.get('createdBy') || 'all';
 
   const [activities, setActivities] = useState<Activity[]>([]);
   const [users, setUsers]           = useState<User[]>([]);
   const [loading, setLoading]       = useState(true);
-  const [page, setPage]             = useState(1);
+  const [page, setPage]             = useState(isNaN(pageParam) || pageParam < 1 ? 1 : pageParam);
   const [totalPages, setTotalPages] = useState(1);
-  const [typeFilter, setTypeFilter] = useState('all');
-  const [userFilter, setUserFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState(typeParam);
+  const [userFilter, setUserFilter] = useState(userParam);
+
+  useEffect(() => {
+    const p = parseInt(searchParams.get('page') || '1', 10);
+    setPage(isNaN(p) || p < 1 ? 1 : p);
+    setTypeFilter(searchParams.get('type') || 'all');
+    setUserFilter(searchParams.get('createdBy') || 'all');
+  }, [searchParams]);
+
+  const updateUrl = (overrides: Record<string, string | number>) => {
+    const current = {
+      page,
+      type: typeFilter,
+      createdBy: userFilter,
+      ...overrides,
+    };
+    const params = new URLSearchParams();
+    if (current.page && current.page > 1) params.set('page', String(current.page));
+    if (current.type && current.type !== 'all') params.set('type', current.type);
+    if (current.createdBy && current.createdBy !== 'all') params.set('createdBy', current.createdBy);
+
+    const str = params.toString();
+    const targetUrl = str ? `/activities?${str}` : '/activities';
+    router.push(targetUrl);
+  };
 
   async function loadUsers() {
     if (!isAdminOrManager) return;
@@ -104,7 +136,7 @@ export default function ActivitiesPage() {
         <div className="flex flex-wrap items-center gap-2 bg-white p-2 rounded-2xl border border-[#e6e8ec] shadow-sm mb-12">
             <select
               value={typeFilter}
-              onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
+              onChange={(e) => { const v = e.target.value; setTypeFilter(v); updateUrl({ type: v, page: 1 }); }}
               className="bg-gray-50 border-none text-[11px] font-bold text-gray-700 px-4 py-2 rounded-xl outline-none focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
             >
               <option value="all">Every Channel</option>
@@ -116,7 +148,7 @@ export default function ActivitiesPage() {
             {isAdminOrManager && (
               <select
                 value={userFilter}
-                onChange={(e) => { setUserFilter(e.target.value); setPage(1); }}
+                onChange={(e) => { const v = e.target.value; setUserFilter(v); updateUrl({ createdBy: v, page: 1 }); }}
                 className="bg-gray-50 border-none text-[11px] font-bold text-gray-700 px-4 py-2 rounded-xl outline-none focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer"
               >
                 <option value="all">All Agents</option>
@@ -234,7 +266,7 @@ export default function ActivitiesPage() {
           <div className="mt-20 flex items-center justify-center gap-10">
             <button 
               disabled={page === 1} 
-              onClick={() => { setPage(p => p - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              onClick={() => { const p = Math.max(1, page - 1); setPage(p); updateUrl({ page: p }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
               className="px-6 py-3 rounded-2xl bg-white border border-[#e6e8ec] shadow-sm hover:shadow-md disabled:opacity-30 transition-all font-black text-[10px] uppercase tracking-widest text-gray-500 hover:text-indigo-600"
             >
               Previous
@@ -246,7 +278,7 @@ export default function ActivitiesPage() {
             </div>
             <button 
               disabled={page === totalPages} 
-              onClick={() => { setPage(p => p + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              onClick={() => { const p = page + 1; setPage(p); updateUrl({ page: p }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
               className="px-6 py-3 rounded-2xl bg-white border border-[#e6e8ec] shadow-sm hover:shadow-md disabled:opacity-30 transition-all font-black text-[10px] uppercase tracking-widest text-gray-500 hover:text-indigo-600"
             >
               Next

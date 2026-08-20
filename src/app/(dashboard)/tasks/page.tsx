@@ -5,6 +5,7 @@ import {
   Plus, CheckCircle2, Circle, AlertCircle, ExternalLink, Lock, 
   Sun, CheckSquare, Calendar, Filter, DollarSign, FileCheck, Rocket, Bell, X, User
 } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTasks } from '@/hooks/useTasks';
 import { useToast } from '@/hooks/useToast';
 import { useAuth } from '@/hooks/useAuth';
@@ -19,11 +20,32 @@ interface LeadOption {
 }
 
 export default function TasksPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab') as 'all' | 'sales' | 'post_sales' | 'overdue' | null;
+
   const { toast } = useToast();
   const { user } = useAuth();
   const { tasks, loading, updateTask, createTask } = useTasks();
 
   const [activeTab, setActiveTab] = React.useState<'all' | 'sales' | 'post_sales' | 'overdue'>('all');
+
+  React.useEffect(() => {
+    if (tabParam && ['all', 'sales', 'post_sales', 'overdue'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    } else if (!tabParam) {
+      setActiveTab('all');
+    }
+  }, [tabParam]);
+
+  const handleTabChange = (tab: 'all' | 'sales' | 'post_sales' | 'overdue') => {
+    setActiveTab(tab);
+    if (tab === 'all') {
+      router.push('/tasks');
+    } else {
+      router.push(`/tasks?tab=${tab}`);
+    }
+  };
 
   // Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
@@ -195,7 +217,7 @@ export default function TasksPage() {
       {/* Sub-Navigation Category Tabs */}
       <div className="flex items-center gap-2 border-b border-slate-200/80 pb-3">
         <button
-          onClick={() => setActiveTab('all')}
+          onClick={() => handleTabChange('all')}
           className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
             activeTab === 'all'
               ? 'bg-indigo-600 text-white shadow-md'
@@ -206,7 +228,7 @@ export default function TasksPage() {
         </button>
 
         <button
-          onClick={() => setActiveTab('sales')}
+          onClick={() => handleTabChange('sales')}
           className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
             activeTab === 'sales'
               ? 'bg-indigo-600 text-white shadow-md'
@@ -217,7 +239,7 @@ export default function TasksPage() {
         </button>
 
         <button
-          onClick={() => setActiveTab('post_sales')}
+          onClick={() => handleTabChange('post_sales')}
           className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
             activeTab === 'post_sales'
               ? 'bg-indigo-600 text-white shadow-md'
@@ -228,7 +250,7 @@ export default function TasksPage() {
         </button>
 
         <button
-          onClick={() => setActiveTab('overdue')}
+          onClick={() => handleTabChange('overdue')}
           className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
             activeTab === 'overdue'
               ? 'bg-rose-600 text-white shadow-md'

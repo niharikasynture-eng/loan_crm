@@ -8,6 +8,7 @@ import {
   Plus, Search, Filter, Printer, ExternalLink, ArrowRight, User, Rocket, Cpu,
   Calendar, RefreshCw, TrendingUp, Sparkles, UserCheck, ShieldAlert, Truck, Trash2
 } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api-client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/useToast';
@@ -24,10 +25,31 @@ const DELIVERY_STAGES = [
 ] as const;
 
 export default function PostSalesPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab') as 'tracker' | 'milestones' | 'documents' | 'handover' | 'renewals' | null;
+
   const { user } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = React.useState<'tracker' | 'milestones' | 'documents' | 'handover' | 'renewals'>('tracker');
   const [mounted, setMounted] = React.useState<boolean>(false);
+
+  React.useEffect(() => {
+    if (tabParam && ['tracker', 'milestones', 'documents', 'handover', 'renewals'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    } else if (!tabParam) {
+      setActiveTab('tracker');
+    }
+  }, [tabParam]);
+
+  const handleTabChange = (tab: 'tracker' | 'milestones' | 'documents' | 'handover' | 'renewals') => {
+    setActiveTab(tab);
+    if (tab === 'tracker') {
+      router.push('/post-sales');
+    } else {
+      router.push(`/post-sales?tab=${tab}`);
+    }
+  };
 
   React.useEffect(() => {
     setMounted(true);
@@ -526,7 +548,7 @@ export default function PostSalesPage() {
           {/* Sub-Tabs: All 5 Tabs Visible */}
           <div className="flex items-center gap-1.5 flex-wrap">
             <button
-              onClick={() => setActiveTab('tracker')}
+              onClick={() => handleTabChange('tracker')}
               className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
                 activeTab === 'tracker'
                   ? 'bg-indigo-600 text-white shadow-sm'
@@ -536,7 +558,7 @@ export default function PostSalesPage() {
               <Truck size={14} /> Delivery Tracker
             </button>
             <button
-              onClick={() => setActiveTab('milestones')}
+              onClick={() => handleTabChange('milestones')}
               className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
                 activeTab === 'milestones'
                   ? 'bg-indigo-600 text-white shadow-sm'
@@ -546,7 +568,7 @@ export default function PostSalesPage() {
               <DollarSign size={14} /> Billing & Milestones
             </button>
             <button
-              onClick={() => setActiveTab('renewals')}
+              onClick={() => handleTabChange('renewals')}
               className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
                 activeTab === 'renewals'
                   ? 'bg-amber-600 text-white shadow-sm'
@@ -561,7 +583,7 @@ export default function PostSalesPage() {
               )}
             </button>
             <button
-              onClick={() => setActiveTab('documents')}
+              onClick={() => handleTabChange('documents')}
               className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
                 activeTab === 'documents'
                   ? 'bg-indigo-600 text-white shadow-sm'
@@ -571,7 +593,7 @@ export default function PostSalesPage() {
               <FileCheck size={14} /> Compliance Vault
             </button>
             <button
-              onClick={() => setActiveTab('handover')}
+              onClick={() => handleTabChange('handover')}
               className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
                 activeTab === 'handover'
                   ? 'bg-indigo-600 text-white shadow-sm'

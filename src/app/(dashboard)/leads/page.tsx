@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api-client';
 import { useAuth } from '@/hooks/useAuth';
 import { useLeads } from '@/hooks/useLeads';
@@ -19,20 +19,67 @@ import { IUser } from '@/models/User';
 
 export default function LeadsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
   const { open: openModal, close: closeModal } = useModal();
 
-  const [search, setSearch] = React.useState('');
-  const [industry, setIndustry] = React.useState('all');
-  const [region, setRegion] = React.useState('all');
-  const [dateRange, setDateRange] = React.useState('all');
-  const [status, setStatus] = React.useState('all');
-  const [assignedTo, setAssignedTo] = React.useState('all');
-  const [page, setPage] = React.useState(1);
+  const pageParam = parseInt(searchParams.get('page') || '1', 10);
+  const searchParam = searchParams.get('search') || '';
+  const industryParam = searchParams.get('industry') || 'all';
+  const regionParam = searchParams.get('region') || 'all';
+  const dateRangeParam = searchParams.get('dateRange') || 'all';
+  const statusParam = searchParams.get('status') || 'all';
+  const assignedToParam = searchParams.get('assignedTo') || 'all';
+
+  const [search, setSearch] = React.useState(searchParam);
+  const [industry, setIndustry] = React.useState(industryParam);
+  const [region, setRegion] = React.useState(regionParam);
+  const [dateRange, setDateRange] = React.useState(dateRangeParam);
+  const [status, setStatus] = React.useState(statusParam);
+  const [assignedTo, setAssignedTo] = React.useState(assignedToParam);
+  const [page, setPage] = React.useState(isNaN(pageParam) || pageParam < 1 ? 1 : pageParam);
+
   const [selectedLeads, setSelectedLeads] = React.useState<Set<string>>(new Set());
   const [isImportOpen, setIsImportOpen] = React.useState(false);
   const [orgUsers, setOrgUsers] = React.useState<IUser[]>([]);
+
+  // Sync state when searchParams change (e.g. back navigation)
+  React.useEffect(() => {
+    const p = parseInt(searchParams.get('page') || '1', 10);
+    setPage(isNaN(p) || p < 1 ? 1 : p);
+    setSearch(searchParams.get('search') || '');
+    setIndustry(searchParams.get('industry') || 'all');
+    setRegion(searchParams.get('region') || 'all');
+    setDateRange(searchParams.get('dateRange') || 'all');
+    setStatus(searchParams.get('status') || 'all');
+    setAssignedTo(searchParams.get('assignedTo') || 'all');
+  }, [searchParams]);
+
+  const updateUrl = React.useCallback((overrides: Record<string, string | number>) => {
+    const current = {
+      page,
+      search,
+      industry,
+      region,
+      dateRange,
+      status,
+      assignedTo,
+      ...overrides,
+    };
+    const params = new URLSearchParams();
+    if (current.page && current.page > 1) params.set('page', String(current.page));
+    if (current.search) params.set('search', current.search);
+    if (current.industry && current.industry !== 'all') params.set('industry', current.industry);
+    if (current.region && current.region !== 'all') params.set('region', current.region);
+    if (current.dateRange && current.dateRange !== 'all') params.set('dateRange', current.dateRange);
+    if (current.status && current.status !== 'all') params.set('status', current.status);
+    if (current.assignedTo && current.assignedTo !== 'all') params.set('assignedTo', current.assignedTo);
+
+    const str = params.toString();
+    const targetUrl = str ? `/leads?${str}` : '/leads';
+    router.push(targetUrl);
+  }, [page, search, industry, region, dateRange, status, assignedTo, router]);
 
   const debouncedSearch = useDebounce(search, 300);
 
@@ -291,18 +338,18 @@ export default function LeadsPage() {
       <div className="bg-white p-6 sm:p-7 rounded-2xl border border-slate-200/80 shadow-sm">
         <LeadFilters
           search={search}
-          onSearchChange={(v) => { setSearch(v); setPage(1); }}
+          onSearchChange={(v) => { setSearch(v); updateUrl({ search: v, page: 1 }); }}
           onSearchSubmit={handleSearchSubmit}
           industry={industry}
-          onIndustryChange={(v) => { setIndustry(v); setPage(1); }}
+          onIndustryChange={(v) => { setIndustry(v); updateUrl({ industry: v, page: 1 }); }}
           region={region}
-          onRegionChange={(v) => { setRegion(v); setPage(1); }}
+          onRegionChange={(v) => { setRegion(v); updateUrl({ region: v, page: 1 }); }}
           dateRange={dateRange}
-          onDateRangeChange={(v) => { setDateRange(v); setPage(1); }}
+          onDateRangeChange={(v) => { setDateRange(v); updateUrl({ dateRange: v, page: 1 }); }}
           status={status}
-          onStatusChange={(v) => { setStatus(v); setPage(1); }}
+          onStatusChange={(v) => { setStatus(v); updateUrl({ status: v, page: 1 }); }}
           assignedTo={assignedTo}
-          onAssignedToChange={(v) => { setAssignedTo(v); setPage(1); }}
+          onAssignedToChange={(v) => { setAssignedTo(v); updateUrl({ assignedTo: v, page: 1 }); }}
           agents={orgUsers}
           selectedCount={selectedLeads.size}
           onBulkAssign={handleBulkAssign}
@@ -317,7 +364,7 @@ export default function LeadsPage() {
             setDateRange('all');
             setStatus('all');
             setAssignedTo('all');
-            setPage(1);
+            updateUrl({ page: 1, search: '', industry: 'all', region: 'all', dateRange: 'all', status: 'all', assignedTo: 'all' });
           }}
         />
       </div>
@@ -335,13 +382,13 @@ export default function LeadsPage() {
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between py-4">
-          <Button variant="secondary" onClick={() => setPage(p => p - 1)} disabled={page === 1}>
+          <Button variant="secondary" onClick={() => { const p = Math.max(1, page - 1); setPage(p); updateUrl({ page: p }); }} disabled={page === 1}>
             Previous
           </Button>
           <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500 }}>
             Page <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{page}</span> of {totalPages}
           </span>
-          <Button variant="secondary" onClick={() => setPage(p => p + 1)} disabled={page === totalPages}>
+          <Button variant="secondary" onClick={() => { const p = page + 1; setPage(p); updateUrl({ page: p }); }} disabled={page === totalPages}>
             Next
           </Button>
         </div>

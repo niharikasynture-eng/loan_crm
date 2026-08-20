@@ -1,9 +1,11 @@
 'use client';
 
 import * as React from 'react';
-import { Search, Settings, Building2, User, ChevronDown, Menu } from 'lucide-react';
+import { Search, Settings, Building2, User, ChevronDown, Menu, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useNavigation } from '@/context/NavigationContext';
 import NotificationCenter from '@/components/NotificationCenter';
+import { cn } from '@/lib/cn';
 
 interface TopbarProps {
   onMenuClick?: () => void;
@@ -11,6 +13,7 @@ interface TopbarProps {
 
 export function Topbar({ onMenuClick }: TopbarProps) {
   const { user, organization } = useAuth();
+  const { goBack, canGoBack, previousPage } = useNavigation();
   const [menuOpen, setMenuOpen] = React.useState(false);
   const menuRef = React.useRef<HTMLDivElement>(null);
 
@@ -54,9 +57,22 @@ export function Topbar({ onMenuClick }: TopbarProps) {
         </span>
       </div>
 
-      {/* Search & Org Info (Left aligned) */}
-      <div className="flex  items-center gap-4 flex-1">
-
+      {/* Back Button & Org Info (Left aligned) */}
+      <div className="flex items-center gap-3 flex-1">
+        <button
+          onClick={goBack}
+          disabled={!canGoBack}
+          title={canGoBack ? `Go back to ${previousPage}` : 'No previous page in memory'}
+          className={cn(
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all duration-150 active:scale-95',
+            canGoBack
+              ? 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300 shadow-sm cursor-pointer'
+              : 'bg-slate-50/50 border-slate-100 text-slate-300 cursor-not-allowed opacity-50'
+          )}
+        >
+          <ArrowLeft size={16} strokeWidth={2.5} />
+          <span className="hidden sm:inline">Back</span>
+        </button>
 
         {/* Org badge - desktop only */}
         {organization && (
