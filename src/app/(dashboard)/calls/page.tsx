@@ -36,12 +36,15 @@ export default function CallLogsPage() {
   const [users, setUsers] = React.useState<UserOption[]>([]);
   const [loading, setLoading] = React.useState<boolean>(true);
 
-  // Fetch Team Users for Agent Filter
+  // Fetch Team Users for Agent Filter (Exclude Org Admin)
   React.useEffect(() => {
     async function loadUsers() {
       try {
-        const data = await api.get<{ users: UserOption[] }>('/users');
-        setUsers(data.users || []);
+        const data = await api.get<{ users: UserOption[] }>('/users?role=sales_agent,onsite_visitor,manager&limit=1000');
+        const salesAgentsOnly = (data.users || []).filter(
+          (u) => u.role !== 'org_admin' && u.role !== 'super_admin'
+        );
+        setUsers(salesAgentsOnly);
       } catch (err) {
         console.error('Failed to load users for filter:', err);
       }
@@ -215,6 +218,55 @@ export default function CallLogsPage() {
     return Array.from(map.values()).sort((a, b) => b.totalCalls - a.totalCalls);
   }, [filteredCalls]);
 
+  const [isExportingCSV, setIsExportingCSV] = React.useState(false);
+
+  const handleExportCSV = async () => {
+    if (filteredCalls.length === 0) {
+      toast('error', 'No call records available to export for the selected filters');
+      return;
+    }
+
+    setIsExportingCSV(true);
+    try {
+      const XLSX = await import('xlsx');
+
+      const rows = filteredCalls.map((call: any) => {
+        const lead = call.leadId || {};
+        const agent = call.salesPersonId || {};
+        const durationSec = call.duration || 0;
+        const mins = Math.floor(durationSec / 60);
+        const secs = durationSec % 60;
+        const durationStr = `${mins}m ${secs}s`;
+
+        return {
+          'Call Date & Time': call.startedAt ? new Date(call.startedAt).toLocaleString() : new Date(call.createdAt).toLocaleString(),
+          'Client Name': lead.name || 'Unknown Client',
+          'Phone Number': lead.phone || '—',
+          'Company': lead.company || '—',
+          'Sales Agent': agent.name || 'Unassigned',
+          'Call Direction / Type': (call.callType || call.type || (call.status === 'missed' ? 'missed' : 'outgoing')).toUpperCase(),
+          'Call Status / Outcome': (call.outcome || call.status || 'completed').toUpperCase(),
+          'Duration (Seconds)': durationSec,
+          'Talk Time': durationStr,
+          'Notes & Dispositions': call.notes || '—',
+        };
+      });
+
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Call Logs');
+
+      const dateStr = new Date().toISOString().split('T')[0];
+      XLSX.writeFile(wb, `Call_Logs_Export_${dateStr}.csv`, { bookType: 'csv' });
+
+      toast('success', `🎉 Successfully exported ${filteredCalls.length} call log records to CSV!`);
+    } catch (err: any) {
+      toast('error', err.message || 'Export failed');
+    } finally {
+      setIsExportingCSV(false);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in pb-12">
       {/* Top Header */}
@@ -225,15 +277,17 @@ export default function CallLogsPage() {
           <div className="flex items-center gap-2">
             <button 
               onClick={loadCalls}
-              className="px-3 py-2 text-xs font-bold rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 flex items-center gap-1.5 transition-all shadow-xs"
+              className="px-3 py-2 text-xs font-bold rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
             >
               <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh Logs
             </button>
             <button 
-              onClick={() => toast('info', 'Exporting call records to CSV...')}
-              className="btn-primary text-xs font-bold flex items-center gap-1.5 shadow-md"
+              onClick={handleExportCSV}
+              disabled={isExportingCSV}
+              className="btn-primary text-xs font-bold flex items-center gap-1.5 shadow-md disabled:opacity-50 cursor-pointer"
             >
-              <Download size={13} /> Export CSV
+              <Download size={13} className={isExportingCSV ? 'animate-bounce' : ''} />
+              {isExportingCSV ? 'Exporting CSV...' : 'Export CSV'}
             </button>
           </div>
         }

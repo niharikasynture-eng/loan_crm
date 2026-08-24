@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api-client';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/hooks/useToast';
 import {
   PhoneCall, Users, Award, Target, TrendingUp,
-  BarChart3, ChevronDown
+  BarChart3, ChevronDown, Download, Share2
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
@@ -44,6 +45,7 @@ const StatCard = ({ icon: Icon, title, value, sub, iconBg, iconColor }: any) => 
 
 export default function ReportsPage() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const isManager = user?.role === 'org_admin' || user?.role === 'manager';
 
   const [data, setData] = useState<any>(null);
@@ -53,6 +55,17 @@ export default function ReportsPage() {
   const [period, setPeriod] = useState('30d');
   const [agent, setAgent] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
+
+  const getPeriodLabel = (p: string) => {
+    switch (p) {
+      case 'today': return 'Today';
+      case '7d': return 'Last 7 Days';
+      case '30d': return 'This Month';
+      case '60d': return 'Last 2 Months';
+      default: return 'All Time';
+    }
+  };
 
   useEffect(() => {
     async function load() {
@@ -61,11 +74,15 @@ export default function ReportsPage() {
         const dash = await api.get<any>(`/dashboard?period=${period}&userId=${agent}`).catch(() => null);
         setData(dash?.metrics || { callsThisMonth: 0, wonDealValue: 0, wonDeals: 0, totalLeads: 0, newLeads: 0, conversionRate: 0 });
 
+        const acts = await api.get<any>(`/reports/activities?period=${period}&userId=${agent}`).catch(() => ({ activities: [] }));
+        setActivities(acts.activities || []);
+
         if (isManager) {
-          const acts = await api.get<any>(`/reports/activities?period=${period}&userId=${agent}`).catch(() => ({ activities: [] }));
           const ags = await api.get<any>(`/reports/salespeople?period=${period}`).catch(() => ({ performance: [] }));
-          setActivities(acts.activities || []);
-          setAgents(ags.performance || []);
+          const salesAgentsOnly = (ags.performance || []).filter(
+            (a: any) => a.role !== 'org_admin' && a.role !== 'super_admin'
+          );
+          setAgents(salesAgentsOnly);
         }
       } catch (err) {
         console.error(err);
@@ -75,6 +92,106 @@ export default function ReportsPage() {
     }
     load();
   }, [period, agent, isManager]);
+
+  const handleShareWhatsApp = () => {
+    const periodLabel = getPeriodLabel(period);
+    const totalLeads = data?.totalLeads || 0;
+    const totalCalls = data?.callsThisMonth || 0;
+    const totalQualified = `${data?.qualifiedLeads ?? data?.wonLeads ?? 0} (${data?.qualificationRate || 0}%)`;
+    const totalWon = `${data?.wonDeals || 0} deals (₹${Number(data?.wonDealValue || 0).toLocaleString()})`;
+
+    const text = `📊 *DealByte Sales Analysis Report*\n` +
+      `📅 *Date / Period:* ${periodLabel}\n` +
+      `👥 *Total Leads:* ${totalLeads}\n` +
+      `📞 *Total Calls:* ${totalCalls}\n` +
+      `🎯 *Total Qualified:* ${totalQualified}\n` +
+      `🏆 *Total Won:* ${totalWon}\n\n` +
+      `_Generated via DealByte CRM_`;
+
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+    toast('success', 'Opening WhatsApp to share analysis...');
+  };
+
+  const handleDownloadReport = async () => {
+    setDownloading(true);
+    try {
+      const XLSX = await import('xlsx');
+      const wb = XLSX.utils.book_new();
+
+      const periodLabel = getPeriodLabel(period);
+
+      // 1. Summary Analysis Sheet (Exact requested columns)
+      const summaryRows = [
+        {
+          'Date / Period': periodLabel,
+          'Total Leads': data?.totalLeads || 0,
+          'Total Calls': data?.callsThisMonth || 0,
+          'Total Qualified': `${data?.qualifiedLeads ?? data?.wonLeads ?? 0} (${data?.qualificationRate || 0}%)`,
+          'Total Won': `${data?.wonDeals || 0} deals (₹${Number(data?.wonDealValue || 0).toLocaleString()})`,
+        }
+      ];
+
+      // Detailed KPI list rows
+      const overviewRows = [
+        { Metric: 'Report Period', Value: periodLabel },
+        { Metric: 'Selected Team Member', Value: agent === 'all' ? 'All Team Members' : agents.find(a => a.id === agent)?.name || agent },
+        { Metric: 'Total Leads', Value: data?.totalLeads || 0 },
+        { Metric: 'Total Calls Logged', Value: data?.callsThisMonth || 0 },
+        { Metric: 'Total Qualified Leads', Value: data?.qualifiedLeads ?? data?.wonLeads ?? 0 },
+        { Metric: 'Total Won Revenue', Value: `₹${Number(data?.wonDealValue || 0).toLocaleString()}` },
+        { Metric: 'Total Won Deals Count', Value: data?.wonDeals || 0 },
+        { Metric: 'Qualification Rate', Value: `${data?.qualificationRate || 0}%` },
+        { Metric: 'Conversion Rate', Value: `${data?.conversionRate || 0}%` },
+      ];
+
+      const wsSummary = XLSX.utils.json_to_sheet(summaryRows);
+      XLSX.utils.book_append_sheet(wb, wsSummary, 'Sales Analysis');
+
+      const wsOverview = XLSX.utils.json_to_sheet(overviewRows);
+      XLSX.utils.book_append_sheet(wb, wsOverview, 'KPI Details');
+
+      // 2. Team Leaderboard Sheet
+      if (agents.length > 0) {
+        const agentRows = agents.map((a: any) => ({
+          'Sales Person Name': a.name || 'Unknown',
+          'Role': (a.role || 'sales_agent').toUpperCase(),
+          'Total Calls': a.calls || 0,
+          'Won Deals': a.wonDeals || 0,
+          'Won Revenue': a.wonValue ? `₹${Number(a.wonValue).toLocaleString()}` : '₹0',
+          'Conversion Rate': `${a.conversionRate || 0}%`,
+        }));
+        const wsAgents = XLSX.utils.json_to_sheet(agentRows);
+        XLSX.utils.book_append_sheet(wb, wsAgents, 'Team Leaderboard');
+      }
+
+      // 3. Activity Logs Sheet
+      const activityRows = activities.map((a: any) => ({
+        'Date & Time': new Date(a.createdAt).toLocaleString('en-IN'),
+        'Agent Name': a.createdBy?.name || 'Unknown',
+        'Client / Lead Name': a.leadId?.name || 'Unknown',
+        'Activity Type': (a.type || 'activity').toUpperCase(),
+        'Notes & Details': a.notes || '—',
+      }));
+
+      const wsActivities = XLSX.utils.json_to_sheet(activityRows.length > 0 ? activityRows : [{
+        'Date & Time': 'No activity logs found for selected period',
+        'Agent Name': '—',
+        'Client / Lead Name': '—',
+        'Activity Type': '—',
+        'Notes & Details': '—',
+      }]);
+      XLSX.utils.book_append_sheet(wb, wsActivities, 'Activity Logs');
+
+      const dateStr = new Date().toISOString().split('T')[0];
+      XLSX.writeFile(wb, `Performance_Report_${period}_${dateStr}.xlsx`);
+      toast('success', `🎉 Report downloaded successfully for ${periodLabel}!`);
+    } catch (err: any) {
+      toast('error', err.message || 'Failed to export report');
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -119,12 +236,12 @@ export default function ReportsPage() {
             Intelligence Center
           </h1>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-            Analyze team sales performance and activity metrics.
+            Analyze sales performance, call history, and activity metrics.
           </p>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-wrap gap-3">
+        {/* Filters & Action Options */}
+        <div className="flex flex-wrap items-center gap-3">
           {isManager && (
             <div className="relative">
               <select
@@ -155,25 +272,62 @@ export default function ReportsPage() {
             </select>
             <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
           </div>
+
+          <button
+            onClick={handleShareWhatsApp}
+            className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 transition-all rounded-lg shadow-md cursor-pointer"
+            title="Share Sales Analysis Report via WhatsApp"
+          >
+            <Share2 size={14} />
+            Share on WhatsApp
+          </button>
+
+          <button
+            onClick={handleDownloadReport}
+            disabled={downloading}
+            className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 active:scale-95 transition-all rounded-lg shadow-md disabled:opacity-50 cursor-pointer"
+            title="Download Performance Report Excel File"
+          >
+            <Download size={14} className={downloading ? 'animate-bounce' : ''} />
+            {downloading ? 'Exporting...' : 'Download Report'}
+          </button>
         </div>
       </div>
 
       {/* KPI Block */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={PhoneCall} title="Total Calls" value={data.callsThisMonth} sub="Outbound call activity"
-          iconBg="var(--brand-soft)" iconColor="var(--brand)" />
-        <StatCard icon={Award} title="Won Deals" value={`₹${Number(data.wonDealValue).toLocaleString()}`}
-          sub={`${data.wonDeals} deals closed`} iconBg="#ecfdf5" iconColor="var(--success)" />
-        <StatCard icon={Users} title="Total Leads" value={data.totalLeads}
-          sub={`+${data.newLeads} new entries`} iconBg="#eff6ff" iconColor="#2563eb" />
-
-        {isManager ? (
-          <StatCard icon={Target} title="Conversion Rate" value={`${data.conversionRate}%`}
-            sub="Lead-to-won deal ratio" iconBg="#fffbeb" iconColor="#d97706" />
-        ) : (
-          <StatCard icon={Target} title="Pending Tasks" value={data.pendingTasks || 0}
-            sub="Action items assigned" iconBg="#fffbeb" iconColor="#d97706" />
-        )}
+        <StatCard
+          icon={PhoneCall}
+          title="Total Calls"
+          value={data.callsThisMonth}
+          sub="Outbound call activity"
+          iconBg="var(--brand-soft)"
+          iconColor="var(--brand)"
+        />
+        <StatCard
+          icon={Target}
+          title="Qualified"
+          value={data.qualifiedLeads ?? data.wonLeads ?? 0}
+          sub={`${data.qualificationRate || 0}% qualification rate`}
+          iconBg="#ecfdf5"
+          iconColor="var(--success)"
+        />
+        <StatCard
+          icon={Users}
+          title="Total Leads"
+          value={data.totalLeads}
+          sub={`+${data.newLeads} new entries`}
+          iconBg="#eff6ff"
+          iconColor="#2563eb"
+        />
+        <StatCard
+          icon={Award}
+          title="Won Deals"
+          value={`₹${Number(data.wonDealValue || 0).toLocaleString()}`}
+          sub={`${data.wonDeals || 0} deals closed`}
+          iconBg="#fffbeb"
+          iconColor="#d97706"
+        />
       </div>
 
       {/* Executive Rate Analysis Matrix (Only for Super Admin, Org Admin, & Manager) */}
@@ -218,24 +372,23 @@ export default function ReportsPage() {
       )}
 
       {/* Activity Log */}
-      {isManager && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div className="flex justify-between items-end">
-            <div>
-              <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                Recent Activity
-              </h2>
-              <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                Chronological team activity log
-              </p>
-            </div>
-            <span
-              className="px-3 py-1 rounded-full"
-              style={{ background: 'var(--brand-soft)', color: 'var(--brand)', fontSize: '12px', fontWeight: 600 }}
-            >
-              {activities.length} logs
-            </span>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div className="flex justify-between items-end">
+          <div>
+            <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)' }}>
+              {isManager ? 'Recent Activity' : 'Your Recent Activity Log'}
+            </h2>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+              {isManager ? 'Chronological team activity log' : 'Chronological log of your calls and client interactions'}
+            </p>
           </div>
+          <span
+            className="px-3 py-1 rounded-full"
+            style={{ background: 'var(--brand-soft)', color: 'var(--brand)', fontSize: '12px', fontWeight: 600 }}
+          >
+            {activities.length} logs
+          </span>
+        </div>
 
           <div className="table-container">
             <table>
@@ -298,7 +451,6 @@ export default function ReportsPage() {
             </table>
           </div>
         </div>
-      )}
     </div>
   );
 }

@@ -58,9 +58,9 @@ export async function PATCH(
       'familyAges', 'tseName', 'tlName', 'visitDate'
     ];
 
-    const saleAgentAllowed = ['name', 'phone', 'email', 'company', 'status', 'pipelineStage', 'notes', 'lastContactedAt', 'customFields', 'tags', 'lostReason', ...newFields];
-    const managerAllowed = ['name', 'phone', 'email', 'company', 'source', 'status', 'pipelineStage', 'assignedTo', 'value', 'notes', 'tags', 'lastContactedAt', 'customFields', 'lostReason', ...newFields];
-    const adminAllowed = ['name', 'phone', 'email', 'company', 'source', 'status', 'pipelineStage', 'value', 'notes', 'tags', 'lastContactedAt', 'customFields', 'lostReason', 'notes', ...newFields];
+    const saleAgentAllowed = ['name', 'phone', 'email', 'company', 'status', 'pipelineStage', 'notes', 'lastContactedAt', 'customFields', 'tags', 'lostReason', 'isGhost', ...newFields];
+    const managerAllowed = ['name', 'phone', 'email', 'company', 'source', 'status', 'pipelineStage', 'assignedTo', 'value', 'notes', 'tags', 'lastContactedAt', 'customFields', 'lostReason', 'isGhost', ...newFields];
+    const adminAllowed = ['name', 'phone', 'email', 'company', 'source', 'status', 'pipelineStage', 'value', 'notes', 'tags', 'lastContactedAt', 'customFields', 'lostReason', 'notes', 'isGhost', ...newFields];
 
     let allowedFields: string[];
     if (auth.role === ROLES.MANAGER) {

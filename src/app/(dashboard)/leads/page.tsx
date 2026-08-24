@@ -97,10 +97,10 @@ function LeadsContent() {
 
   const totalPages = Math.ceil(total / 10);
 
-  // Fetch users for assignment & filtering
+  // Fetch users for assignment & filtering (sales agents & managers only)
   React.useEffect(() => {
-    api.get<{ users: IUser[] }>('/users?role=sales_agent,onsite_visitor,manager')
-      .then(d => setOrgUsers(d.users))
+    api.get<{ users: IUser[] }>('/users?role=sales_agent,onsite_visitor,manager&limit=1000')
+      .then(d => setOrgUsers((d.users || []).filter(u => u.role !== 'org_admin' && u.role !== 'super_admin')))
       .catch(console.error);
   }, []);
 

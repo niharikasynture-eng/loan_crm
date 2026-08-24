@@ -63,7 +63,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { label: 'Tasks', href: '/tasks', icon: CheckSquare },
         { label: 'Pipeline', href: '/deals', icon: TrendingUp },
         ...(canAccessPostSales ? [{ label: 'Post Sales', href: '/post-sales', icon: KeyRound }] : []),
-        ...(isAdmin ? [{ label: 'Reports', href: '/reports', icon: BarChart2 }] : []),
+        { label: 'Reports', href: '/reports', icon: BarChart2 },
         ...(isAdmin ? [{ label: 'Team', href: '/users', icon: UserCog }] : []),
         { label: 'Settings', href: '/settings', icon: Settings },
       ];

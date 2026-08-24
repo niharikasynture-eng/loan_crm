@@ -1,7 +1,7 @@
 import mongoose, { Document, Schema, Model } from 'mongoose';
 import './User';
 
-export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'proposal' | 'won' | 'lost';
+export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'proposal' | 'won' | 'lost' | 'closed_won' | 'closed_lost' | 'in_progress' | 'negotiation';
 export type LeadSource = string;
 
 export interface ILead extends Document {
@@ -104,12 +104,12 @@ const LeadSchema = new Schema<ILead>(
     source: { type: String, default: 'Other' },
     status: {
       type: String,
-      enum: ['new', 'contacted', 'qualified', 'proposal', 'won', 'lost'],
+      enum: ['new', 'contacted', 'qualified', 'proposal', 'won', 'lost', 'closed_won', 'closed_lost', 'in_progress', 'negotiation'],
       default: 'new',
     },
     pipelineStage: {
       type: String,
-      enum: ['new', 'contacted', 'qualified', 'proposal', 'won', 'lost'],
+      enum: ['new', 'contacted', 'qualified', 'proposal', 'won', 'lost', 'closed_won', 'closed_lost', 'in_progress', 'negotiation'],
       default: 'new',
     },
     assignedTo: { type: Schema.Types.ObjectId, ref: 'User' },

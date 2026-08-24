@@ -21,7 +21,7 @@ interface LeadFiltersProps {
   onStatusChange: (value: string) => void;
   assignedTo?: string;
   onAssignedToChange?: (value: string) => void;
-  agents?: Array<{ _id: any; name: string; email: string }>;
+  agents?: Array<{ _id: any; name: string; email: string; role?: string }>;
   selectedCount: number;
   onBulkAssign?: () => void;
   onBulkDelete?: () => void;
@@ -113,9 +113,11 @@ export function LeadFilters({
 
   const agentOptions = React.useMemo(() => {
     const list = [{ label: 'All Sales Agents', value: 'all' }];
-    agents.forEach((a) => {
-      list.push({ label: `${a.name}${a.email ? ` (${a.email})` : ''}`, value: a._id.toString() });
-    });
+    agents
+      .filter((a) => a.role !== 'org_admin' && a.role !== 'super_admin')
+      .forEach((a) => {
+        list.push({ label: `${a.name}${a.email ? ` (${a.email})` : ''}`, value: a._id.toString() });
+      });
     return list;
   }, [agents]);
 

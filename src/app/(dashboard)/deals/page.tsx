@@ -21,6 +21,16 @@ const STAGES = [
   { id: 'lost',      label: 'Lost',      color: '#dc2626' },
 ];
 
+const normalizeStage = (st?: string) => {
+  if (!st) return 'new';
+  const s = st.toLowerCase();
+  if (s === 'closed_won') return 'won';
+  if (s === 'closed_lost') return 'lost';
+  if (s === 'in_progress') return 'contacted';
+  if (s === 'negotiation') return 'proposal';
+  return s;
+};
+
 export default function DealsPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -29,6 +39,7 @@ export default function DealsPage() {
   const [industry, setIndustry] = React.useState('all');
   const [region, setRegion] = React.useState('all');
   const [dateRange, setDateRange] = React.useState('all');
+  const [status, setStatus] = React.useState('all');
   const [assignedTo, setAssignedTo] = React.useState('all');
   const [orgUsers, setOrgUsers] = React.useState<any[]>([]);
 
@@ -39,6 +50,7 @@ export default function DealsPage() {
     industry,
     region,
     dateRange,
+    status,
     assignedTo,
     limit: 1000,
   });
@@ -49,8 +61,8 @@ export default function DealsPage() {
     // Auto-trigger stale deal cleanup SLA check on mount
     api.get('/cron/stale-deals').catch((err) => console.error('Stale deal check error:', err));
 
-    api.get<{ users: any[] }>('/users?role=sales_agent,onsite_visitor,manager')
-      .then(d => setOrgUsers(d.users))
+    api.get<{ users: any[] }>('/users?role=sales_agent,onsite_visitor,manager&limit=1000')
+      .then(d => setOrgUsers((d.users || []).filter(u => u.role !== 'org_admin' && u.role !== 'super_admin')))
       .catch(console.error);
   }, []);
 
@@ -68,6 +80,8 @@ export default function DealsPage() {
     }
     setDragging(null);
   };
+
+  const visibleStages = STAGES.filter((s) => status === 'all' || s.id === status);
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -88,8 +102,8 @@ export default function DealsPage() {
           onRegionChange={setRegion}
           dateRange={dateRange}
           onDateRangeChange={setDateRange}
-          status="all"
-          onStatusChange={() => {}}
+          status={status}
+          onStatusChange={setStatus}
           assignedTo={assignedTo}
           onAssignedToChange={setAssignedTo}
           agents={orgUsers}
@@ -103,6 +117,7 @@ export default function DealsPage() {
             setIndustry('all');
             setRegion('all');
             setDateRange('all');
+            setStatus('all');
             setAssignedTo('all');
           }}
         />
@@ -117,8 +132,8 @@ export default function DealsPage() {
         </div>
       ) : (
         <div className="flex gap-4 overflow-x-auto pb-4 items-start" style={{ minHeight: 'calc(100vh - 220px)' }}>
-          {STAGES.map((stage) => {
-            const stageLeads = leads.filter(l => (l.pipelineStage || l.status) === stage.id);
+          {visibleStages.map((stage) => {
+            const stageLeads = leads.filter(l => normalizeStage(l.pipelineStage || l.status) === stage.id);
             const totalVal = stageLeads.reduce((s, l) => s + (l.value || 0), 0);
 
             return (
@@ -164,6 +179,7 @@ export default function DealsPage() {
                     const isStale = (lead as any).isStale;
                     const lostReason = (lead as any).lostReason || '';
                     const isUnresponsiveArchived = stage.id === 'lost' && lostReason.toLowerCase().includes('unresponsive');
+                    const currentLeadStage = normalizeStage(lead.pipelineStage || lead.status);
 
                     return (
                       <div
@@ -197,7 +213,7 @@ export default function DealsPage() {
                           </Link>
 
                           <select
-                            value={stage.id}
+                            value={currentLeadStage}
                             onChange={(e) => {
                               e.stopPropagation();
                               handleDrop(e.target.value, lead._id.toString());

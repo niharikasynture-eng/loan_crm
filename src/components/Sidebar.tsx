@@ -146,7 +146,7 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
               {CRM_NAV.filter(item => {
                 if (isOnsiteVisitor) return item.href === '/leads' || item.href === '/dashboard';
                 if (isSalesAgent) {
-                  const salesExcluded = ['/reports', '/projects', '/inventory'];
+                  const salesExcluded = ['/projects', '/inventory'];
                   if (salesExcluded.includes(item.href)) return false;
                   if (item.href === '/leads') item.label = 'My Leads';
                 }
