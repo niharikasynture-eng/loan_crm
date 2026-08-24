@@ -80,57 +80,109 @@ export async function GET(req: NextRequest) {
     const region = searchParams.get('region');
     const dateRange = searchParams.get('dateRange');
 
-    const query: Record<string, any> = { organizationId: auth.organizationId };
+    const andConditions: any[] = [
+      { organizationId: auth.organizationId }
+    ];
 
     // Sales agent and Onsite Visitor can see leads assigned to them OR created/imported by them
     if (auth.role === ROLES.SALES_AGENT || auth.role === ROLES.ONSITE_VISITOR) {
       const userObjId = new mongoose.Types.ObjectId(auth.userId);
-      query.$or = [
-        { assignedTo: userObjId },
-        { createdBy: userObjId }
-      ];
+      andConditions.push({
+        $or: [
+          { assignedTo: userObjId },
+          { createdBy: userObjId }
+        ]
+      });
     }
 
-    if (status && status !== 'all') query.status = status;
-    if (assignedTo && assignedTo !== 'all' && auth.role !== ROLES.SALES_AGENT) query.assignedTo = assignedTo;
-    if (source && source !== 'all') query.source = source;
-    
-    if (industry && industry !== 'all') {
-      const reg = new RegExp(industry.split(' ')[0], 'i');
-      const domainFilter = [
-        { industry: reg },
-        { companyDomain: reg },
-        { company: reg },
-      ];
-      if (query.$or) {
-        query.$and = [
-          { $or: query.$or },
-          { $or: domainFilter }
-        ];
-        delete query.$or;
+    if (status && status !== 'all') {
+      if (status === 'won') {
+        andConditions.push({ status: { $in: ['won', 'closed_won'] } });
+      } else if (status === 'lost') {
+        andConditions.push({ status: { $in: ['lost', 'closed_lost'] } });
       } else {
-        query.$or = domainFilter;
+        andConditions.push({ status });
       }
+    }
+
+    if (assignedTo && assignedTo !== 'all' && auth.role !== ROLES.SALES_AGENT) {
+      andConditions.push({ assignedTo });
+    }
+
+    if (source && source !== 'all') {
+      andConditions.push({ source });
+    }
+
+    if (industry && industry !== 'all') {
+      const indStr = industry.trim().toLowerCase();
+      let indRegex: RegExp;
+      if (indStr.includes('finance') || indStr.includes('banking')) {
+        indRegex = /finance|financial|banking/i;
+      } else if (indStr.includes('jewel')) {
+        indRegex = /jewel|gem|ornament/i;
+      } else if (indStr.includes('health')) {
+        indRegex = /health|hospital|pharma|medical/i;
+      } else if (indStr.includes('educat')) {
+        indRegex = /educat|school|college|institute|university/i;
+      } else if (indStr.includes('real estate') || indStr.includes('property')) {
+        indRegex = /real estate|property|construction|builder/i;
+      } else if (indStr.includes('it') || indStr.includes('tech') || indStr.includes('software')) {
+        indRegex = /it|tech|software|developer|computer/i;
+      } else if (indStr.includes('manufactur') || indStr.includes('industrial')) {
+        indRegex = /manufactur|industrial|factory/i;
+      } else if (indStr.includes('retail') || indStr.includes('e-commerce')) {
+        indRegex = /retail|e-commerce|shop|store/i;
+      } else if (indStr.includes('hospitality') || indStr.includes('hotel')) {
+        indRegex = /hospitality|hotel|resort/i;
+      } else if (indStr.includes('corporate') || indStr.includes('enterprise')) {
+        indRegex = /corporate|enterprise|business/i;
+      } else if (indStr.includes('gov')) {
+        indRegex = /gov|public sector/i;
+      } else {
+        indRegex = new RegExp(industry.split(' ')[0], 'i');
+      }
+
+      andConditions.push({
+        $or: [
+          { industry: indRegex },
+          { companyDomain: indRegex },
+          { company: indRegex }
+        ]
+      });
     }
 
     if (region && region !== 'all') {
-      const regPattern = new RegExp(region.split(' ')[0], 'i');
-      const regionFilter = [
-        { region: regPattern },
-        { address: regPattern },
-        { area: regPattern },
-      ];
-      if (query.$and && Array.isArray(query.$and)) {
-        query.$and.push({ $or: regionFilter });
-      } else if (query.$or) {
-        query.$and = [
-          { $or: query.$or },
-          { $or: regionFilter }
-        ];
-        delete query.$or;
+      const regStr = region.trim().toLowerCase();
+      let regRegex: RegExp;
+
+      if (regStr.includes('north')) {
+        regRegex = /north|chakan|bhosari|akurdi|moshi|alandi|markal|talawade/i;
+      } else if (regStr.includes('south')) {
+        regRegex = /south|katraj|kondhwa|bibwewadi|dhankawadi|undri|pisoli|ambegaon|narhe/i;
+      } else if (regStr.includes('east')) {
+        regRegex = /east|kharadi|viman|wagholi|hadapsar|mundhwa|chandan|magarpatta|yewalewadi/i;
+      } else if (regStr.includes('west')) {
+        regRegex = /west|baner|hinjawadi|hinjewadi|balewadi|aundh|pashan|bavdhan|wakad|tathawade|punawale/i;
+      } else if (regStr.includes('central')) {
+        regRegex = /central|shivajinagar|fc|jm|deccan|kothrud|camp|swargate|model colony|erandwane/i;
+      } else if (regStr.includes('pimpri') || regStr.includes('pcmc')) {
+        regRegex = /pimpri|chinchwad|pcmc|nigdi|bhosari|rahatani|thergaon|sangvi/i;
+      } else if (regStr.includes('outskirts') || regStr.includes('rural')) {
+        regRegex = /outskirts|rural|talegaon|lonavala|shirur|saswad|paud/i;
       } else {
-        query.$or = regionFilter;
+        regRegex = new RegExp(region.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
       }
+
+      andConditions.push({
+        $or: [
+          { region: regRegex },
+          { address: regRegex },
+          { area: regRegex },
+          { landmark: regRegex },
+          { pincode: regRegex },
+          { secondAreaReference: regRegex }
+        ]
+      });
     }
 
     if (dateRange && dateRange !== 'all') {
@@ -154,30 +206,26 @@ export async function GET(req: NextRequest) {
       if (start) {
         const dateFilter: Record<string, Date> = { $gte: start };
         if (end) dateFilter.$lt = end;
-        query.createdAt = dateFilter;
+        andConditions.push({ createdAt: dateFilter });
       }
     }
 
     if (search) {
       const searchRegex = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-      const searchConditions = [
-        { name: searchRegex },
-        { company: searchRegex },
-        { email: searchRegex },
-        { phone: searchRegex },
-      ];
-      if (query.$and && Array.isArray(query.$and)) {
-        query.$and.push({ $or: searchConditions });
-      } else if (query.$or) {
-        query.$and = [
-          { $or: query.$or },
-          { $or: searchConditions },
-        ];
-        delete query.$or;
-      } else {
-        query.$or = searchConditions;
-      }
+      andConditions.push({
+        $or: [
+          { name: searchRegex },
+          { company: searchRegex },
+          { email: searchRegex },
+          { phone: searchRegex },
+          { area: searchRegex },
+          { region: searchRegex },
+          { address: searchRegex }
+        ]
+      });
     }
+
+    const query = andConditions.length === 1 ? andConditions[0] : { $and: andConditions };
 
     const [leads, total] = await Promise.all([
       Lead.find(query)

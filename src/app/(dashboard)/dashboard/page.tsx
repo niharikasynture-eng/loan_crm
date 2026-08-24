@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Users, TrendingUp, PhoneCall, CheckSquare, Link2, Copy, CheckCircle } from 'lucide-react';
+import { Users, TrendingUp, PhoneCall, CheckSquare, Link2, Copy, CheckCircle, Calendar, Filter, Download, Share2 } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/useToast';
@@ -14,17 +14,28 @@ interface DashboardMetrics {
   totalLeads: number; newLeads: number; wonLeads: number; lostLeads: number;
   totalDeals: number; wonDeals: number; wonDealValue: number;
   totalActivities: number; callsThisMonth: number; pendingTasks: number; conversionRate: number;
-  qualificationRate?: number; wonRate?: number; lossRate?: number; isExecutive?: boolean;
+  qualificationRate?: number; qualifiedLeads?: number; wonRate?: number; lossRate?: number; isExecutive?: boolean;
 }
+
+const PERIOD_OPTIONS = [
+  { label: 'All Time Analytics', value: 'all' },
+  { label: 'Created Today', value: 'today' },
+  { label: 'Yesterday', value: 'yesterday' },
+  { label: 'Last 7 Days', value: '7d' },
+  { label: 'Last 30 Days', value: '30d' },
+  { label: 'This Month', value: 'thisMonth' },
+];
 
 export default function DashboardPage() {
   const { user, organization } = useAuth();
   const { toast } = useToast();
 
+  const [period, setPeriod] = React.useState('all');
   const [metrics, setMetrics] = React.useState<DashboardMetrics | null>(null);
   const [activities, setActivities] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [copied, setCopied] = React.useState(false);
+  const [downloadingCalls, setDownloadingCalls] = React.useState(false);
 
   const publicLeadUrl = typeof window !== 'undefined' && user?.role !== 'super_admin'
     ? `${window.location.protocol}//${window.location.host}/form/${organization?.slug || 'org'}`
@@ -38,26 +49,133 @@ export default function DashboardPage() {
   };
 
   React.useEffect(() => {
-    // Automatically trigger 24-Hour SLA Ghost Lead check
-    api.get('/cron/ghost-leads').catch(console.error);
-
-    api.get<{ metrics: DashboardMetrics; recentActivities: any[] }>('/dashboard')
+    setLoading(true);
+    api.get<{ metrics: DashboardMetrics; recentActivities: any[] }>(`/dashboard?period=${period}`)
       .then((d) => { setMetrics(d.metrics); setActivities(d.recentActivities); })
-      .catch(() => toast('error', 'Failed to load dashboard'))
+      .catch(() => toast('error', 'Failed to load dashboard metrics'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [period]);
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[60vh] gap-3">
-        <div
-          className="w-7 h-7 rounded-full border-2 border-t-transparent animate-spin"
-          style={{ borderColor: 'var(--brand-light)', borderTopColor: 'var(--brand)' }}
-        />
-        <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Loading dashboard...</p>
-      </div>
-    );
-  }
+  const handleShareWhatsApp = () => {
+    const periodLabel = PERIOD_OPTIONS.find(p => p.value === period)?.label || period;
+    const totalLeads = metrics?.totalLeads ?? 0;
+    const totalCalls = metrics?.callsThisMonth ?? 0;
+    const totalQualified = `${metrics?.qualifiedLeads ?? metrics?.wonLeads ?? 0} (${metrics?.qualificationRate || 0}%)`;
+    const totalWon = `${metrics?.wonDeals ?? 0} deals closed (₹${((metrics?.wonDealValue ?? 0) / 100000).toFixed(1)}L)`;
+
+    const text = `📊 *DealByte Sales Analysis Report*\n` +
+      `📅 *Date / Period:* ${periodLabel}\n` +
+      `👥 *Total Leads:* ${totalLeads}\n` +
+      `📞 *Total Calls:* ${totalCalls}\n` +
+      `🎯 *Total Qualified:* ${totalQualified}\n` +
+      `🏆 *Total Won:* ${totalWon}\n\n` +
+      `_Generated via DealByte CRM_`;
+
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+    toast('success', 'Opening WhatsApp to share report...');
+  };
+
+  const handleDownloadCallAnalysis = async () => {
+    setDownloadingCalls(true);
+    try {
+      const now = new Date();
+      let start: string | undefined;
+      let end: string | undefined;
+
+      if (period === 'today') {
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        start = d.toISOString();
+      } else if (period === 'yesterday') {
+        const d1 = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+        const d2 = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
+        start = d1.toISOString();
+        end = d2.toISOString();
+      } else if (period === '7d') {
+        const d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        start = d.toISOString();
+      } else if (period === '30d') {
+        const d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        start = d.toISOString();
+      } else if (period === 'thisMonth') {
+        const d = new Date(now.getFullYear(), now.getMonth(), 1);
+        start = d.toISOString();
+      }
+
+      const params = new URLSearchParams();
+      params.set('limit', '2000');
+      if (start) params.set('startDate', start);
+      if (end) params.set('endDate', end);
+
+      const res = await api.get<{ callLogs?: any[]; calls?: any[] }>(`/calls?${params.toString()}`);
+      const logs = res.callLogs || res.calls || [];
+
+      const XLSX = await import('xlsx');
+      const periodLabel = PERIOD_OPTIONS.find(p => p.value === period)?.label || period;
+
+      const wb = XLSX.utils.book_new();
+
+      // 1. Summary Analysis Sheet (Exact requested columns)
+      const summaryRows = [
+        {
+          'Date / Period': periodLabel,
+          'Total Leads': metrics?.totalLeads ?? 0,
+          'Total Calls': metrics?.callsThisMonth ?? 0,
+          'Total Qualified': `${metrics?.qualifiedLeads ?? metrics?.wonLeads ?? 0} (${metrics?.qualificationRate || 0}%)`,
+          'Total Won': `${metrics?.wonDeals ?? 0} deals closed (₹${((metrics?.wonDealValue ?? 0) / 100000).toFixed(1)}L)`,
+        }
+      ];
+
+      const wsSummary = XLSX.utils.json_to_sheet(summaryRows);
+      XLSX.utils.book_append_sheet(wb, wsSummary, 'Sales Analysis');
+
+      // 2. Call Logs Detail Sheet
+      const callRows = logs.map((call: any) => {
+        const lead = call.leadId || {};
+        const agent = call.salesPersonId || {};
+        const durationSec = call.duration || 0;
+        const mins = Math.floor(durationSec / 60);
+        const secs = durationSec % 60;
+        const durationStr = `${mins}m ${secs}s`;
+
+        return {
+          'Date & Time': call.startedAt ? new Date(call.startedAt).toLocaleString() : new Date(call.createdAt).toLocaleString(),
+          'Client Name': lead.name || 'Unknown Client',
+          'Phone Number': lead.phone || '—',
+          'Company': lead.company || '—',
+          'Sales Agent': agent.name || 'Unassigned',
+          'Call Direction / Type': (call.callType || call.type || (call.status === 'missed' ? 'missed' : 'outgoing')).toUpperCase(),
+          'Status / Outcome': (call.outcome || call.status || 'completed').toUpperCase(),
+          'Duration (Seconds)': durationSec,
+          'Talk Time': durationStr,
+          'Call Notes': call.notes || '—',
+        };
+      });
+
+      const wsCalls = XLSX.utils.json_to_sheet(callRows.length > 0 ? callRows : [{
+        'Date & Time': 'No call logs recorded for the selected period',
+        'Client Name': '—',
+        'Phone Number': '—',
+        'Company': '—',
+        'Sales Agent': '—',
+        'Call Direction / Type': '—',
+        'Status / Outcome': '—',
+        'Duration (Seconds)': 0,
+        'Talk Time': '0m 0s',
+        'Call Notes': '—',
+      }]);
+      XLSX.utils.book_append_sheet(wb, wsCalls, 'Call Records');
+
+      const dateStr = new Date().toISOString().split('T')[0];
+      XLSX.writeFile(wb, `Call_Analysis_${period}_${dateStr}.xlsx`);
+
+      toast('success', `🎉 Downloaded Call Analysis (${periodLabel})`);
+    } catch (err: any) {
+      toast('error', err.message || 'Failed to download call analysis');
+    } finally {
+      setDownloadingCalls(false);
+    }
+  };
 
   return (
     <div className="animate-fade-in pb-10 flex flex-col gap-5">
@@ -65,6 +183,46 @@ export default function DashboardPage() {
         title="Dashboard Overview"
         subtitle={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
         className="mb-1"
+        action={
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-2xs">
+              <Calendar size={15} className="text-indigo-600 shrink-0" />
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider shrink-0 hidden sm:inline">Analytics Range:</span>
+              <select
+                value={period}
+                onChange={(e) => setPeriod(e.target.value)}
+                className="text-xs font-bold text-slate-800 bg-transparent border-none focus:outline-none cursor-pointer pr-1"
+              >
+                {PERIOD_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              onClick={handleShareWhatsApp}
+              className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 transition-all rounded-xl shadow-md cursor-pointer"
+              title="Share Sales Analysis Report via WhatsApp"
+            >
+              <Share2 size={14} />
+              Share on WhatsApp
+            </button>
+
+            {(user?.role === 'org_admin' || user?.role === 'manager' || user?.role === 'super_admin') && (
+              <button
+                onClick={handleDownloadCallAnalysis}
+                disabled={downloadingCalls}
+                className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 active:scale-95 transition-all rounded-xl shadow-md disabled:opacity-50 cursor-pointer"
+                title="Download Call Analysis Excel Report for selected date range"
+              >
+                <Download size={14} className={downloadingCalls ? 'animate-bounce' : ''} />
+                {downloadingCalls ? 'Exporting...' : 'Download Call Analysis'}
+              </button>
+            )}
+          </div>
+        }
       />
 
       {/* Lead Capture Banner */}

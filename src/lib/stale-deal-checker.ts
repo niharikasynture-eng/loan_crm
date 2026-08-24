@@ -164,7 +164,7 @@ export async function processStaleDeals(targetOrgId?: string) {
       // Update Lead status to lost
       await Lead.findByIdAndUpdate(lead._id, {
         status: 'lost',
-        pipelineStage: 'closed_lost',
+        pipelineStage: 'lost',
         lostReason: 'Unresponsive after 14-day inactivity & break-up email',
       });
 

@@ -11,11 +11,6 @@ export async function GET(req: NextRequest) {
     const auth = requireAuth(req);
     await connectDB();
 
-    // Managers and Org Admins only
-    if (auth.role !== ROLES.ORG_ADMIN && auth.role !== ROLES.MANAGER) {
-      return apiError('Access denied', 403);
-    }
-
     const { searchParams } = req.nextUrl;
     const period = searchParams.get('period') || '7d';
     const userId = searchParams.get('userId');
@@ -27,20 +22,27 @@ export async function GET(req: NextRequest) {
     const now = new Date();
     
     if (period === 'today') {
-      startDate = new Date(now.setHours(0, 0, 0, 0));
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     } else if (period === '7d') {
-      startDate = new Date(now.setDate(now.getDate() - 7));
+      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     } else if (period === '30d') {
-      startDate = new Date(now.setDate(now.getDate() - 30));
+      startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    } else if (period === '60d') {
+      startDate = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
     }
 
     const query: any = { 
       organizationId: new mongoose.Types.ObjectId(auth.organizationId),
-      createdAt: { $gte: startDate },
       type: 'call'
     };
 
-    if (userId && userId !== 'all') {
+    if (period !== 'all') {
+      query.createdAt = { $gte: startDate };
+    }
+
+    if (auth.role === ROLES.SALES_AGENT || auth.role === ROLES.ONSITE_VISITOR) {
+      query.createdBy = new mongoose.Types.ObjectId(auth.userId);
+    } else if (userId && userId !== 'all') {
       query.createdBy = new mongoose.Types.ObjectId(userId);
     }
 

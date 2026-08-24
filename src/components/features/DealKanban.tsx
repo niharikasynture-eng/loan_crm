@@ -21,6 +21,16 @@ const STAGES = [
   { id: 'lost', label: 'Lost', color: 'bg-danger-500' },
 ];
 
+const normalizeStage = (st?: string) => {
+  if (!st) return 'new';
+  const s = st.toLowerCase();
+  if (s === 'closed_won') return 'won';
+  if (s === 'closed_lost') return 'lost';
+  if (s === 'in_progress') return 'contacted';
+  if (s === 'negotiation') return 'proposal';
+  return s;
+};
+
 export function DealKanban({ leads, onStageChange }: DealKanbanProps) {
   const handleDragStart = (e: React.DragEvent, leadId: string) => {
     e.dataTransfer.setData('leadId', leadId);
@@ -39,7 +49,7 @@ export function DealKanban({ leads, onStageChange }: DealKanbanProps) {
   return (
     <div className="flex gap-6 overflow-x-auto pb-6 items-start no-scrollbar min-h-[calc(100vh-250px)]">
       {STAGES.map((stage) => {
-        const stageLeads = leads.filter(l => (l.pipelineStage || l.status) === stage.id);
+        const stageLeads = leads.filter(l => normalizeStage(l.pipelineStage || l.status) === stage.id);
         const stageValue = stageLeads.reduce((sum, l) => sum + (l.value || 0), 0);
 
         return (
@@ -70,29 +80,31 @@ export function DealKanban({ leads, onStageChange }: DealKanbanProps) {
               "flex-1 flex flex-col gap-3 p-3 rounded-card transition-colors duration-200 min-h-[150px]",
               "bg-gray-50/50 border-2 border-dashed border-transparent hover:border-gray-200"
             )}>
-              {stageLeads.map((lead) => (
-                <Card
-                  key={lead._id.toString()}
-                  padding="sm"
-                  className="cursor-grab active:cursor-grabbing hover:shadow-md transition-all group border-gray-100"
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, lead._id.toString())}
-                >
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <Link 
-                      href={`/leads/${lead._id}`}
-                      className="text-sm font-bold text-gray-900 group-hover:text-brand-600 transition-colors truncate max-w-[130px]"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {lead.name}
-                    </Link>
-
-                    <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
-                      <select
-                        value={stage.id}
-                        onChange={(e) => onStageChange(lead._id.toString(), e.target.value)}
-                        className="text-[10px] font-bold py-0.5 px-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:border-indigo-400 focus:outline-none cursor-pointer shadow-2xs"
+              {stageLeads.map((lead) => {
+                const currentStage = normalizeStage(lead.pipelineStage || lead.status);
+                return (
+                  <Card
+                    key={lead._id.toString()}
+                    padding="sm"
+                    className="cursor-grab active:cursor-grabbing hover:shadow-md transition-all group border-gray-100"
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, lead._id.toString())}
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <Link 
+                        href={`/leads/${lead._id}`}
+                        className="text-sm font-bold text-gray-900 group-hover:text-brand-600 transition-colors truncate max-w-[130px]"
+                        onClick={(e) => e.stopPropagation()}
                       >
+                        {lead.name}
+                      </Link>
+
+                      <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+                        <select
+                          value={currentStage}
+                          onChange={(e) => onStageChange(lead._id.toString(), e.target.value)}
+                          className="text-[10px] font-bold py-0.5 px-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:border-indigo-400 focus:outline-none cursor-pointer shadow-2xs"
+                        >
                         {STAGES.map((s) => (
                           <option key={s.id} value={s.id}>
                             {s.label}
@@ -144,7 +156,8 @@ export function DealKanban({ leads, onStageChange }: DealKanbanProps) {
                     </div>
                   )}
                 </Card>
-              ))}
+              );
+            })}
 
               {stageLeads.length === 0 && (
                 <div className="flex-1 flex items-center justify-center py-10 opacity-40">

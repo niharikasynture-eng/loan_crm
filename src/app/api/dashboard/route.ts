@@ -31,20 +31,41 @@ export async function GET(req: NextRequest) {
       queryActivities.createdBy = oid;
       queryDeals.assignedTo     = oid;
       queryTasks.assignedTo     = oid;
+    } else if (auth.role === 'sales_agent' || auth.role === 'onsite_visitor') {
+      const oid = new mongoose.Types.ObjectId(auth.userId);
+      queryLeads.assignedTo     = oid;
+      queryActivities.createdBy = oid;
+      queryDeals.assignedTo     = oid;
+      queryTasks.assignedTo     = oid;
     }
 
     if (period && period !== 'all') {
       const now = new Date();
-      let startDate = new Date(0);
-      if (period === 'today') startDate = new Date(now.setHours(0, 0, 0, 0));
-      else if (period === '7d') startDate = new Date(now.setDate(now.getDate() - 7));
-      else if (period === '30d') startDate = new Date(now.setDate(now.getDate() - 30));
-      
-      const dateFilter = { $gte: startDate };
-      queryLeads.createdAt      = dateFilter;
-      queryActivities.createdAt = dateFilter;
-      queryDeals.createdAt      = dateFilter;
-      queryTasks.createdAt      = dateFilter;
+      let startDate: Date | null = null;
+      let endDate: Date | null = null;
+
+      if (period === 'today') {
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      } else if (period === 'yesterday') {
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      } else if (period === '7d') {
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      } else if (period === '30d') {
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      } else if (period === 'thisMonth') {
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      }
+
+      if (startDate) {
+        const dateFilter: any = { $gte: startDate };
+        if (endDate) dateFilter.$lt = endDate;
+
+        queryLeads.createdAt      = dateFilter;
+        queryActivities.createdAt = dateFilter;
+        queryDeals.createdAt      = dateFilter;
+        queryTasks.createdAt      = dateFilter;
+      }
     }
 
     const [
@@ -120,14 +141,15 @@ export async function GET(req: NextRequest) {
         newLeads,
         wonLeads,
         lostLeads,
+        qualifiedLeads,
         totalDeals,
         wonDeals,
         totalActivities,
         callsThisMonth: callsCount, // Reusing legacy field name for frontend compatibility
         pendingTasks,
         totalUsers,
-        conversionRate: isExecutive ? conversionRate : 0,
-        qualificationRate: isExecutive ? qualificationRate : 0,
+        conversionRate,
+        qualificationRate,
         wonRate: isExecutive ? wonRate : 0,
         lossRate: isExecutive ? lossRate : 0,
         isExecutive,
