@@ -3,7 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Trash2, UserCheck, Eye, MapPin, Globe } from 'lucide-react';
+import { Trash2, UserCheck, Eye, MapPin, Globe, Briefcase } from 'lucide-react';
 import { Table, Column } from '@/components/ui/Table';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -109,6 +109,19 @@ export function LeadTable({
                 <Globe size={11} /> {domainVal}
               </span>
             )}
+          </div>
+        );
+      },
+    },
+    {
+      key: 'industry',
+      header: 'Loan Category',
+      render: (lead) => {
+        const catVal = lead.industry || 'Home Loan / Housing Loan';
+        return (
+          <div className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-100/80 px-2.5 py-1 rounded-lg">
+            <Briefcase size={12} className="text-indigo-500 shrink-0" />
+            <span className="truncate max-w-[150px]">{catVal}</span>
           </div>
         );
       },

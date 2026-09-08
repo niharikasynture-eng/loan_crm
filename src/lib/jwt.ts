@@ -1,7 +1,8 @@
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET as string;
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+const getJwtSecret = (): string => {
+  return process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
+};
 
 export interface JwtPayload {
   userId: string;
@@ -11,11 +12,14 @@ export interface JwtPayload {
 }
 
 export function signToken(payload: JwtPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN } as jwt.SignOptions);
+  const secret = getJwtSecret();
+  const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
+  return jwt.sign(payload, secret, { expiresIn } as jwt.SignOptions);
 }
 
 export function verifyToken(token: string): JwtPayload {
-  return jwt.verify(token, JWT_SECRET) as JwtPayload;
+  const secret = getJwtSecret();
+  return jwt.verify(token, secret) as JwtPayload;
 }
 
 export function extractTokenFromHeader(authHeader: string | null): string | null {

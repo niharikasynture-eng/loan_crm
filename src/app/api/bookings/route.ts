@@ -142,8 +142,8 @@ export async function POST(req: NextRequest) {
     const auth = requireAuth(req);
     await connectDB();
 
-    if (auth.role !== 'super_admin' && auth.role !== 'org_admin' && auth.role !== 'manager') {
-      return apiError('Access denied. Post Sales is restricted to Org Admins and Managers.', 403);
+    if (auth.role !== 'super_admin' && auth.role !== 'org_admin' && auth.role !== 'manager' && auth.role !== 'operator') {
+      return apiError('Access denied. Post Sales is restricted to Org Admins, Managers, and Operators.', 403);
     }
 
     const body = await req.json();

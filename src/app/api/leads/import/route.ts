@@ -143,7 +143,7 @@ export async function POST(req: NextRequest) {
         secondaryPhone: raw.secondaryPhone || undefined,
         address: raw.address || raw.region || undefined,
         region: raw.region || raw.address || undefined,
-        industry: raw.industry || undefined,
+        industry: raw.industry || raw.domain || 'Home Loan / Housing Loan',
         customFields: raw.customFields || {},
         assignedTo: leadAssignedTo,
         assignedAt: leadAssignedTo ? new Date() : undefined,

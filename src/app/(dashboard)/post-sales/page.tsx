@@ -3,10 +3,11 @@
 import * as React from 'react';
 import { createPortal } from 'react-dom';
 import { 
-  Building2, KeyRound, DollarSign, FileCheck, CheckCircle2, Clock, 
+  Building2, KeyRound, IndianRupee, FileCheck, CheckCircle2, Clock, 
   AlertCircle, Download, FileText, Send, ShieldCheck, CheckSquare, 
   Plus, Search, Filter, Printer, ExternalLink, ArrowRight, User, Rocket, Cpu,
-  Calendar, RefreshCw, TrendingUp, Sparkles, UserCheck, ShieldAlert, Truck, Trash2
+  Calendar, RefreshCw, TrendingUp, Sparkles, UserCheck, ShieldAlert, Truck, Trash2,
+  Upload, FilePlus, ChevronRight, X
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api-client';
@@ -16,13 +17,50 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { IBooking, IPaymentMilestone, IBuyerDocument, IHandoverCheckitem, IUpsellOpportunity } from '@/models/Booking';
 
 const DELIVERY_STAGES = [
-  { id: 'contract_signed', stepNum: 1, label: 'Contract Executed', shortLabel: 'Contract', description: 'MSA & Entitlement Created', icon: FileCheck },
-  { id: 'advance_paid', stepNum: 2, label: 'Advance Cleared', shortLabel: 'Payment', description: 'First Milestone Paid', icon: DollarSign },
-  { id: 'implementation_in_progress', stepNum: 3, label: 'System Setup & Config', shortLabel: 'Setup', description: 'Tenant Setup & Data Migration', icon: Cpu },
-  { id: 'user_training', stepNum: 4, label: 'UAT & User Training', shortLabel: 'Training', description: 'Testing & Staff Onboarding', icon: UserCheck },
-  { id: 'ready_for_golive', stepNum: 5, label: 'Go-Live Handover', shortLabel: 'Go-Live', description: 'Production Sign-off & Access', icon: Rocket },
-  { id: 'active_ams', stepNum: 6, label: 'Active AMS Support', shortLabel: 'AMS Support', description: 'Ongoing Support & Renewals', icon: ShieldCheck },
+  { id: 'documentation', stepNum: 1, label: 'Documentation', shortLabel: 'Documentation', description: 'Document Collection & Verification', icon: FileText },
+  { id: 'verification', stepNum: 2, label: 'Verification', shortLabel: 'Verification', description: 'Field & KYC Verification', icon: ShieldCheck },
+  { id: 'loan_application_submitted', stepNum: 3, label: 'Loan Application Submitted', shortLabel: 'Application Submitted', description: 'Submitted to Lender / Bank', icon: Send },
+  { id: 'bank_lender_processing', stepNum: 4, label: 'Bank / Lender Processing', shortLabel: 'Lender Processing', description: 'Underwriting & Assessment', icon: Building2 },
+  { id: 'loan_sanctioned', stepNum: 5, label: 'Loan Sanctioned', shortLabel: 'Loan Sanctioned', description: 'Sanction Letter Issued', icon: FileCheck },
+  { id: 'disbursement', stepNum: 6, label: 'Disbursement', shortLabel: 'Disbursement', description: 'Funds Disbursed to Account', icon: IndianRupee },
+  { id: 'loan_completed', stepNum: 7, label: 'Loan Completed', shortLabel: 'Loan Completed', description: 'Loan Account Active & Closed', icon: CheckSquare },
 ] as const;
+
+const BANK_OPTIONS = [
+  'HDFC Bank',
+  'State Bank of India (SBI)',
+  'ICICI Bank',
+  'Axis Bank',
+  'Kotak Mahindra Bank',
+  'Bank of Baroda',
+  'Punjab National Bank (PNB)',
+  'Bajaj Finserv',
+  'IDFC FIRST Bank',
+  'IndusInd Bank',
+  'Yes Bank',
+  'Standard Chartered',
+] as const;
+
+const LOAN_DOC_REQUIREMENTS: Record<string, { category: string; docs: string[] }[]> = {
+  home_loan: [
+    { category: 'Identity & Address KYC', docs: ['PAN Card Copy', 'Aadhaar Card Copy', 'Passport Photographs'] },
+    { category: 'Income & Financial Proofs', docs: ['Salary Slips (Last 3 Months)', 'Form 16 / Income Tax Returns (Last 2 Years)', 'Bank Account Statement (6 Months)'] },
+    { category: 'Property Documents', docs: ['Property Sale Agreement', 'Approved Building Map / Plan', 'Property Title Deed & Occupancy Certificate'] },
+  ],
+  lap: [
+    { category: 'Identity & Residence KYC', docs: ['PAN Card Copy', 'Aadhaar Card', 'Electricity / Utility Bill'] },
+    { category: 'Business / Tax Financials', docs: ['ITR Returns (Last 3 Years)', 'Audited Balance Sheet & P&L', 'Bank Account Statements (12 Months)'] },
+    { category: 'Property Valuation Details', docs: ['Original Property Title Deed', 'Property Tax Payment Receipt', 'Encumbrance Certificate'] },
+  ],
+  personal_loan: [
+    { category: 'Identity KYC', docs: ['PAN Card', 'Aadhaar Card', 'Current Residence Proof'] },
+    { category: 'Employment & Salary Proofs', docs: ['Salary Slips (3 Months)', 'Salary Account Statement (6 Months)', 'Company Identity Card'] },
+  ],
+  business_loan: [
+    { category: 'Entity & Promoter KYC', docs: ['Promoter PAN & Aadhaar', 'GST Registration Certificate', 'Udyam / MSME Certificate'] },
+    { category: 'Business Financial Statements', docs: ['Audited Financial Statements (2 Years)', 'GST Tax Returns (1 Year)', 'Business Bank Statements (12 Months)'] },
+  ],
+};
 
 function PostSalesContent() {
   const router = useRouter();
@@ -57,8 +95,168 @@ function PostSalesContent() {
 
   const isAdmin = user?.role === 'super_admin' || user?.role === 'org_admin';
   const isManager = user?.role === 'manager';
+  const isOperator = user?.role === 'operator';
   const isSalesAgent = user?.role === 'sales_agent';
   const isVisitor = user?.role === 'onsite_visitor';
+  const canOperate = isAdmin || isManager || isOperator;
+
+  // Loan Operation & Stage Processing Portal State
+  const [selectedBookingForOperation, setSelectedBookingForOperation] = React.useState<IBooking | null>(null);
+  const [operationActiveStageTab, setOperationActiveStageTab] = React.useState<string>('documentation');
+  const [operationForm, setOperationForm] = React.useState<{
+    loanType: 'home_loan' | 'personal_loan' | 'lap' | 'business_loan';
+    selectedBank: string;
+    applicationRef: string;
+    submissionDate: string;
+    verificationNotes: string;
+    verificationStatus: 'pending' | 'in_progress' | 'passed' | 'rejected';
+    sanctionedBank: string;
+    sanctionAmount: number;
+    interestRate: number;
+    tenureMonths: number;
+    sanctionLetterUrl: string;
+    disbursedAmount: number;
+    disbursementDate: string;
+    utrNumber: string;
+    bankAccountNumber: string;
+    loanAccountNumber: string;
+    closureNotes: string;
+  }>({
+    loanType: 'home_loan',
+    selectedBank: 'HDFC Bank',
+    applicationRef: '',
+    submissionDate: '',
+    verificationNotes: '',
+    verificationStatus: 'pending',
+    sanctionedBank: 'HDFC Bank',
+    sanctionAmount: 0,
+    interestRate: 8.5,
+    tenureMonths: 240,
+    sanctionLetterUrl: '',
+    disbursedAmount: 0,
+    disbursementDate: '',
+    utrNumber: '',
+    bankAccountNumber: '',
+    loanAccountNumber: '',
+    closureNotes: '',
+  });
+
+  const [newDocForm, setNewDocForm] = React.useState<{
+    name: string;
+    docType: string;
+    bankName: string;
+    fileUrl: string;
+  }>({
+    name: '',
+    docType: 'Income Proof',
+    bankName: 'HDFC Bank',
+    fileUrl: '',
+  });
+  const [dragOver, setDragOver] = React.useState<boolean>(false);
+  const [savingOperation, setSavingOperation] = React.useState<boolean>(false);
+
+  const openOperationPortal = (booking: IBooking, initialStageId?: string) => {
+    setSelectedBookingForOperation(booking);
+    setOperationActiveStageTab(initialStageId || booking.status || 'documentation');
+
+    const ld = booking.loanDetails || {};
+    setOperationForm({
+      loanType: (ld.loanType as any) || 'home_loan',
+      selectedBank: ld.selectedBank || 'HDFC Bank',
+      applicationRef: ld.applicationRef || '',
+      submissionDate: ld.submissionDate ? new Date(ld.submissionDate).toISOString().split('T')[0] : '',
+      verificationNotes: ld.verificationNotes || '',
+      verificationStatus: (ld.verificationStatus as any) || 'pending',
+      sanctionedBank: ld.sanctionedBank || ld.selectedBank || 'HDFC Bank',
+      sanctionAmount: ld.sanctionAmount || booking.totalAmount || 0,
+      interestRate: ld.interestRate || 8.5,
+      tenureMonths: ld.tenureMonths || 240,
+      sanctionLetterUrl: ld.sanctionLetterUrl || '',
+      disbursedAmount: ld.disbursedAmount || booking.totalAmount || 0,
+      disbursementDate: ld.disbursementDate ? new Date(ld.disbursementDate).toISOString().split('T')[0] : '',
+      utrNumber: ld.utrNumber || '',
+      bankAccountNumber: ld.bankAccountNumber || '',
+      loanAccountNumber: ld.loanAccountNumber || '',
+      closureNotes: ld.closureNotes || '',
+    });
+
+    setNewDocForm({
+      name: '',
+      docType: 'Income Proof',
+      bankName: ld.selectedBank || 'HDFC Bank',
+      fileUrl: '',
+    });
+  };
+
+  const handleSaveLoanDetails = async (newStage?: string) => {
+    if (!selectedBookingForOperation) return;
+    setSavingOperation(true);
+    try {
+      const payload: any = {
+        loanDetails: {
+          loanType: operationForm.loanType,
+          selectedBank: operationForm.selectedBank,
+          applicationRef: operationForm.applicationRef,
+          submissionDate: operationForm.submissionDate ? new Date(operationForm.submissionDate) : undefined,
+          verificationNotes: operationForm.verificationNotes,
+          verificationStatus: operationForm.verificationStatus,
+          sanctionedBank: operationForm.sanctionedBank,
+          sanctionAmount: Number(operationForm.sanctionAmount || 0),
+          interestRate: Number(operationForm.interestRate || 0),
+          tenureMonths: Number(operationForm.tenureMonths || 0),
+          sanctionLetterUrl: operationForm.sanctionLetterUrl,
+          disbursedAmount: Number(operationForm.disbursedAmount || 0),
+          disbursementDate: operationForm.disbursementDate ? new Date(operationForm.disbursementDate) : undefined,
+          utrNumber: operationForm.utrNumber,
+          bankAccountNumber: operationForm.bankAccountNumber,
+          loanAccountNumber: operationForm.loanAccountNumber,
+          closureNotes: operationForm.closureNotes,
+        },
+      };
+      if (newStage) {
+        payload.status = newStage;
+      }
+      await api.patch(`/bookings/${selectedBookingForOperation._id}`, payload);
+      const stageObj = DELIVERY_STAGES.find((s) => s.id === newStage);
+      toast('success', newStage ? `Loan record saved & stage updated to "${stageObj?.label || newStage}"` : 'Loan operations details saved successfully!');
+      setSelectedBookingForOperation(null);
+      fetchBookings();
+    } catch (err: any) {
+      toast('error', err.message || 'Failed to save loan operation details');
+    } finally {
+      setSavingOperation(false);
+    }
+  };
+
+  const handleAddDocumentWithBank = async () => {
+    if (!selectedBookingForOperation) return;
+    if (!newDocForm.name) {
+      toast('error', 'Please enter a document name');
+      return;
+    }
+    try {
+      const existingDocs = [...(selectedBookingForOperation.documents || [])];
+      const newDoc = {
+        name: newDocForm.name,
+        status: 'uploaded' as const,
+        fileUrl: newDocForm.fileUrl || `https://example.com/docs/${encodeURIComponent(newDocForm.name)}.pdf`,
+        bankName: newDocForm.bankName,
+        docType: newDocForm.docType,
+        uploadedAt: new Date(),
+      };
+      const updatedDocs = [...existingDocs, newDoc];
+
+      await api.patch(`/bookings/${selectedBookingForOperation._id}`, { documents: updatedDocs });
+      toast('success', `Document "${newDocForm.name}" attached for ${newDocForm.bankName}!`);
+      
+      const updatedBooking = { ...selectedBookingForOperation, documents: updatedDocs as any };
+      setSelectedBookingForOperation(updatedBooking as any);
+      setNewDocForm({ name: '', docType: 'Income Proof', bankName: operationForm.selectedBank || 'HDFC Bank', fileUrl: '' });
+      fetchBookings();
+    } catch (err: any) {
+      toast('error', err.message || 'Failed to attach document');
+    }
+  };
 
   const [bookings, setBookings] = React.useState<IBooking[]>([]);
   const [loading, setLoading] = React.useState<boolean>(true);
@@ -243,7 +441,7 @@ function PostSalesContent() {
 
     bookings.forEach((b) => {
       totalRevenue += b.totalAmount || 0;
-      if (b.status === 'ready_for_golive' || (b.status as string) === 'active_ams') {
+      if (b.status === 'disbursement' || (b.status as string) === 'loan_completed' || b.status === 'ready_for_golive' || (b.status as string) === 'active_ams') {
         readyForHandover++;
       }
       (b.paymentMilestones || []).forEach((m) => {
@@ -407,8 +605,8 @@ function PostSalesContent() {
 
   // Update Implementation & Delivery Tracker Stage
   const handleUpdateDeliveryStage = async (bookingId: string, newStatus: string) => {
-    if (!isAdmin && !isManager) {
-      toast('error', 'Stage modification is restricted to Managers & Org Admins');
+    if (!isAdmin && !isManager && !isOperator) {
+      toast('error', 'Stage modification is restricted to Managers, Admins & Loan Operators');
       return;
     }
     try {
@@ -459,14 +657,17 @@ function PostSalesContent() {
     <div className="space-y-6 animate-fade-in pb-12">
       {/* Header */}
       <PageHeader
-        title="Post-Sales, Project Handovers & Contract Renewals"
-        subtitle="Automate contract milestones, compliance vault, contract expiration countdowns, and payment dunning reminders"
+        title={isOperator ? 'Loan Operations Dashboard' : 'Post-Sales, Project Handovers & Contract Renewals'}
+        subtitle={isOperator
+          ? 'Manage loan processing stages, document collection, bank applications & disbursement tracking'
+          : 'Automate contract milestones, compliance vault, contract expiration countdowns, and payment dunning reminders'
+        }
         action={
           <div className="flex items-center gap-2">
             {/* Role indicator pill */}
             <span className="px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-amber-50 text-amber-900 border border-amber-200/80 flex items-center gap-1.5 shadow-2xs">
-              {isAdmin ? <ShieldAlert size={14} className="text-amber-600" /> : isManager ? <UserCheck size={14} className="text-indigo-600" /> : <User size={14} className="text-emerald-600" />}
-              {isAdmin ? 'Org Admin View' : isManager ? 'Manager View' : 'Sales Agent View'}
+              {isAdmin ? <ShieldAlert size={14} className="text-amber-600" /> : isManager ? <UserCheck size={14} className="text-indigo-600" /> : isOperator ? <CheckSquare size={14} className="text-blue-600" /> : <User size={14} className="text-emerald-600" />}
+              {isAdmin ? 'Org Admin View' : isManager ? 'Manager View' : isOperator ? 'Loan Operator View' : 'Sales Agent View'}
             </span>
 
             {(isAdmin || isManager) && (
@@ -485,7 +686,7 @@ function PostSalesContent() {
                   onClick={handleOpenNewContractModal}
                   className="btn-primary text-xs font-bold flex items-center gap-1.5 shadow-md"
                 >
-                  <Plus size={14} /> New SAP Contract
+                  <Plus size={14} /> New Loan Record
                 </button>
               </>
             )}
@@ -534,7 +735,7 @@ function PostSalesContent() {
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Collected Revenue</span>
             <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <DollarSign size={18} />
+              <IndianRupee size={18} />
             </div>
           </div>
           <p className="text-3xl font-black text-emerald-600">{metrics.totalCollectedStr}</p>
@@ -565,7 +766,7 @@ function PostSalesContent() {
                   : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60'
               }`}
             >
-              <DollarSign size={14} /> Billing & Milestones
+              <IndianRupee size={14} /> Billing & Milestones
             </button>
             <button
               onClick={() => handleTabChange('renewals')}
@@ -675,9 +876,19 @@ function PostSalesContent() {
                       <div className="text-right">
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Implementation Stage</span>
                         <span className="text-sm font-black text-indigo-600 font-mono flex items-center gap-1 justify-end">
-                          <Truck size={14} /> Stage {activeStageIdx + 1} of 6 ({progressPct}%)
+                          <Truck size={14} /> Stage {activeStageIdx + 1} of {DELIVERY_STAGES.length} ({progressPct}%)
                         </span>
                       </div>
+
+                      {canOperate && (
+                        <button
+                          onClick={() => openOperationPortal(b)}
+                          className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs shadow-md transition-all flex items-center gap-1.5 active:scale-95"
+                          title="Open Loan Operations & Document Portal"
+                        >
+                          <CheckSquare size={14} /> Manage Loan & Docs
+                        </button>
+                      )}
 
                       <button
                         onClick={() => {
@@ -710,69 +921,73 @@ function PostSalesContent() {
                     </div>
 
                     {/* Progress Track Line */}
-                    <div className="relative my-4">
-                      {/* Line Background */}
-                      <div className="absolute top-1/2 left-0 right-0 h-1.5 bg-slate-100 -translate-y-1/2 rounded-full z-0" />
-                      {/* Completed Line Fill */}
-                      <div
-                        className="absolute top-1/2 left-0 h-1.5 bg-gradient-to-r from-emerald-500 via-indigo-600 to-sky-500 -translate-y-1/2 rounded-full z-0 transition-all duration-700"
-                        style={{ width: `${(activeStageIdx / (DELIVERY_STAGES.length - 1)) * 100}%` }}
-                      />
+                    <div className="overflow-x-auto pb-1 custom-scrollbar">
+                      <div className="min-w-[620px] relative my-4">
+                        {/* Connecting Line Track */}
+                        <div className="absolute top-[18px] sm:top-[20px] left-[18px] sm:left-[20px] right-[18px] sm:right-[20px] h-1.5 bg-slate-100 -translate-y-1/2 rounded-full z-0 overflow-hidden">
+                          {/* Completed Line Fill */}
+                          <div
+                            className="h-full bg-gradient-to-r from-emerald-500 via-indigo-600 to-sky-500 rounded-full transition-all duration-700"
+                            style={{ width: `${(activeStageIdx / (DELIVERY_STAGES.length - 1)) * 100}%` }}
+                          />
+                        </div>
 
-                      {/* 6 Stage Nodes */}
-                      <div className="relative z-10 flex items-center justify-between">
-                        {DELIVERY_STAGES.map((stg, sIdx) => {
-                          const isCompleted = sIdx < activeStageIdx;
-                          const isCurrent = sIdx === activeStageIdx;
-                          const isUpcoming = sIdx > activeStageIdx;
-                          const StageIcon = stg.icon;
+                        {/* Stage Nodes */}
+                        <div className="relative z-10 flex items-start justify-between">
+                          {DELIVERY_STAGES.map((stg, sIdx) => {
+                            const isCompleted = sIdx < activeStageIdx;
+                            const isCurrent = sIdx === activeStageIdx;
+                            const isUpcoming = sIdx > activeStageIdx;
+                            const StageIcon = stg.icon;
 
-                          return (
-                            <div key={stg.id} className="flex flex-col items-center group relative">
-                              {/* Node Circle */}
-                              <button
-                                disabled={!isAdmin && !isManager}
-                                onClick={() => handleUpdateDeliveryStage(b._id as any, stg.id)}
-                                title={
-                                  isAdmin || isManager
-                                    ? `Click to update stage to: ${stg.label}`
-                                    : `Stage ${stg.stepNum}: ${stg.label} (Managers only can edit)`
-                                }
-                                className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-xs transition-all duration-300 border-2 ${
-                                  isCompleted
-                                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs hover:scale-105'
-                                    : isCurrent
-                                    ? 'bg-indigo-600 text-white border-indigo-400 shadow-md ring-4 ring-indigo-100 scale-110'
-                                    : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'
-                                } ${isAdmin || isManager ? 'cursor-pointer' : 'cursor-default'}`}
-                              >
-                                {isCompleted ? (
-                                  <CheckCircle2 size={18} />
-                                ) : isCurrent ? (
-                                  <StageIcon size={18} />
-                                ) : (
-                                  <span className="font-mono text-slate-400">{stg.stepNum}</span>
-                                )}
-                              </button>
+                            return (
+                              <div key={stg.id} className="flex flex-col items-center flex-1 text-center group relative">
+                                {/* Node Circle */}
+                                <button
+                                  type="button"
+                                  disabled={!canOperate}
+                                  onClick={() => openOperationPortal(b, stg.id)}
+                                  title={
+                                    canOperate
+                                      ? `Click to open Loan Operations Portal for: ${stg.label} (${stg.description})`
+                                      : `Stage ${stg.stepNum}: ${stg.label} (${stg.description})`
+                                  }
+                                  className={`w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center font-bold text-xs transition-all duration-300 border-2 ${
+                                    isCompleted
+                                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs hover:scale-105'
+                                      : isCurrent
+                                      ? 'bg-indigo-600 text-white border-indigo-400 shadow-md ring-4 ring-indigo-100 scale-110'
+                                      : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'
+                                  } ${canOperate ? 'cursor-pointer' : 'cursor-default'}`}
+                                >
+                                  {isCompleted ? (
+                                    <CheckCircle2 size={16} />
+                                  ) : isCurrent ? (
+                                    <StageIcon size={16} />
+                                  ) : (
+                                    <span className="font-mono text-slate-400">{stg.stepNum}</span>
+                                  )}
+                                </button>
 
-                              {/* Label below node */}
-                              <div className="mt-2 text-center max-w-[90px]">
-                                <p className={`text-[11px] font-bold leading-tight ${
-                                  isCompleted
-                                    ? 'text-emerald-700'
-                                    : isCurrent
-                                    ? 'text-indigo-700 font-extrabold'
-                                    : 'text-slate-400'
-                                }`}>
-                                  {stg.shortLabel}
-                                </p>
-                                <p className="text-[9px] text-slate-400 font-medium hidden sm:block mt-0.5">
-                                  {stg.label}
-                                </p>
+                                {/* Label below node */}
+                                <div className="mt-2 text-center w-full max-w-[85px] sm:max-w-[100px] min-h-[30px] flex items-start justify-center">
+                                  <p
+                                    title={`${stg.label} — ${stg.description}`}
+                                    className={`text-[10px] sm:text-[11px] font-bold leading-tight ${
+                                      isCompleted
+                                        ? 'text-emerald-700'
+                                        : isCurrent
+                                        ? 'text-indigo-700 font-extrabold'
+                                        : 'text-slate-400'
+                                    }`}
+                                  >
+                                    {stg.shortLabel}
+                                  </p>
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -787,7 +1002,7 @@ function PostSalesContent() {
                       <span className="text-slate-400 font-normal hidden md:inline">— {currentStageObj.description}</span>
                     </div>
 
-                    {(isAdmin || isManager) ? (
+                    {canOperate ? (
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Update Stage:</span>
                         {DELIVERY_STAGES.map((stg) => (
@@ -1651,6 +1866,433 @@ function PostSalesContent() {
                     <Trash2 size={14} />
                     {isDeletingContract ? 'Deleting...' : 'Yes, Delete Contract'}
                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── LOAN OPERATIONS & STAGE PROCESSING PORTAL MODAL ── */}
+          {selectedBookingForOperation && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
+              <div className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl overflow-hidden border border-slate-200 animate-scale-in my-8 max-h-[90vh] flex flex-col">
+                {/* Modal Header */}
+                <div className="px-6 py-4 bg-gradient-to-r from-indigo-900 via-indigo-800 to-slate-900 text-white flex items-center justify-between shrink-0">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-indigo-600/60 border border-indigo-400/40 flex items-center justify-center">
+                      <CheckSquare size={18} className="text-white" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-sm font-bold text-white">Loan Portal</h2>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/30 border border-indigo-400/30 text-indigo-200">
+                          {(selectedBookingForOperation.leadId as any)?.name || 'Client'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-indigo-300 mt-0.5">
+                        {selectedBookingForOperation.unitNumber}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedBookingForOperation(null)}
+                    className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                {/* Stage Tab Navigation */}
+                <div className="bg-slate-50 border-b border-slate-200 px-3 py-2 overflow-x-auto flex items-center gap-1.5 shrink-0 custom-scrollbar">
+                  {DELIVERY_STAGES.map((stg) => {
+                    const isActiveTab = operationActiveStageTab === stg.id;
+                    const isCurrentActualStage = selectedBookingForOperation.status === stg.id;
+                    const StgIcon = stg.icon;
+                    return (
+                      <button
+                        key={stg.id}
+                        onClick={() => setOperationActiveStageTab(stg.id)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap transition-all ${
+                          isActiveTab
+                            ? 'bg-indigo-600 text-white shadow-sm'
+                            : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                        }`}
+                      >
+                        <StgIcon size={12} />
+                        <span>{stg.stepNum}. {stg.shortLabel}</span>
+                        {isCurrentActualStage && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" title="Current stage" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Modal Content Body */}
+                <div className="p-5 overflow-y-auto space-y-4 flex-1 custom-scrollbar">
+
+                  {/* STAGE 1: DOCUMENTATION */}
+                  {operationActiveStageTab === 'documentation' && (
+                    <div className="space-y-4">
+                      {/* Loan Type + Required Docs */}
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                        <label className="text-xs font-semibold text-slate-600 shrink-0">Loan Type</label>
+                        <select
+                          value={operationForm.loanType}
+                          onChange={(e) => setOperationForm({ ...operationForm, loanType: e.target.value as any })}
+                          className="h-9 px-3 text-xs font-semibold rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-indigo-500 outline-none text-indigo-900"
+                        >
+                          <option value="home_loan">Home Loan</option>
+                          <option value="lap">Loan Against Property (LAP)</option>
+                          <option value="personal_loan">Personal Loan</option>
+                          <option value="business_loan">Business Loan</option>
+                        </select>
+                      </div>
+
+                      {/* Required Docs - compact */}
+                      <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
+                        <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-2">Required Documents</p>
+                        <div className="space-y-2">
+                          {(LOAN_DOC_REQUIREMENTS[operationForm.loanType] || []).map((grp, gIdx) => (
+                            <div key={gIdx}>
+                              <p className="text-[10px] font-bold text-slate-700 mb-1">{grp.category}</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {grp.docs.map((docItem, dIdx) => (
+                                  <span key={dIdx} className="px-2 py-0.5 rounded-md bg-white border border-slate-200 text-[10px] text-slate-600 font-medium flex items-center gap-1">
+                                    <CheckCircle2 size={9} className="text-emerald-500 shrink-0" />{docItem}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Upload Form */}
+                      <div className="bg-white rounded-xl p-4 border border-slate-200 space-y-3">
+                        <p className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                          <FilePlus size={14} className="text-indigo-500" /> Add Document
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div>
+                            <label className="block text-[11px] text-slate-500 mb-1">Document name</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Salary Slips"
+                              value={newDocForm.name}
+                              onChange={(e) => setNewDocForm({ ...newDocForm, name: e.target.value })}
+                              className="w-full h-9 px-3 text-xs rounded-lg border border-slate-200 focus:border-indigo-400 outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] text-slate-500 mb-1">Category</label>
+                            <select
+                              value={newDocForm.docType}
+                              onChange={(e) => setNewDocForm({ ...newDocForm, docType: e.target.value })}
+                              className="w-full h-9 px-3 text-xs rounded-lg border border-slate-200 bg-white outline-none"
+                            >
+                              <option value="KYC">Identity / KYC</option>
+                              <option value="Income Proof">Income & Tax</option>
+                              <option value="Property Document">Property</option>
+                              <option value="Financial Statement">Financial</option>
+                              <option value="Bank Form">Bank Form</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-[11px] text-slate-500 mb-1">Bank</label>
+                            <select
+                              value={newDocForm.bankName}
+                              onChange={(e) => setNewDocForm({ ...newDocForm, bankName: e.target.value })}
+                              className="w-full h-9 px-3 text-xs rounded-lg border border-slate-200 bg-white outline-none font-semibold text-indigo-900"
+                            >
+                              {BANK_OPTIONS.map((bank) => (
+                                <option key={bank} value={bank}>{bank}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Drop Zone */}
+                        <div
+                          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                          onDragLeave={() => setDragOver(false)}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            setDragOver(false);
+                            const files = e.dataTransfer.files;
+                            if (files && files.length > 0) {
+                              setNewDocForm({ ...newDocForm, name: newDocForm.name || files[0].name, fileUrl: `https://example.com/docs/${encodeURIComponent(files[0].name)}` });
+                              toast('success', `"${files[0].name}" dropped!`);
+                            }
+                          }}
+                          className={`border-2 border-dashed rounded-xl p-4 text-center transition-all cursor-pointer ${
+                            dragOver ? 'border-indigo-400 bg-indigo-50' : 'border-slate-200 hover:border-indigo-300 bg-slate-50/50'
+                          }`}
+                        >
+                          <Upload size={22} className="mx-auto text-indigo-400 mb-1.5" />
+                          <p className="text-xs text-slate-600 font-medium">Drag & drop or <label htmlFor="file-upload-input" className="text-indigo-600 font-bold cursor-pointer underline-offset-2 hover:underline">browse files</label></p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">PDF, DOCX, JPG, PNG · max 25MB</p>
+                          <input type="file" onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) { setNewDocForm({ ...newDocForm, name: newDocForm.name || file.name, fileUrl: `https://example.com/docs/${encodeURIComponent(file.name)}` }); toast('success', `"${file.name}" selected!`); }
+                          }} className="hidden" id="file-upload-input" />
+                        </div>
+
+                        <div className="flex justify-end">
+                          <button type="button" onClick={handleAddDocumentWithBank}
+                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold text-xs shadow-sm transition-all flex items-center gap-1.5">
+                            <Plus size={13} /> Attach Document
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Uploaded Docs */}
+                      {selectedBookingForOperation.documents && selectedBookingForOperation.documents.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Uploaded ({selectedBookingForOperation.documents.length})</p>
+                          {selectedBookingForOperation.documents.map((doc, idx) => (
+                            <div key={idx} className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                                  <FileText size={13} />
+                                </div>
+                                <div>
+                                  <p className="text-xs font-semibold text-slate-900">{doc.name}</p>
+                                  <p className="text-[10px] text-slate-400">{doc.bankName || 'No bank'} · {doc.docType || 'General'}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                  doc.status === 'verified' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                                }`}>{doc.status}</span>
+                                {doc.fileUrl && (
+                                  <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer"
+                                    className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg">
+                                    <ExternalLink size={12} />
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* STAGE 2: VERIFICATION */}
+                  {operationActiveStageTab === 'verification' && (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-600 mb-1">Verification Status</label>
+                          <select
+                            value={operationForm.verificationStatus}
+                            onChange={(e) => setOperationForm({ ...operationForm, verificationStatus: e.target.value as any })}
+                            className="w-full h-10 px-3 text-xs rounded-xl border border-slate-200 bg-white outline-none focus:border-indigo-400"
+                          >
+                            <option value="pending">Pending</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="passed">Passed ✓</option>
+                            <option value="rejected">Rejected ✗</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-600 mb-1">Target Bank</label>
+                          <select
+                            value={operationForm.selectedBank}
+                            onChange={(e) => setOperationForm({ ...operationForm, selectedBank: e.target.value })}
+                            className="w-full h-10 px-3 text-xs rounded-xl border border-slate-200 bg-white outline-none focus:border-indigo-400"
+                          >
+                            {BANK_OPTIONS.map((b) => <option key={b} value={b}>{b}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Notes</label>
+                        <textarea
+                          rows={4}
+                          placeholder="Residence visit, office check, document observations..."
+                          value={operationForm.verificationNotes}
+                          onChange={(e) => setOperationForm({ ...operationForm, verificationNotes: e.target.value })}
+                          className="w-full p-3 text-xs rounded-xl border border-slate-200 outline-none focus:border-indigo-400 resize-none"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* STAGE 3: LOAN APPLICATION SUBMITTED */}
+                  {operationActiveStageTab === 'loan_application_submitted' && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Bank / Lender</label>
+                        <select
+                          value={operationForm.selectedBank}
+                          onChange={(e) => setOperationForm({ ...operationForm, selectedBank: e.target.value })}
+                          className="w-full h-10 px-3 text-xs rounded-xl border border-slate-200 bg-white outline-none focus:border-indigo-400"
+                        >
+                          {BANK_OPTIONS.map((b) => <option key={b} value={b}>{b}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Application Ref No.</label>
+                        <input type="text" placeholder="e.g. HDFC-APP-88912"
+                          value={operationForm.applicationRef}
+                          onChange={(e) => setOperationForm({ ...operationForm, applicationRef: e.target.value })}
+                          className="w-full h-10 px-3 text-xs rounded-xl border border-slate-200 outline-none focus:border-indigo-400 font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Submission Date</label>
+                        <input type="date"
+                          value={operationForm.submissionDate}
+                          onChange={(e) => setOperationForm({ ...operationForm, submissionDate: e.target.value })}
+                          className="w-full h-10 px-3 text-xs rounded-xl border border-slate-200 outline-none focus:border-indigo-400"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* STAGE 4: BANK / LENDER PROCESSING */}
+                  {operationActiveStageTab === 'bank_lender_processing' && (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs">
+                        <span className="font-semibold text-amber-900">Bank: <strong>{operationForm.selectedBank}</strong></span>
+                        <span className="text-slate-500 font-mono">Ref: {operationForm.applicationRef || '—'}</span>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Processing Notes</label>
+                        <textarea
+                          rows={4}
+                          placeholder="Credit manager updates, CAM status, valuation progress..."
+                          value={operationForm.verificationNotes}
+                          onChange={(e) => setOperationForm({ ...operationForm, verificationNotes: e.target.value })}
+                          className="w-full p-3 text-xs rounded-xl border border-slate-200 outline-none focus:border-indigo-400 resize-none"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* STAGE 5: LOAN SANCTIONED */}
+                  {operationActiveStageTab === 'loan_sanctioned' && (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div>
+                          <label className="block text-[11px] text-slate-500 mb-1">Sanctioning Bank</label>
+                          <select value={operationForm.sanctionedBank}
+                            onChange={(e) => setOperationForm({ ...operationForm, sanctionedBank: e.target.value })}
+                            className="w-full h-10 px-3 text-xs rounded-xl border border-slate-200 bg-white outline-none focus:border-indigo-400">
+                            {BANK_OPTIONS.map((b) => <option key={b} value={b}>{b}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[11px] text-slate-500 mb-1">Sanctioned Amount (₹)</label>
+                          <input type="number" value={operationForm.sanctionAmount}
+                            onChange={(e) => setOperationForm({ ...operationForm, sanctionAmount: Number(e.target.value) })}
+                            className="w-full h-10 px-3 text-xs font-mono rounded-xl border border-slate-200 outline-none focus:border-indigo-400" />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] text-slate-500 mb-1">Interest Rate (%)</label>
+                          <input type="number" step="0.1" value={operationForm.interestRate}
+                            onChange={(e) => setOperationForm({ ...operationForm, interestRate: Number(e.target.value) })}
+                            className="w-full h-10 px-3 text-xs font-mono rounded-xl border border-slate-200 outline-none focus:border-indigo-400" />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] text-slate-500 mb-1">Tenure (months)</label>
+                          <input type="number" value={operationForm.tenureMonths}
+                            onChange={(e) => setOperationForm({ ...operationForm, tenureMonths: Number(e.target.value) })}
+                            className="w-full h-10 px-3 text-xs font-mono rounded-xl border border-slate-200 outline-none focus:border-indigo-400" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] text-slate-500 mb-1">Sanction Letter Link</label>
+                        <input type="text" placeholder="Paste document URL..."
+                          value={operationForm.sanctionLetterUrl}
+                          onChange={(e) => setOperationForm({ ...operationForm, sanctionLetterUrl: e.target.value })}
+                          className="w-full h-10 px-3 text-xs rounded-xl border border-slate-200 outline-none focus:border-indigo-400" />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* STAGE 6: DISBURSEMENT */}
+                  {operationActiveStageTab === 'disbursement' && (
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                      <div>
+                        <label className="block text-[11px] text-slate-500 mb-1">Disbursed Amount (₹)</label>
+                        <input type="number" value={operationForm.disbursedAmount}
+                          onChange={(e) => setOperationForm({ ...operationForm, disbursedAmount: Number(e.target.value) })}
+                          className="w-full h-10 px-3 text-xs font-mono text-emerald-700 rounded-xl border border-slate-200 outline-none focus:border-indigo-400" />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] text-slate-500 mb-1">Disbursement Date</label>
+                        <input type="date" value={operationForm.disbursementDate}
+                          onChange={(e) => setOperationForm({ ...operationForm, disbursementDate: e.target.value })}
+                          className="w-full h-10 px-3 text-xs rounded-xl border border-slate-200 outline-none focus:border-indigo-400" />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] text-slate-500 mb-1">Bank Account No.</label>
+                        <input type="text" placeholder="e.g. 5010029384918"
+                          value={operationForm.bankAccountNumber}
+                          onChange={(e) => setOperationForm({ ...operationForm, bankAccountNumber: e.target.value })}
+                          className="w-full h-10 px-3 text-xs font-mono rounded-xl border border-slate-200 outline-none focus:border-indigo-400" />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] text-slate-500 mb-1">UTR / Ref No.</label>
+                        <input type="text" placeholder="e.g. UTR-HDFC-9912"
+                          value={operationForm.utrNumber}
+                          onChange={(e) => setOperationForm({ ...operationForm, utrNumber: e.target.value })}
+                          className="w-full h-10 px-3 text-xs font-mono rounded-xl border border-slate-200 outline-none focus:border-indigo-400" />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* STAGE 7: LOAN COMPLETED */}
+                  {operationActiveStageTab === 'loan_completed' && (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-600 mb-1">Loan Account Number</label>
+                          <input type="text" placeholder="e.g. LA-HDFC-2026-90412"
+                            value={operationForm.loanAccountNumber}
+                            onChange={(e) => setOperationForm({ ...operationForm, loanAccountNumber: e.target.value })}
+                            className="w-full h-10 px-3 text-xs font-mono rounded-xl border border-slate-200 outline-none focus:border-indigo-400" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-600 mb-1">Lender</label>
+                          <input type="text" disabled value={operationForm.sanctionedBank || operationForm.selectedBank}
+                            className="w-full h-10 px-3 text-xs text-slate-600 bg-slate-100 rounded-xl border border-slate-200" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Closure Notes</label>
+                        <textarea rows={3}
+                          placeholder="Welcome kit sent, documents stored, loan active..."
+                          value={operationForm.closureNotes}
+                          onChange={(e) => setOperationForm({ ...operationForm, closureNotes: e.target.value })}
+                          className="w-full p-3 text-xs rounded-xl border border-slate-200 outline-none focus:border-indigo-400 resize-none" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Modal Footer */}
+                <div className="px-5 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-3 shrink-0">
+                  <span className="text-xs text-slate-400 hidden sm:block">
+                    Stage: <strong className="text-slate-600">{DELIVERY_STAGES.find((s) => s.id === operationActiveStageTab)?.label}</strong>
+                  </span>
+                  <div className="flex items-center gap-2 ml-auto">
+                    <button type="button" onClick={() => setSelectedBookingForOperation(null)}
+                      className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-all">
+                      Close
+                    </button>
+                    <button type="button" disabled={savingOperation} onClick={() => handleSaveLoanDetails()}
+                      className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold shadow-sm transition-all">
+                      {savingOperation ? 'Saving...' : 'Save'}
+                    </button>
+                    <button type="button" disabled={savingOperation} onClick={() => handleSaveLoanDetails(operationActiveStageTab)}
+                      className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-md transition-all flex items-center gap-1.5">
+                      <CheckCircle2 size={14} />
+                      Mark as Active Stage
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

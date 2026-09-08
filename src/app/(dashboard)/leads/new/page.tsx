@@ -25,18 +25,21 @@ const PUNE_REGIONS = [
 ];
 
 const DOMAINS = [
-  'Healthcare / Hospital / Medical',
-  'Educational Institute / School / College',
-  'Real Estate / Construction / Infrastructure',
-  'IT / Software / Technology',
-  'Manufacturing / Industrial / Automotive',
-  'Retail / E-commerce / Showroom',
-  'Hospitality / Hotel / Restaurant',
-  'Banking / Financial Services / Insurance',
-  'Corporate / Enterprise',
-  'Government / Public Sector',
-  'Professional Services / Consulting',
-  'Other Domain',
+  'Home Loan / Housing Loan',
+  'Personal Loan',
+  'Education Loan / Student Loan',
+  'Car Loan / Auto Loan',
+  'Two-Wheeler Loan',
+  'Business Loan / Commercial Loan',
+  'Loan Against Property (LAP)',
+  'Gold Loan',
+  'Commercial Vehicle Loan',
+  'Agriculture / Farm Loan',
+  'Mortgage / Refinance Loan',
+  'Medical / Emergency Loan',
+  'MSME / SME Loan',
+  'Project / Construction Loan',
+  'Other Loan Category',
 ];
 
 const SOURCES = ['Website', 'Referral', 'Social Media', 'Cold Call', 'Email Campaign', 'WhatsApp', 'Walk-in', 'Other'];
@@ -61,7 +64,7 @@ export default function NewClientPage() {
     area: '',
     pincode: '',
     region: 'West Pune (Baner, Balewadi, Aundh, Hinjawadi, Wakad, Pashan, Kothrud)',
-    industry: 'Healthcare / Hospital / Medical',
+    industry: 'Home Loan / Housing Loan',
     source: 'Website',
     status: 'new',
     assignedTo: '',
@@ -307,8 +310,8 @@ export default function NewClientPage() {
                 <Compass size={18} strokeWidth={2.5} />
               </div>
               <div>
-                <h2 className="text-base font-bold text-slate-900 tracking-tight">3. Region & Domain Sector</h2>
-                <p className="text-[11px] text-slate-400 font-medium">Select Pune zone & industry classification</p>
+                <h2 className="text-base font-bold text-slate-900 tracking-tight">3. Region & Loan Category</h2>
+                <p className="text-[11px] text-slate-400 font-medium">Select Pune zone & loan type category</p>
               </div>
             </div>
 
@@ -332,9 +335,9 @@ export default function NewClientPage() {
                 </div>
               </div>
 
-              {/* DOMAIN SECTOR SECTION */}
+              {/* LOAN CATEGORY SECTION */}
               <div className="md:col-span-6">
-                <label className={labelClass}>Domain / Industry Sector</label>
+                <label className={labelClass}>Loan Category / Type</label>
                 <div className="relative">
                   <Briefcase size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 z-10" />
                   <select

@@ -41,8 +41,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const isSuperAdmin = user.role === 'super_admin';
   const isOnsiteVisitor = user.role === 'onsite_visitor';
+  const isOperator = user.role === 'operator';
   const isAdmin = ['org_admin', 'manager'].includes(user.role);
-  const canAccessPostSales = ['super_admin', 'org_admin', 'manager', 'sales_agent'].includes(user.role);
+  const canAccessPostSales = ['super_admin', 'org_admin', 'manager', 'sales_agent', 'operator'].includes(user.role);
 
   const navItems: NavItem[] = isSuperAdmin
     ? [
@@ -55,18 +56,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
         { label: 'Leads', href: '/leads', icon: Users },
       ]
-      : [
-        { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-        { label: 'Leads', href: '/leads', icon: Users },
-        { label: 'Timeline', href: '/activities', icon: Activity },
-        { label: 'Calls', href: '/calls', icon: Phone },
-        { label: 'Tasks', href: '/tasks', icon: CheckSquare },
-        { label: 'Pipeline', href: '/deals', icon: TrendingUp },
-        ...(canAccessPostSales ? [{ label: 'Post Sales', href: '/post-sales', icon: KeyRound }] : []),
-        { label: 'Reports', href: '/reports', icon: BarChart2 },
-        ...(isAdmin ? [{ label: 'Team', href: '/users', icon: UserCog }] : []),
-        { label: 'Settings', href: '/settings', icon: Settings },
-      ];
+      : isOperator
+        ? [
+          { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+          { label: 'Loan Operations', href: '/post-sales', icon: KeyRound },
+          { label: 'Tasks', href: '/tasks', icon: CheckSquare },
+          { label: 'Settings', href: '/settings', icon: Settings },
+        ]
+        : [
+          { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+          { label: 'Leads', href: '/leads', icon: Users },
+          { label: 'Timeline', href: '/activities', icon: Activity },
+          { label: 'Calls', href: '/calls', icon: Phone },
+          { label: 'Tasks', href: '/tasks', icon: CheckSquare },
+          { label: 'Pipeline', href: '/deals', icon: TrendingUp },
+          ...(canAccessPostSales ? [{ label: 'Post Sales', href: '/post-sales', icon: KeyRound }] : []),
+          { label: 'Reports', href: '/reports', icon: BarChart2 },
+          ...(isAdmin ? [{ label: 'Team', href: '/users', icon: UserCog }] : []),
+          { label: 'Settings', href: '/settings', icon: Settings },
+        ];
 
   return (
     <div className="flex h-screen overflow-hidden p-4 sm:p-6 lg:p-8 gap-4 sm:gap-6 lg:gap-8" style={{ background: 'var(--bg-page)' }}>

@@ -30,8 +30,8 @@ export interface ParseResult {
 export function downloadSampleTemplate(format: 'xlsx' | 'csv' = 'xlsx') {
   const headers = ['NAMES', 'NUMBER', 'ADDRESS', 'DOMAIN', 'REMARKS'];
   const sampleData = [
-    ['Rajesh Kumar', '+91 98765 43210', 'FC Road, Central Pune', 'FINANCE', 'Interested in portfolio management'],
-    ['Priya Sharma', '+91 91234 56789', 'Kharadi, East Pune', 'Jewellery', 'Looking for custom ornaments'],
+    ['Rajesh Kumar', '+91 98765 43210', 'FC Road, Central Pune', 'Home Loan', 'Interested in home loan for 3BHK flat'],
+    ['Priya Sharma', '+91 91234 56789', 'Kharadi, East Pune', 'Education Loan', 'Looking for abroad study student loan'],
   ];
 
   if (format === 'csv') {

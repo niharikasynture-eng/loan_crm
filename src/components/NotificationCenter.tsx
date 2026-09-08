@@ -65,12 +65,18 @@ export default function NotificationCenter() {
       setNotifications(newNotifs);
       setUnreadCount(newCount);
       prevUnreadCount.current = newCount;
-    } catch (err) {
+    } catch (err: any) {
+      // Silently skip network errors (offline / DNS failures)
       if (api.isNetworkError(err)) {
         console.warn('Notification sync skipped: Network unreachable');
-      } else {
-        console.error('Failed to load notifications:', err);
+        return;
       }
+      // Silently skip auth errors (401/403) — token may be expired or role has no access
+      if (err?.status === 401 || err?.status === 403) {
+        return;
+      }
+      // For all other errors (500 etc.) use warn not error — this is a background poll, not critical
+      console.warn('Notification poll failed:', err?.message || err);
     }
   }, [token, showToast]);
 

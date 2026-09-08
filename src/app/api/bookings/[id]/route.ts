@@ -25,6 +25,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (body.status) booking.status = body.status;
     if (body.paymentMilestones) booking.paymentMilestones = body.paymentMilestones;
     if (body.documents) booking.documents = body.documents;
+    if (body.loanDetails) booking.loanDetails = { ...(booking.loanDetails || {}), ...body.loanDetails };
     if (body.homeLoanDetails) booking.homeLoanDetails = { ...booking.homeLoanDetails, ...body.homeLoanDetails };
     if (body.handoverChecklist) booking.handoverChecklist = body.handoverChecklist;
 

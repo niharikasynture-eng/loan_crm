@@ -133,7 +133,7 @@ const LeadSchema = new Schema<ILead>(
     companyDomain: { type: String },
     companySize: { type: String },
     companyRevenue: { type: String },
-    industry: { type: String },
+    industry: { type: String, default: 'Home Loan / Housing Loan' },
     region: { type: String, trim: true },
     avatarUrl: { type: String },
     companyLogoUrl: { type: String },

@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
         super_admin: 'Super Admin',
         org_admin: 'Organization Admin',
         manager: 'Manager',
+        operator: 'Loan Operator',
         sales_agent: 'Sales Person',
         onsite_visitor: 'Onsite Visitor',
       };

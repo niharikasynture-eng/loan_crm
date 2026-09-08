@@ -83,6 +83,7 @@ export default function UsersPage() {
     super_admin: { label: 'Super Admin', bg: 'bg-purple-100', text: 'text-purple-700' },
     org_admin:   { label: 'Org Admin',   bg: 'bg-blue-100',   text: 'text-blue-700' },
     manager:     { label: 'Manager',     bg: 'bg-emerald-100', text: 'text-emerald-700' },
+    operator:    { label: 'Loan Operator', bg: 'bg-blue-100', text: 'text-blue-800' },
     sales_agent: { label: 'Sales Agent', bg: 'bg-amber-100',  text: 'text-amber-700' },
     onsite_visitor: { label: 'Onsite Visitor', bg: 'bg-sky-100', text: 'text-sky-700' },
   };
@@ -256,6 +257,7 @@ export default function UsersPage() {
                   className="w-full h-10 px-3 rounded-xl border border-slate-200 text-xs font-bold bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                 >
                   <option value="sales_agent">Sales Agent (Sales Person)</option>
+                  <option value="operator">Loan Operator</option>
                   <option value="onsite_visitor">Onsite Visitor</option>
                   <option value="manager">Manager</option>
                   {currentUser.role === 'org_admin' || currentUser.role === 'super_admin' ? (

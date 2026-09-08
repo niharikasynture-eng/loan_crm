@@ -116,30 +116,37 @@ export async function GET(req: NextRequest) {
     if (industry && industry !== 'all') {
       const indStr = industry.trim().toLowerCase();
       let indRegex: RegExp;
-      if (indStr.includes('finance') || indStr.includes('banking')) {
-        indRegex = /finance|financial|banking/i;
-      } else if (indStr.includes('jewel')) {
-        indRegex = /jewel|gem|ornament/i;
-      } else if (indStr.includes('health')) {
-        indRegex = /health|hospital|pharma|medical/i;
-      } else if (indStr.includes('educat')) {
-        indRegex = /educat|school|college|institute|university/i;
-      } else if (indStr.includes('real estate') || indStr.includes('property')) {
-        indRegex = /real estate|property|construction|builder/i;
-      } else if (indStr.includes('it') || indStr.includes('tech') || indStr.includes('software')) {
-        indRegex = /it|tech|software|developer|computer/i;
-      } else if (indStr.includes('manufactur') || indStr.includes('industrial')) {
-        indRegex = /manufactur|industrial|factory/i;
-      } else if (indStr.includes('retail') || indStr.includes('e-commerce')) {
-        indRegex = /retail|e-commerce|shop|store/i;
-      } else if (indStr.includes('hospitality') || indStr.includes('hotel')) {
-        indRegex = /hospitality|hotel|resort/i;
-      } else if (indStr.includes('corporate') || indStr.includes('enterprise')) {
-        indRegex = /corporate|enterprise|business/i;
-      } else if (indStr.includes('gov')) {
-        indRegex = /gov|public sector/i;
+      if (indStr.includes('home') || indStr.includes('housing')) {
+        indRegex = /home|housing/i;
+      } else if (indStr.includes('personal')) {
+        indRegex = /personal/i;
+      } else if (indStr.includes('educat') || indStr.includes('student')) {
+        indRegex = /educat|student/i;
+      } else if (indStr.includes('car') || indStr.includes('auto')) {
+        indRegex = /car|auto/i;
+      } else if (indStr.includes('two-wheeler') || indStr.includes('bike')) {
+        indRegex = /two-wheeler|bike|scooter/i;
+      } else if (indStr.includes('business') || indStr.includes('commercial loan')) {
+        indRegex = /business|commercial/i;
+      } else if (indStr.includes('property') || indStr.includes('lap')) {
+        indRegex = /property|lap/i;
+      } else if (indStr.includes('gold')) {
+        indRegex = /gold/i;
+      } else if (indStr.includes('commercial vehicle')) {
+        indRegex = /vehicle|truck|bus/i;
+      } else if (indStr.includes('agri') || indStr.includes('farm')) {
+        indRegex = /agri|farm/i;
+      } else if (indStr.includes('mortgage') || indStr.includes('refinance')) {
+        indRegex = /mortgage|refinance/i;
+      } else if (indStr.includes('medical') || indStr.includes('emergency')) {
+        indRegex = /medical|emergency/i;
+      } else if (indStr.includes('msme') || indStr.includes('sme')) {
+        indRegex = /msme|sme/i;
+      } else if (indStr.includes('project') || indStr.includes('construction')) {
+        indRegex = /project|construction/i;
       } else {
-        indRegex = new RegExp(industry.split(' ')[0], 'i');
+        const cleanFirstWord = industry.split(' ')[0].replace(/[^a-zA-Z0-9]/g, '');
+        indRegex = cleanFirstWord ? new RegExp(cleanFirstWord, 'i') : /.*/;
       }
 
       andConditions.push({
@@ -261,7 +268,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { name, email, phone, company, value, source, region, notes, assignedTo } = body;
+    const { name, email, phone, company, value, source, region, industry, notes, assignedTo } = body;
 
     if (!name) return apiError('Lead name is required');
 
@@ -280,6 +287,7 @@ export async function POST(req: NextRequest) {
       value: value ? Number(value) : 0,
       source: source || 'other',
       region: region || 'Central',
+      industry: industry || 'Home Loan / Housing Loan',
       notes,
       assignedTo: finalAssignedTo,
       createdBy: auth.userId,

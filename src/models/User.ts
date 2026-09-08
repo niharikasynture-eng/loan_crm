@@ -7,7 +7,7 @@ export interface IUser extends Document {
   name: string;
   email: string;
   password: string;
-  role: 'super_admin' | 'org_admin' | 'manager' | 'sales_agent' | 'onsite_visitor';
+  role: 'super_admin' | 'org_admin' | 'manager' | 'sales_agent' | 'operator' | 'onsite_visitor';
   managerId?: mongoose.Types.ObjectId;
   phone?: string;
   avatar?: string;
@@ -35,7 +35,7 @@ const UserSchema = new Schema<IUser>(
     password: { type: String, required: true, select: false },
     role: {
       type: String,
-      enum: ['super_admin', 'org_admin', 'manager', 'sales_agent', 'onsite_visitor'],
+      enum: ['super_admin', 'org_admin', 'manager', 'sales_agent', 'operator', 'onsite_visitor'],
       default: 'sales_agent',
     },
     managerId: { type: Schema.Types.ObjectId, ref: 'User' },

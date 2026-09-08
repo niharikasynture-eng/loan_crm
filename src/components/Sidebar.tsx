@@ -39,6 +39,7 @@ const ROLE_META: Record<string, { label: string; icon: React.ElementType; color:
   super_admin: { label: 'Super Admin', icon: ShieldCheck, color: '#7c3aed', bg: '#f3f0ff' },
   org_admin: { label: 'Org Admin', icon: Briefcase, color: '#1a73e8', bg: '#e8f0fe' },
   manager: { label: 'Manager', icon: UserCog, color: '#0f9d58', bg: '#e6f4ea' },
+  operator: { label: 'Loan Operator', icon: CheckSquare, color: '#2563eb', bg: '#eff6ff' },
   sales_agent: { label: 'Sales Person', icon: UserCircle, color: '#f29900', bg: '#fef7e0' },
   onsite_visitor: { label: 'Onsite Visitor', icon: UserCircle, color: '#0ea5e9', bg: '#f0f9ff' },
 };
@@ -64,6 +65,7 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const isSuperAdmin = role === 'super_admin';
   const isOrgAdmin = role === 'org_admin';
   const isManager = role === 'manager';
+  const isOperator = role === 'operator';
   const isSalesAgent = role === 'sales_agent';
   const isOnsiteVisitor = role === 'onsite_visitor';
 

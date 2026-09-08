@@ -10,6 +10,7 @@ const ROLE_OPTIONS = [
   { value: 'super_admin', label: 'Super Admin', desc: 'Full platform control', color: '#7c3aed' },
   { value: 'org_admin', label: 'Org Admin', desc: 'Manage your organization', color: '#1a73e8' },
   { value: 'manager', label: 'Manager', desc: 'Team & pipeline oversight', color: '#0f9d58' },
+  { value: 'operator', label: 'Loan Operator', desc: 'Loan stage & docs execution', color: '#2563eb' },
   { value: 'sales_agent', label: 'Sales Person', desc: 'Leads & deals access', color: '#f29900' },
   { value: 'onsite_visitor', label: 'Onsite Visitor', desc: 'Assigned leads view only', color: '#0ea5e9' },
 ];

@@ -36,6 +36,7 @@ export const ROLES = {
   ORG_ADMIN: 'org_admin',
   MANAGER: 'manager',
   SALES_AGENT: 'sales_agent',
+  OPERATOR: 'operator',
   ONSITE_VISITOR: 'onsite_visitor',
 } as const;
 

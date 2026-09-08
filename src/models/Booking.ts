@@ -15,6 +15,29 @@ export interface IBuyerDocument {
   name: string;
   status: 'pending' | 'uploaded' | 'verified';
   fileUrl?: string;
+  bankName?: string;
+  docType?: string;
+  uploadedAt?: Date;
+}
+
+export interface ILoanProcessingDetails {
+  loanType?: 'home_loan' | 'personal_loan' | 'lap' | 'business_loan';
+  selectedBank?: string;
+  applicationRef?: string;
+  submissionDate?: Date;
+  verificationNotes?: string;
+  verificationStatus?: 'pending' | 'in_progress' | 'passed' | 'rejected';
+  sanctionedBank?: string;
+  sanctionAmount?: number;
+  interestRate?: number;
+  tenureMonths?: number;
+  sanctionLetterUrl?: string;
+  disbursedAmount?: number;
+  disbursementDate?: Date;
+  utrNumber?: string;
+  bankAccountNumber?: string;
+  loanAccountNumber?: string;
+  closureNotes?: string;
 }
 
 export interface IHandoverCheckitem {
@@ -44,9 +67,10 @@ export interface IBooking extends Document {
   bookingDate: Date;
   contractEndDate?: Date;
   renewalStatus?: 'active' | 'expiring_soon' | 'renewed' | 'churned';
-  status: 'contract_signed' | 'advance_paid' | 'implementation_in_progress' | 'user_training' | 'ready_for_golive' | 'active_ams';
+  status: 'loan_lead_approved' | 'documentation' | 'verification' | 'loan_application_submitted' | 'bank_lender_processing' | 'loan_sanctioned' | 'disbursement' | 'loan_completed' | 'contract_signed' | 'advance_paid' | 'implementation_in_progress' | 'user_training' | 'ready_for_golive' | 'active_ams';
   paymentMilestones: IPaymentMilestone[];
   documents: IBuyerDocument[];
+  loanDetails?: ILoanProcessingDetails;
   homeLoanDetails?: {
     bankName?: string;
     sanctionAmount?: number;
@@ -77,8 +101,8 @@ const BookingSchema = new Schema<IBooking>(
     },
     status: {
       type: String,
-      enum: ['contract_signed', 'advance_paid', 'implementation_in_progress', 'user_training', 'ready_for_golive', 'active_ams'],
-      default: 'contract_signed',
+      enum: ['loan_lead_approved', 'documentation', 'verification', 'loan_application_submitted', 'bank_lender_processing', 'loan_sanctioned', 'disbursement', 'loan_completed', 'contract_signed', 'advance_paid', 'implementation_in_progress', 'user_training', 'ready_for_golive', 'active_ams'],
+      default: 'documentation',
     },
     paymentMilestones: [
       {
@@ -103,8 +127,30 @@ const BookingSchema = new Schema<IBooking>(
           default: 'pending',
         },
         fileUrl: { type: String, default: '' },
+        bankName: { type: String, default: '' },
+        docType: { type: String, default: 'General' },
+        uploadedAt: { type: Date, default: Date.now },
       },
     ],
+    loanDetails: {
+      loanType: { type: String, default: 'home_loan' },
+      selectedBank: { type: String, default: '' },
+      applicationRef: { type: String, default: '' },
+      submissionDate: { type: Date },
+      verificationNotes: { type: String, default: '' },
+      verificationStatus: { type: String, default: 'pending' },
+      sanctionedBank: { type: String, default: '' },
+      sanctionAmount: { type: Number, default: 0 },
+      interestRate: { type: Number, default: 0 },
+      tenureMonths: { type: Number, default: 0 },
+      sanctionLetterUrl: { type: String, default: '' },
+      disbursedAmount: { type: Number, default: 0 },
+      disbursementDate: { type: Date },
+      utrNumber: { type: String, default: '' },
+      bankAccountNumber: { type: String, default: '' },
+      loanAccountNumber: { type: String, default: '' },
+      closureNotes: { type: String, default: '' },
+    },
     handoverChecklist: [
       {
         item: { type: String, required: true },
@@ -130,7 +176,10 @@ const BookingSchema = new Schema<IBooking>(
 
 BookingSchema.index({ organizationId: 1, leadId: 1 });
 
-const Booking: Model<IBooking> =
-  mongoose.models.Booking || mongoose.model<IBooking>('Booking', BookingSchema);
+if (mongoose.models.Booking) {
+  delete (mongoose.models as any).Booking;
+}
+
+const Booking: Model<IBooking> = mongoose.model<IBooking>('Booking', BookingSchema);
 
 export default Booking;

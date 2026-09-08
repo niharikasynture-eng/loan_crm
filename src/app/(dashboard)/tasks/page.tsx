@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { 
   Plus, CheckCircle2, Circle, AlertCircle, ExternalLink, Lock, 
-  Sun, CheckSquare, Calendar, Filter, DollarSign, FileCheck, Rocket, Bell, X, User
+  Sun, CheckSquare, Calendar, Filter, IndianRupee, FileCheck, Rocket, Bell, X, User
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTasks } from '@/hooks/useTasks';
@@ -246,7 +246,7 @@ function TasksContent() {
               : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
           }`}
         >
-          <DollarSign size={15} /> Post-Sales & Billing Tasks
+          <IndianRupee size={15} /> Post-Sales & Billing Tasks
         </button>
 
         <button

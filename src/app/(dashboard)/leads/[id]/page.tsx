@@ -159,7 +159,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
 
   // Edit Lead state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', company: '' });
+  const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', company: '', industry: '' });
 
   async function loadData() {
     try {
@@ -504,7 +504,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                       <DetailItem label="Landmark" value={lead.landmark || '—'} icon={Building} />
                       <DetailItem label="Area & Pincode" value={`${lead.area || ''} ${lead.pincode ? `- ${lead.pincode}` : ''}`.trim() || '—'} icon={Building} />
                       <DetailItem label="Pune Region Zone" value={lead.region || '—'} icon={MapPin} />
-                      <DetailItem label="Industry / Domain" value={lead.industry || '—'} icon={Building} />
+                      <DetailItem label="Loan Category / Type" value={lead.industry || '—'} icon={Building} />
                     </div>
                     {lead.mapLink && (
                       <div className="pt-4">
@@ -657,7 +657,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                   <h1 className="text-2xl font-bold text-gray-900 tracking-tighter leading-tight">{lead.name}</h1>
                   <button
                     onClick={() => {
-                      setEditForm({ name: lead.name, email: lead.email, phone: lead.phone || '', company: lead.company || '' });
+                      setEditForm({ name: lead.name, email: lead.email, phone: lead.phone || '', company: lead.company || '', industry: lead.industry || 'Home Loan / Housing Loan' });
                       setIsEditModalOpen(true);
                     }}
                     className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
@@ -716,7 +716,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                     ) : (
                       <button
                         onClick={() => {
-                          setEditForm({ name: lead.name, email: lead.email, phone: '', company: lead.company || '' });
+                          setEditForm({ name: lead.name, email: lead.email, phone: '', company: lead.company || '', industry: lead.industry || 'Home Loan / Housing Loan' });
                           setIsEditModalOpen(true);
                         }}
                         className="text-xs font-bold text-indigo-500 hover:text-indigo-600 flex items-center gap-1"
@@ -1886,6 +1886,31 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                   placeholder="Company Ltd."
                   onChange={(e) => setEditForm({ ...editForm, company: e.target.value })}
                 />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Loan Category / Type</label>
+                <select
+                  className="input-field !bg-gray-50 !border-gray-100 !text-gray-900 focus:!bg-white focus:!border-indigo-500"
+                  value={editForm.industry || 'Home Loan / Housing Loan'}
+                  onChange={(e) => setEditForm({ ...editForm, industry: e.target.value })}
+                >
+                  <option value="Home Loan / Housing Loan">Home Loan / Housing Loan</option>
+                  <option value="Personal Loan">Personal Loan</option>
+                  <option value="Education Loan / Student Loan">Education Loan / Student Loan</option>
+                  <option value="Car Loan / Auto Loan">Car Loan / Auto Loan</option>
+                  <option value="Two-Wheeler Loan">Two-Wheeler Loan</option>
+                  <option value="Business Loan / Commercial Loan">Business Loan / Commercial Loan</option>
+                  <option value="Loan Against Property (LAP)">Loan Against Property (LAP)</option>
+                  <option value="Gold Loan">Gold Loan</option>
+                  <option value="Commercial Vehicle Loan">Commercial Vehicle Loan</option>
+                  <option value="Agriculture / Farm Loan">Agriculture / Farm Loan</option>
+                  <option value="Mortgage / Refinance Loan">Mortgage / Refinance Loan</option>
+                  <option value="Medical / Emergency Loan">Medical / Emergency Loan</option>
+                  <option value="MSME / SME Loan">MSME / SME Loan</option>
+                  <option value="Project / Construction Loan">Project / Construction Loan</option>
+                  <option value="Other Loan Category">Other Loan Category</option>
+                </select>
               </div>
 
               <div className="pt-4 flex gap-3">

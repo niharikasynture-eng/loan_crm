@@ -32,20 +32,22 @@ interface LeadFiltersProps {
 }
 
 const DOMAINS = [
-  { label: 'All Categories', value: 'all' },
-  { label: 'Finance / Financial Services', value: 'FINANCE' },
-  { label: 'Jewellery / Gems & Ornaments', value: 'Jewellery' },
-  { label: 'Banking & Financial', value: 'Banking' },
-  { label: 'Healthcare / Hospital', value: 'Healthcare' },
-  { label: 'Educational Institute', value: 'Educational' },
-  { label: 'Real Estate / Construction', value: 'Real Estate' },
-  { label: 'IT / Tech / Software', value: 'IT' },
-  { label: 'Manufacturing / Industrial', value: 'Manufacturing' },
-  { label: 'Retail / E-commerce', value: 'Retail' },
-  { label: 'Hospitality / Hotel', value: 'Hospitality' },
-  { label: 'Corporate / Enterprise', value: 'Corporate' },
-  { label: 'Government', value: 'Government' },
-  { label: 'Other Category', value: 'Other' },
+  { label: 'All Loan Categories', value: 'all' },
+  { label: 'Home Loan / Housing Loan', value: 'Home Loan' },
+  { label: 'Personal Loan', value: 'Personal Loan' },
+  { label: 'Education Loan / Student Loan', value: 'Education Loan' },
+  { label: 'Car Loan / Auto Loan', value: 'Car Loan' },
+  { label: 'Two-Wheeler Loan', value: 'Two-Wheeler Loan' },
+  { label: 'Business Loan / Commercial Loan', value: 'Business Loan' },
+  { label: 'Loan Against Property (LAP)', value: 'Loan Against Property' },
+  { label: 'Gold Loan', value: 'Gold Loan' },
+  { label: 'Commercial Vehicle Loan', value: 'Commercial Vehicle Loan' },
+  { label: 'Agriculture / Farm Loan', value: 'Agriculture Loan' },
+  { label: 'Mortgage / Refinance Loan', value: 'Mortgage Loan' },
+  { label: 'Medical / Emergency Loan', value: 'Medical Loan' },
+  { label: 'MSME / SME Loan', value: 'MSME Loan' },
+  { label: 'Project / Construction Loan', value: 'Project Loan' },
+  { label: 'Other Loan Category', value: 'Other' },
 ];
 
 const REGIONS = [
@@ -211,10 +213,10 @@ export function LeadFilters({
             </div>
           )}
 
-          {/* Category / Domain Filter */}
+          {/* Loan Category Filter */}
           <div className="space-y-1.5">
             <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5 ml-0.5">
-              <Building2 size={13} className="text-indigo-500" /> Category / Domain
+              <Building2 size={13} className="text-indigo-500" /> Loan Category
             </label>
             <Select
               value={industry}
