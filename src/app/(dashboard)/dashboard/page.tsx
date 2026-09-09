@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Users, TrendingUp, PhoneCall, CheckSquare, Link2, Copy, CheckCircle, Calendar, Filter, Download, Share2 } from 'lucide-react';
+import { Users, TrendingUp, PhoneCall, CheckSquare, Link2, Copy, CheckCircle, Calendar, Filter, Download, Share2, ExternalLink, Sparkles } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/useToast';
@@ -29,23 +29,31 @@ const PERIOD_OPTIONS = [
 export default function DashboardPage() {
   const { user, organization } = useAuth();
   const { toast } = useToast();
-
   const [period, setPeriod] = React.useState('all');
   const [metrics, setMetrics] = React.useState<DashboardMetrics | null>(null);
   const [activities, setActivities] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [copied, setCopied] = React.useState(false);
+  const [copiedInsta, setCopiedInsta] = React.useState(false);
   const [downloadingCalls, setDownloadingCalls] = React.useState(false);
 
   const publicLeadUrl = typeof window !== 'undefined' && user?.role !== 'super_admin'
-    ? `${window.location.protocol}//${window.location.host}/form/${organization?.slug || 'org'}`
+    ? `${window.location.protocol}//${window.location.host}/apply/${organization?.slug || 'acme-corp'}`
     : '';
 
-  const copyLink = () => {
-    navigator.clipboard.writeText(publicLeadUrl);
-    setCopied(true);
-    toast('success', 'Lead form link copied!');
-    setTimeout(() => setCopied(false), 2000);
+  const instaLeadUrl = publicLeadUrl ? `${publicLeadUrl}?source=Instagram` : '';
+
+  const copyLink = (url: string, isInsta: boolean = false) => {
+    navigator.clipboard.writeText(url);
+    if (isInsta) {
+      setCopiedInsta(true);
+      toast('success', 'Instagram campaign link copied!');
+      setTimeout(() => setCopiedInsta(false), 2000);
+    } else {
+      setCopied(true);
+      toast('success', 'Lead inquiry link copied!');
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   React.useEffect(() => {
@@ -228,43 +236,61 @@ export default function DashboardPage() {
       {/* Lead Capture Banner */}
       {(user?.role === 'org_admin' || user?.role === 'manager') && (
         <div
-          className="rounded-[24px] border flex flex-col sm:flex-row sm:items-center justify-between gap-6 p-6 shadow-md transition-shadow hover:shadow-lg"
-          style={{ background: 'linear-gradient(135deg, var(--brand-soft) 0%, #fff 100%)', borderColor: 'rgba(124,58,237,0.1)' }}
+          className="rounded-3xl border flex flex-col lg:flex-row lg:items-center justify-between gap-6 p-6 shadow-md transition-shadow hover:shadow-lg bg-gradient-to-r from-indigo-50/80 via-purple-50/40 to-white"
+          style={{ borderColor: 'rgba(99, 102, 241, 0.2)' }}
         >
-          <div className="flex items-center gap-4">
+          <div className="flex items-start sm:items-center gap-4">
             <div
-              className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-indigo-100"
-              style={{ background: 'var(--brand)', color: '#fff' }}
+              className="w-13 h-13 rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-indigo-100 bg-indigo-600 text-white"
             >
-              <Link2 size={22} />
+              <Sparkles size={24} />
             </div>
             <div>
-              <p className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>
-                Public Lead Capture Link
-              </p>
-              <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
-                Automatically sync leads from your website or social media.
+              <div className="flex items-center gap-2">
+                <p className="text-base font-black text-slate-900">
+                  Instagram & Campaign Lead Capture Link
+                </p>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-700">
+                  Live Public Form
+                </span>
+              </div>
+              <p className="text-xs font-medium text-slate-500 mt-0.5 max-w-xl">
+                Share this link in your Instagram bio, ad campaigns, or WhatsApp. Leads are instantly saved in Sales CRM and queued in the Loan Operator workflow.
               </p>
             </div>
           </div>
-          <div
-            className="flex items-center gap-2 bg-white rounded-xl border p-1.5 shrink-0 shadow-sm"
-            style={{ borderColor: 'var(--border)' }}
-          >
-            <span
-              className="px-4 text-xs font-bold tabular-nums truncate max-w-[280px]"
-              style={{ color: 'var(--brand)' }}
-            >
-              {publicLeadUrl}
-            </span>
+
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5">
+            {/* Direct Copy Button */}
             <button
-              onClick={copyLink}
-              className="flex items-center gap-2 px-6 py-3 rounded-lg text-xs font-bold text-white transition-all shrink-0 hover:opacity-90 active:scale-95"
-              style={{ background: copied ? 'var(--success)' : 'var(--brand)' }}
+              type="button"
+              onClick={() => copyLink(publicLeadUrl, false)}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-all shrink-0 shadow-2xs"
             >
-              {copied ? <CheckCircle size={14} /> : <Copy size={14} />}
-              {copied ? 'Copied!' : 'Copy Link'}
+              {copied ? <CheckCircle size={14} className="text-emerald-600" /> : <Copy size={14} className="text-slate-500" />}
+              <span>{copied ? 'Link Copied!' : 'Copy Form Link'}</span>
             </button>
+
+            {/* Instagram Link Button */}
+            <button
+              type="button"
+              onClick={() => copyLink(instaLeadUrl, true)}
+              className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-bold text-white transition-all shrink-0 shadow-md shadow-pink-500/20 bg-gradient-to-r from-pink-500 via-purple-600 to-indigo-600 hover:opacity-95 active:scale-95 cursor-pointer"
+            >
+              {copiedInsta ? <CheckCircle size={14} /> : <Share2 size={14} />}
+              <span>{copiedInsta ? 'Insta Link Copied!' : 'Copy Instagram Link'}</span>
+            </button>
+
+            {/* Preview Form in New Tab */}
+            <a
+              href={publicLeadUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center p-2.5 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-white border border-transparent hover:border-slate-200 transition-all shrink-0"
+              title="Preview Public Lead Form in new tab"
+            >
+              <ExternalLink size={16} />
+            </a>
           </div>
         </div>
       )}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use } from 'react';
 import { api } from '@/lib/api-client';
-import { Mail, Phone, Building, Briefcase, Calendar, CheckSquare, MessageSquare, X, Clock, ClipboardList, Send, CheckCircle2, Pencil, Settings, Plus, Bell, MessageCircle, FileText, MapPin, HeartPulse, GraduationCap, Users, Shield, Trash2, User, TrendingUp, UserCog } from 'lucide-react';
+import { Mail, Phone, Building, Briefcase, Calendar, CheckSquare, MessageSquare, X, Clock, ClipboardList, Send, CheckCircle2, Pencil, Settings, Plus, Bell, MessageCircle, FileText, MapPin, HeartPulse, GraduationCap, Users, Shield, Trash2, User, TrendingUp, UserCog, UserCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import CallButton from '@/components/CallButton';
@@ -26,6 +26,8 @@ interface Lead {
   company: string;
   status: string;
   source: string;
+  value?: number;
+  createdBy?: { _id: string; name: string; email?: string; role?: string; avatar?: string };
   createdAt: string;
   lostReason?: string;
   assignedTo?: { _id: string; name: string; avatar?: string };
@@ -736,6 +738,35 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                     <span className="text-sm font-semibold text-gray-700 capitalize">{lead.source}</span>
                   </div>
                 </div>
+
+                <div className="group/item flex items-center gap-4 p-3 rounded-xl hover:bg-purple-50/50 transition-colors">
+                  <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center group-hover/item:bg-white group-hover/item:shadow-sm transition-all">
+                    <UserCheck className="w-4 h-4 text-purple-600" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400">Filled / Added By</span>
+                    <span className="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
+                      {lead.createdBy?.name || 'Inbound Customer'}
+                      {lead.createdBy?.role && (
+                        <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                          {lead.createdBy.role === 'operator' ? 'Loan Operator' : lead.createdBy.role.replace('_', ' ')}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+
+                {lead.value !== undefined && lead.value > 0 && (
+                  <div className="group/item flex items-center gap-4 p-3 rounded-xl hover:bg-emerald-50/50 transition-colors">
+                    <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center group-hover/item:bg-white group-hover/item:shadow-sm transition-all">
+                      <TrendingUp className="w-4 h-4 text-emerald-600" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400">Loan Amount Requested</span>
+                      <span className="text-sm font-bold text-emerald-700">₹{lead.value.toLocaleString('en-IN')}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

@@ -5,6 +5,7 @@ import { connectDB } from '@/lib/db';
 import { requireAuth, apiError, apiSuccess, ROLES } from '@/lib/auth';
 import Lead from '@/models/Lead';
 import Deal from '@/models/Deal';
+import Booking from '@/models/Booking';
 import AuditLog from '@/models/AuditLog';
 
 export async function notifyNewLead(
@@ -49,6 +50,23 @@ export async function notifyNewLead(
         message: `New lead "${leadName || 'Lead'}" has been submitted/created.`,
         link: `/leads/${targetLeadId}`,
       });
+    }
+
+    // Also notify operators in the organization so they can begin loan processing
+    if (orgId) {
+      const operators = await User.find({ organizationId: orgId, role: 'operator', isActive: true });
+      for (const op of operators) {
+        if (op._id.toString() !== targetUserId) {
+          await Notification.create({
+            userId: op._id.toString(),
+            organizationId: orgId,
+            type: 'lead_assigned',
+            title: 'New Loan Inquiry Submitted',
+            message: `New loan inquiry "${leadName || 'Lead'}" is ready for operator review and document processing.`,
+            link: `/post-sales`,
+          });
+        }
+      }
     }
   } catch (err) {
     console.error('Failed to notify new lead:', err);
@@ -237,7 +255,7 @@ export async function GET(req: NextRequest) {
     const [leads, total] = await Promise.all([
       Lead.find(query)
         .populate('assignedTo', 'name email avatar')
-        .populate('createdBy', 'name email')
+        .populate('createdBy', 'name email role avatar')
         .populate('lastStageChangedBy', 'name email avatar')
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -268,9 +286,30 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { name, email, phone, company, value, source, region, industry, notes, assignedTo } = body;
+    const {
+      name,
+      email,
+      phone,
+      company,
+      value,
+      source,
+      region,
+      industry,
+      notes,
+      assignedTo,
+      secondaryPhone,
+      address,
+      flatNo,
+      landmark,
+      area,
+      pincode,
+      income,
+      occupation,
+      education,
+      customFields,
+    } = body;
 
-    if (!name) return apiError('Lead name is required');
+    if (!name) return apiError('Lead / Applicant name is required');
 
     // Sales agents always assign leads to themselves
     const finalAssignedTo =
@@ -286,26 +325,72 @@ export async function POST(req: NextRequest) {
       company,
       value: value ? Number(value) : 0,
       source: source || 'other',
-      region: region || 'Central',
+      region: region || 'West Pune (Baner, Balewadi, Aundh, Hinjawadi, Wakad, Pashan, Kothrud)',
       industry: industry || 'Home Loan / Housing Loan',
       notes,
+      secondaryPhone,
+      address,
+      flatNo,
+      landmark,
+      area,
+      pincode,
+      income,
+      occupation,
+      education,
+      customFields: customFields || {},
       assignedTo: finalAssignedTo,
       createdBy: auth.userId,
       status: 'new',
       pipelineStage: 'new',
     });
 
-    // Create deal entry for pipeline
-    await Deal.create({
+    const deal = await Deal.create({
       organizationId: auth.organizationId,
       leadId: lead._id,
-      title: `${name}${company ? ` - ${company}` : ''}`,
+      title: `${name} - ${industry || 'Loan Inquiry'}`,
       value: value ? Number(value) : 0,
       stage: 'new',
       assignedTo: finalAssignedTo,
       createdBy: auth.userId,
       position: 0,
     });
+
+    // Auto-create Booking record for Loan Operations (/post-sales) so operator can process loan stages
+    try {
+      await Booking.create({
+        organizationId: auth.organizationId,
+        leadId: lead._id,
+        dealId: deal._id,
+        salesPersonId: finalAssignedTo,
+        unitNumber: `${name} - ${industry || 'Loan Application'}`,
+        projectName: `${industry || 'Loan Application'} (${name})`,
+        totalAmount: value ? Number(value) : 0,
+        bookingDate: new Date(),
+        status: 'documentation',
+        loanDetails: {
+          loanType: (industry || '').toLowerCase().includes('personal')
+            ? 'personal_loan'
+            : (industry || '').toLowerCase().includes('business')
+            ? 'business_loan'
+            : (industry || '').toLowerCase().includes('property') || (industry || '').toLowerCase().includes('lap')
+            ? 'lap'
+            : 'home_loan',
+          selectedBank: 'HDFC Bank',
+          sanctionAmount: value ? Number(value) : 0,
+          disbursedAmount: 0,
+          verificationStatus: 'pending',
+        },
+        documents: [
+          { name: 'PAN & Aadhaar KYC', docType: 'KYC Document', status: 'pending' },
+          { name: 'Income / Salary Proof', docType: 'Income Proof', status: 'pending' },
+          { name: 'Bank Statement (6 Months)', docType: 'Bank Statement', status: 'pending' },
+        ],
+        paymentMilestones: [],
+        handoverChecklist: [],
+      });
+    } catch (bookingErr) {
+      console.error('Failed to auto-create booking for loan inquiry:', bookingErr);
+    }
 
     await notifyNewLead(lead);
 

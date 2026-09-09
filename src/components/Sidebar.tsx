@@ -152,6 +152,11 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                   if (salesExcluded.includes(item.href)) return false;
                   if (item.href === '/leads') item.label = 'My Leads';
                 }
+                if (isOperator) {
+                  const operatorExcluded = ['/projects', '/inventory', '/site-visits', '/bookings'];
+                  if (operatorExcluded.includes(item.href)) return false;
+                  if (item.href === '/post-sales') item.label = 'Loan Operations';
+                }
                 return true;
               }).map(({ href, label, icon: Icon }) => {
                 const active = isActive(href);

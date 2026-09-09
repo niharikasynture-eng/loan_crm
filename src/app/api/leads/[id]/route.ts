@@ -26,7 +26,7 @@ export async function GET(
 
     const lead = await Lead.findOne(query)
       .populate('assignedTo', 'name email avatar')
-      .populate('createdBy', 'name email')
+      .populate('createdBy', 'name email role avatar')
       .populate('lastStageChangedBy', 'name email avatar')
       .lean();
 

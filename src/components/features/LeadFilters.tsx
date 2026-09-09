@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Search, Plus, Upload, Download, UserCheck, Calendar, Filter, RotateCcw, Building2, MapPin, Trash2, User } from 'lucide-react';
+import { Search, Plus, Upload, Download, UserCheck, Calendar, Filter, RotateCcw, Building2, MapPin, Trash2, User, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -28,6 +28,7 @@ interface LeadFiltersProps {
   onImport: () => void;
   onExport: () => void;
   onAddLead: () => void;
+  onShareLink?: () => void;
   onResetFilters?: () => void;
 }
 
@@ -101,6 +102,7 @@ export function LeadFilters({
   onImport,
   onExport,
   onAddLead,
+  onShareLink,
   onResetFilters,
 }: LeadFiltersProps) {
   const { user } = useAuth();
@@ -186,10 +188,22 @@ export function LeadFilters({
             </div>
           )}
 
+          {onShareLink && (
+            <Button
+              variant="secondary"
+              onClick={onShareLink}
+              className="h-11 px-4 rounded-xl text-xs font-bold border-indigo-200 text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100 flex items-center gap-1.5 shrink-0"
+              title="Copy Instagram / Campaign Public Form Link"
+            >
+              <Share2 size={14} className="text-indigo-600" />
+              <span>Campaign Link</span>
+            </Button>
+          )}
+
           {canAddLead && (
             <Button onClick={onAddLead} className="h-11 px-6 shadow-md shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-2">
               <Plus size={16} strokeWidth={2.5} />
-              <span>Add Lead</span>
+              <span>New Loan Inquiry</span>
             </Button>
           )}
         </div>

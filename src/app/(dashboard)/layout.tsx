@@ -59,6 +59,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       : isOperator
         ? [
           { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+          { label: 'Leads', href: '/leads', icon: Users },
           { label: 'Loan Operations', href: '/post-sales', icon: KeyRound },
           { label: 'Tasks', href: '/tasks', icon: CheckSquare },
           { label: 'Settings', href: '/settings', icon: Settings },

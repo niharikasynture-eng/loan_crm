@@ -16,11 +16,12 @@ import { AgentSelector } from '@/components/features/AgentSelector';
 import { Button } from '@/components/ui/Button';
 import { ILead } from '@/models/Lead';
 import { IUser } from '@/models/User';
+import { ExternalLink, Share2, Copy, Sparkles } from 'lucide-react';
 
 function LeadsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
+  const { user, organization } = useAuth();
   const { toast } = useToast();
   const { open: openModal, close: closeModal } = useModal();
 
@@ -327,6 +328,89 @@ function LeadsContent() {
     }
   };
 
+  // --- Campaign & Instagram Link Dialog ---
+  const handleShareLink = () => {
+    const slug = organization?.slug || 'acme-corp';
+    const baseUrl = typeof window !== 'undefined'
+      ? `${window.location.protocol}//${window.location.host}/apply/${slug}`
+      : `/apply/${slug}`;
+    const instaUrl = `${baseUrl}?source=Instagram`;
+
+    openModal({
+      title: 'Campaign & Instagram Lead Form Links',
+      content: (
+        <div className="space-y-4 pt-1">
+          <p className="text-xs font-medium text-slate-500 leading-relaxed">
+            Share these links in your Instagram bio, ad campaigns, or WhatsApp broadcasts. When a user submits an inquiry, it automatically syncs with <strong>Sales CRM</strong> and is queued in the <strong>Loan Operator</strong> workflow.
+          </p>
+
+          {/* Instagram Link Card */}
+          <div className="p-4 bg-gradient-to-r from-pink-50 via-purple-50 to-indigo-50 border border-purple-200/80 rounded-2xl space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-purple-900 flex items-center gap-1.5">
+                📸 Instagram Bio & Stories Link
+              </span>
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-700 bg-white px-2 py-0.5 rounded-md shadow-2xs">
+                Auto-tagged "Instagram"
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                readOnly
+                value={instaUrl}
+                className="w-full text-xs font-mono font-medium text-slate-700 bg-white border border-purple-200 rounded-xl px-3 py-2 outline-none"
+              />
+              <Button
+                variant="primary"
+                onClick={() => {
+                  navigator.clipboard.writeText(instaUrl);
+                  toast('success', 'Instagram campaign link copied!');
+                }}
+                className="shrink-0 h-9 px-4 text-xs font-bold rounded-xl"
+              >
+                Copy
+              </Button>
+            </div>
+          </div>
+
+          {/* Standard Form Link Card */}
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-800">
+                🌐 General Public Loan Inquiry Link
+              </span>
+              <a
+                href={baseUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[11px] font-bold text-indigo-600 hover:underline flex items-center gap-1"
+              >
+                Preview Form <ExternalLink size={12} />
+              </a>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                readOnly
+                value={baseUrl}
+                className="w-full text-xs font-mono font-medium text-slate-700 bg-white border border-slate-200 rounded-xl px-3 py-2 outline-none"
+              />
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  navigator.clipboard.writeText(baseUrl);
+                  toast('success', 'Public form link copied!');
+                }}
+                className="shrink-0 h-9 px-4 text-xs font-bold rounded-xl border-slate-200 hover:bg-slate-100"
+              >
+                Copy
+              </Button>
+            </div>
+          </div>
+        </div>
+      ),
+    });
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <PageHeader
@@ -357,6 +441,7 @@ function LeadsContent() {
           onImport={() => setIsImportOpen(true)}
           onExport={handleExport}
           onAddLead={() => router.push('/leads/new')}
+          onShareLink={handleShareLink}
           onResetFilters={() => {
             setSearch('');
             setIndustry('all');

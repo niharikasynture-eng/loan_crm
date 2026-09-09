@@ -127,6 +127,51 @@ export function LeadTable({
       },
     },
     {
+      key: 'value',
+      header: 'Loan Amount',
+      render: (lead) => {
+        const val = lead.value;
+        return (
+          <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-lg whitespace-nowrap">
+            {val && val > 0 ? `₹${val.toLocaleString('en-IN')}` : '—'}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'createdBy',
+      header: 'Filled By',
+      render: (lead) => {
+        const creator = (lead as any).createdBy;
+        const creatorName = creator?.name || 'Inbound Enquiry';
+        const roleStr = creator?.role;
+        const roleBadge = roleStr === 'operator' 
+          ? 'Loan Operator' 
+          : roleStr === 'sales_agent' 
+          ? 'Sales Person' 
+          : roleStr === 'manager' 
+          ? 'Manager' 
+          : roleStr === 'org_admin' 
+          ? 'Admin' 
+          : roleStr 
+          ? roleStr.replace('_', ' ') 
+          : '';
+
+        return (
+          <div className="flex flex-col text-xs font-semibold">
+            <span className="text-gray-900 font-bold">{creatorName}</span>
+            {roleBadge && (
+              <span className={`text-[10px] font-bold tracking-wider inline-block ${
+                roleStr === 'operator' ? 'text-blue-600' : 'text-slate-400'
+              }`}>
+                {roleBadge}
+              </span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
       key: 'status',
       header: 'Status & SLA',
       render: (lead) => {

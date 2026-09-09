@@ -1,11 +1,12 @@
-'use client';
-
-import { Suspense, use } from 'react';
+import { Suspense } from 'react';
 import PublicLoanInquiryForm from '@/components/public/PublicLoanInquiryForm';
 
-export default function PublicLeadFormBySlugPage({ params }: { params: Promise<{ slug: string }> }) {
-  const unwrappedParams = use(params);
-  const slug = unwrappedParams.slug;
+interface PageProps {
+  params: Promise<{ slug: string }>;
+}
+
+export default async function ApplySlugPage({ params }: PageProps) {
+  const { slug } = await params;
 
   return (
     <Suspense
