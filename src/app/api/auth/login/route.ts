@@ -18,22 +18,7 @@ export async function POST(req: NextRequest) {
     const user = await User.findOne({ email: cleanEmail }).select('+password');
     if (!user) return apiError('Invalid credentials', 401);
 
-    // Verify selected role matches user's actual database role
-    if (selectedRole && user.role !== selectedRole) {
-      const roleLabels: Record<string, string> = {
-        super_admin: 'Super Admin',
-        org_admin: 'Organization Admin',
-        manager: 'Manager',
-        operator: 'Loan Operator',
-        sales_agent: 'Sales Person',
-        onsite_visitor: 'Onsite Visitor',
-      };
-      const actualRoleLabel = roleLabels[user.role] || user.role;
-      return apiError(
-        `Invalid credentials for the selected role. This account is registered as a "${actualRoleLabel}".`,
-        401
-      );
-    }
+    // User role is strictly enforced from database (user.role) for all permissions and tokens
 
     // Super admin: skip org status check
     if (user.role !== 'super_admin') {
