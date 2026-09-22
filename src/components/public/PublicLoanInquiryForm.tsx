@@ -17,26 +17,23 @@ interface OrgInfo {
 }
 
 const LOAN_CATEGORIES = [
+  'Electronics & Hardware',
+  'Industrial Automation & IoT',
+  'Custom Equipment & Machinery',
+  'Smart Devices & Sensors',
+  'Spare Parts & Accessories',
+  'Commercial Systems',
   'Home Loan / Housing Loan',
-  'Personal Loan',
   'Business Loan / Commercial Loan',
-  'Loan Against Property (LAP)',
-  'Car Loan / Auto Loan',
-  'Education Loan / Student Loan',
-  'MSME / SME Loan',
-  'Gold Loan',
-  'Commercial Vehicle Loan',
-  'Mortgage Balance Transfer / Refinance',
-  'Project / Construction Loan',
-  'Other Loan Category',
+  'Other Product Category',
 ];
 
 const QUICK_AMOUNTS = [
+  { label: '₹25,000', val: 25000 },
+  { label: '₹1 Lakh', val: 100000 },
   { label: '₹5 Lakhs', val: 500000 },
   { label: '₹15 Lakhs', val: 1500000 },
-  { label: '₹25 Lakhs', val: 2500000 },
   { label: '₹50 Lakhs', val: 5000000 },
-  { label: '₹1 Crore', val: 10000000 },
 ];
 
 export default function PublicLoanInquiryForm({ initialSlug }: { initialSlug: string }) {
@@ -56,7 +53,7 @@ export default function PublicLoanInquiryForm({ initialSlug }: { initialSlug: st
     phone: '',
     email: '',
     address: '',
-    industry: 'Home Loan / Housing Loan',
+    industry: 'Electronics & Hardware',
     value: '',
     notes: '',
   });
@@ -176,22 +173,22 @@ export default function PublicLoanInquiryForm({ initialSlug }: { initialSlug: st
           )}
 
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-2">
-            Fast Loan Inquiry & Approval
+            Product Inquiry & Order Request
           </h1>
           <p className="text-xs sm:text-sm font-medium text-slate-500 max-w-md mx-auto">
-            Get instant eligibility check, lowest bank interest rates, and end-to-end documentation assistance.
+            Get instant product specifications, wholesale pricing & direct order fulfillment assistance.
           </p>
 
           {/* Quick Value Badges */}
           <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
             <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 bg-white border border-slate-200/80 px-3 py-1 rounded-full shadow-2xs">
-              <Clock size={12} className="text-emerald-500" /> 30-Min Callback
+              <Clock size={12} className="text-emerald-500" /> Fast Response
             </span>
             <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 bg-white border border-slate-200/80 px-3 py-1 rounded-full shadow-2xs">
-              <Award size={12} className="text-indigo-500" /> Lowest Interest
+              <Award size={12} className="text-indigo-500" /> Direct Pricing
             </span>
             <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 bg-white border border-slate-200/80 px-3 py-1 rounded-full shadow-2xs">
-              <ShieldCheck size={12} className="text-blue-500" /> Zero Hidden Charges
+              <ShieldCheck size={12} className="text-blue-500" /> Quality Verified
             </span>
           </div>
         </div>
@@ -210,21 +207,21 @@ export default function PublicLoanInquiryForm({ initialSlug }: { initialSlug: st
               </div>
 
               <div className="space-y-1">
-                <h3 className="text-xl sm:text-2xl font-black text-slate-900">Application Received!</h3>
+                <h3 className="text-xl sm:text-2xl font-black text-slate-900">Inquiry Received!</h3>
                 <p className="text-xs sm:text-sm font-medium text-slate-500">
-                  Thank you, <span className="font-bold text-slate-800">{form.name}</span>! Your loan inquiry has been registered.
+                  Thank you, <span className="font-bold text-slate-800">{form.name}</span>! Your product inquiry has been registered.
                 </p>
               </div>
 
               {/* Inquiry Summary Box */}
               <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 text-left space-y-2.5 max-w-sm mx-auto my-4 text-xs font-medium">
                 <div className="flex justify-between items-center text-slate-500 border-b border-slate-200/60 pb-2">
-                  <span>Loan Category</span>
+                  <span>Product Category</span>
                   <span className="font-bold text-indigo-700">{form.industry}</span>
                 </div>
                 {form.value && (
                   <div className="flex justify-between items-center text-slate-500 border-b border-slate-200/60 pb-2">
-                    <span>Desired Amount</span>
+                    <span>Estimated Budget</span>
                     <span className="font-bold text-emerald-700">₹{parseFloat(form.value).toLocaleString('en-IN')}</span>
                   </div>
                 )}
@@ -235,7 +232,7 @@ export default function PublicLoanInquiryForm({ initialSlug }: { initialSlug: st
               </div>
 
               <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-[11px] font-bold text-emerald-800 max-w-sm mx-auto">
-                📞 Our Loan Processing Officer is reviewing your file and will contact you shortly to guide your document submission.
+                📞 Our Product Operations Team is reviewing your inquiry and will contact you shortly with availability and pricing.
               </div>
 
               <div className="pt-4">
@@ -327,10 +324,10 @@ export default function PublicLoanInquiryForm({ initialSlug }: { initialSlug: st
                 </div>
               </div>
 
-              {/* 4. What Loan Do You Want? */}
+              {/* 4. Product Category */}
               <div>
                 <label className="block text-[11px] font-black uppercase tracking-wider text-slate-600 mb-1.5 ml-1">
-                  What Loan Do You Want? <span className="text-rose-500">*</span>
+                  Product Category / Requirements <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
                   <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
@@ -351,11 +348,11 @@ export default function PublicLoanInquiryForm({ initialSlug }: { initialSlug: st
                 </div>
               </div>
 
-              {/* 5. Required Loan Amount */}
+              {/* 5. Required Order Value / Budget */}
               <div>
                 <div className="flex items-center justify-between mb-1.5 ml-1">
                   <label className="block text-[11px] font-black uppercase tracking-wider text-slate-600">
-                    Required Loan Amount (₹)
+                    Estimated Order Budget (₹)
                   </label>
                   {form.value && (
                     <span className="text-xs font-mono font-bold text-emerald-700">
@@ -369,8 +366,8 @@ export default function PublicLoanInquiryForm({ initialSlug }: { initialSlug: st
                   </span>
                   <input
                     type="number"
-                    min="10000"
-                    placeholder="e.g. 2500000"
+                    min="1000"
+                    placeholder="e.g. 250000"
                     value={form.value}
                     onChange={(e) => setForm(p => ({ ...p, value: e.target.value }))}
                     className="w-full text-sm font-semibold text-slate-900 bg-slate-50/70 border border-slate-200 rounded-xl pl-10 pr-4 py-3 focus:bg-white focus:outline-none focus:border-indigo-600 focus:ring-3 focus:ring-indigo-600/10 transition-all h-12"
@@ -399,12 +396,12 @@ export default function PublicLoanInquiryForm({ initialSlug }: { initialSlug: st
               {/* Optional: Notes / Requirements */}
               <div>
                 <label className="block text-[11px] font-black uppercase tracking-wider text-slate-600 mb-1.5 ml-1">
-                  Additional Notes / Questions (Optional)
+                  Product Specifications & Notes (Optional)
                 </label>
                 <div className="relative">
                   <textarea
                     rows={2}
-                    placeholder="e.g. Salaried in IT firm, need loan sanction within 7 days"
+                    placeholder="e.g. Need 50 units for assembly, delivery required in 14 days"
                     value={form.notes}
                     onChange={(e) => setForm(p => ({ ...p, notes: e.target.value }))}
                     className="w-full text-xs font-medium text-slate-900 bg-slate-50/70 border border-slate-200 rounded-xl px-3.5 py-2.5 focus:bg-white focus:outline-none focus:border-indigo-600 focus:ring-3 focus:ring-indigo-600/10 transition-all resize-none"
@@ -422,11 +419,11 @@ export default function PublicLoanInquiryForm({ initialSlug }: { initialSlug: st
                   {submitting ? (
                     <>
                       <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                      <span>Submitting Application...</span>
+                      <span>Submitting Inquiry...</span>
                     </>
                   ) : (
                     <>
-                      <span>Apply For Loan Now</span>
+                      <span>Submit Product Inquiry</span>
                       <ArrowRight size={16} strokeWidth={2.5} />
                     </>
                   )}
@@ -435,7 +432,7 @@ export default function PublicLoanInquiryForm({ initialSlug }: { initialSlug: st
 
               {/* Guarantee text */}
               <p className="text-center text-[11px] font-medium text-slate-400 mt-2">
-                🔒 Your personal data is 100% confidential and secure. No spam guaranteed.
+                🔒 Your inquiry is handled directly by our operations team. No spam guaranteed.
               </p>
             </form>
           )}
@@ -445,7 +442,7 @@ export default function PublicLoanInquiryForm({ initialSlug }: { initialSlug: st
         {/* Footer */}
         <div className="text-center mt-6 space-y-1">
           <p className="text-xs font-semibold text-slate-400">
-            Powered by {org?.name || 'Sales CRM'} • Loan Operations Suite
+            Powered by {org?.name || 'DealByte'} • Product Operations Suite
           </p>
           {org?.phone && (
             <p className="text-xs font-bold text-indigo-600">

@@ -17,50 +17,93 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { IBooking, IPaymentMilestone, IBuyerDocument, IHandoverCheckitem, IUpsellOpportunity } from '@/models/Booking';
 
 const DELIVERY_STAGES = [
-  { id: 'documentation', stepNum: 1, label: 'Documentation', shortLabel: 'Documentation', description: 'Document Collection & Verification', icon: FileText },
-  { id: 'verification', stepNum: 2, label: 'Verification', shortLabel: 'Verification', description: 'Field & KYC Verification', icon: ShieldCheck },
-  { id: 'loan_application_submitted', stepNum: 3, label: 'Loan Application Submitted', shortLabel: 'Application Submitted', description: 'Submitted to Lender / Bank', icon: Send },
-  { id: 'bank_lender_processing', stepNum: 4, label: 'Bank / Lender Processing', shortLabel: 'Lender Processing', description: 'Underwriting & Assessment', icon: Building2 },
-  { id: 'loan_sanctioned', stepNum: 5, label: 'Loan Sanctioned', shortLabel: 'Loan Sanctioned', description: 'Sanction Letter Issued', icon: FileCheck },
-  { id: 'disbursement', stepNum: 6, label: 'Disbursement', shortLabel: 'Disbursement', description: 'Funds Disbursed to Account', icon: IndianRupee },
-  { id: 'loan_completed', stepNum: 7, label: 'Loan Completed', shortLabel: 'Loan Completed', description: 'Loan Account Active & Closed', icon: CheckSquare },
+  { id: 'confirmation', stepNum: 1, label: 'Confirmation', shortLabel: 'Confirmation', description: 'Order & Documentation Confirmed', icon: FileCheck },
+  { id: 'quality_check', stepNum: 2, label: 'Quality Check', shortLabel: 'Quality Check', description: 'Quality Inspection & Verification', icon: ShieldCheck },
+  { id: 'ready_for_dispatched', stepNum: 3, label: 'Ready for Dispatched', shortLabel: 'Ready for Dispatch', description: 'Packaged & Staged for Dispatch', icon: Clock },
+  { id: 'dispatched', stepNum: 4, label: 'Dispatched', shortLabel: 'Dispatched', description: 'In Transit / Dispatched to Destination', icon: Truck },
+  { id: 'delivered', stepNum: 5, label: 'Delivered', shortLabel: 'Delivered', description: 'Delivered to Customer / Client', icon: CheckCircle2 },
+  { id: 'complete', stepNum: 6, label: 'Complete', shortLabel: 'Complete', description: 'Delivery & Fulfillment Completed', icon: CheckSquare },
 ] as const;
 
-const BANK_OPTIONS = [
-  'HDFC Bank',
-  'State Bank of India (SBI)',
-  'ICICI Bank',
-  'Axis Bank',
-  'Kotak Mahindra Bank',
-  'Bank of Baroda',
-  'Punjab National Bank (PNB)',
-  'Bajaj Finserv',
-  'IDFC FIRST Bank',
-  'IndusInd Bank',
-  'Yes Bank',
-  'Standard Chartered',
-] as const;
+const normalizeDeliveryStage = (status?: string): string => {
+  if (!status) return 'confirmation';
+  const match = DELIVERY_STAGES.find((s) => s.id === status);
+  if (match) return match.id;
 
-const LOAN_DOC_REQUIREMENTS: Record<string, { category: string; docs: string[] }[]> = {
+  const legacyMap: Record<string, string> = {
+    documentation: 'confirmation',
+    loan_lead_approved: 'confirmation',
+    contract_signed: 'confirmation',
+    advance_paid: 'confirmation',
+    verification: 'quality_check',
+    implementation_in_progress: 'quality_check',
+    loan_application_submitted: 'ready_for_dispatched',
+    bank_lender_processing: 'ready_for_dispatched',
+    user_training: 'ready_for_dispatched',
+    ready_for_golive: 'ready_for_dispatched',
+    loan_sanctioned: 'dispatched',
+    disbursement: 'delivered',
+    loan_completed: 'complete',
+    active_ams: 'complete',
+  };
+  return legacyMap[status] || 'confirmation';
+};
+
+const CARRIER_OPTIONS = [
+  'BlueDart Express',
+  'Delhivery Logistics',
+  'FedEx Freight',
+  'DHL Express',
+  'DTDC Courier',
+  'Shadowfax',
+  'Internal Warehouse Fleet',
+  'Direct Client Pickup',
+] as const;
+const BANK_OPTIONS = CARRIER_OPTIONS;
+
+const PRODUCT_DOC_REQUIREMENTS: Record<string, { category: string; docs: string[] }[]> = {
+  electronics: [
+    { category: 'Quality & Testing Proofs', docs: ['Factory QC Pass Certificate', 'Component Inspection Sheet', 'Firmware / Calibration Report'] },
+    { category: 'Shipping & Logistics', docs: ['Commercial Shipping Invoice', 'Packing & Barcode List', 'Courier Waybill (AWB)'] },
+    { category: 'Customer Handover', docs: ['Official Warranty Card', 'Operation & User Manual', 'Delivery Receipt Slip'] },
+  ],
+  industrial_hardware: [
+    { category: 'Quality & Testing', docs: ['Load & Stress Test Certificate', 'Calibration Certificate', 'Material Compliance Pass'] },
+    { category: 'Shipping & Freight', docs: ['Commercial Invoice', 'Heavy Freight Manifest', 'Warehouse Dispatch Challan'] },
+    { category: 'Handover & Warranty', docs: ['Equipment Warranty Entitlement', 'Installation & Maintenance Guide', 'Acceptance Certificate'] },
+  ],
+  consumer_goods: [
+    { category: 'Quality & Batch Log', docs: ['Standard QC Checksheet', 'Batch & Expiry Manifest', 'Barcode Verification'] },
+    { category: 'Dispatch & Waybill', docs: ['GST Tax Invoice', 'Dispatch Slip', 'Courier AWB Tracking Slip'] },
+    { category: 'Customer Handover', docs: ['Product Warranty Card', 'Quick Start Guide', 'Customer Delivery Receipt'] },
+  ],
+  custom_machinery: [
+    { category: 'Engineering QC', docs: ['Factory Acceptance Test (FAT)', 'Wiring / Circuit Schematics', 'BOM Compliance Certificate'] },
+    { category: 'Logistics & Crating', docs: ['Custom Crating Checklist', 'Freight Transit Insurance', 'Dispatch Manifest'] },
+    { category: 'Commissioning & Handover', docs: ['Commissioning Signoff', 'Warranty Agreement', 'Customer Handover Certificate'] },
+  ],
   home_loan: [
-    { category: 'Identity & Address KYC', docs: ['PAN Card Copy', 'Aadhaar Card Copy', 'Passport Photographs'] },
-    { category: 'Income & Financial Proofs', docs: ['Salary Slips (Last 3 Months)', 'Form 16 / Income Tax Returns (Last 2 Years)', 'Bank Account Statement (6 Months)'] },
-    { category: 'Property Documents', docs: ['Property Sale Agreement', 'Approved Building Map / Plan', 'Property Title Deed & Occupancy Certificate'] },
+    { category: 'Quality & Testing Proofs', docs: ['Factory QC Pass Certificate', 'Component Inspection Sheet', 'Firmware / Calibration Report'] },
+    { category: 'Shipping & Logistics', docs: ['Commercial Shipping Invoice', 'Packing & Barcode List', 'Courier Waybill (AWB)'] },
+    { category: 'Customer Handover', docs: ['Official Warranty Card', 'Operation & User Manual', 'Delivery Receipt Slip'] },
   ],
   lap: [
-    { category: 'Identity & Residence KYC', docs: ['PAN Card Copy', 'Aadhaar Card', 'Electricity / Utility Bill'] },
-    { category: 'Business / Tax Financials', docs: ['ITR Returns (Last 3 Years)', 'Audited Balance Sheet & P&L', 'Bank Account Statements (12 Months)'] },
-    { category: 'Property Valuation Details', docs: ['Original Property Title Deed', 'Property Tax Payment Receipt', 'Encumbrance Certificate'] },
+    { category: 'Quality & Testing', docs: ['Load & Stress Test Certificate', 'Calibration Certificate', 'Material Compliance Pass'] },
+    { category: 'Shipping & Freight', docs: ['Commercial Invoice', 'Heavy Freight Manifest', 'Warehouse Dispatch Challan'] },
+    { category: 'Handover & Warranty', docs: ['Equipment Warranty Entitlement', 'Installation & Maintenance Guide', 'Acceptance Certificate'] },
   ],
   personal_loan: [
-    { category: 'Identity KYC', docs: ['PAN Card', 'Aadhaar Card', 'Current Residence Proof'] },
-    { category: 'Employment & Salary Proofs', docs: ['Salary Slips (3 Months)', 'Salary Account Statement (6 Months)', 'Company Identity Card'] },
+    { category: 'Quality & Batch Log', docs: ['Standard QC Checksheet', 'Batch & Expiry Manifest', 'Barcode Verification'] },
+    { category: 'Dispatch & Waybill', docs: ['GST Tax Invoice', 'Dispatch Slip', 'Courier AWB Tracking Slip'] },
+    { category: 'Customer Handover', docs: ['Product Warranty Card', 'Quick Start Guide', 'Customer Delivery Receipt'] },
   ],
   business_loan: [
-    { category: 'Entity & Promoter KYC', docs: ['Promoter PAN & Aadhaar', 'GST Registration Certificate', 'Udyam / MSME Certificate'] },
-    { category: 'Business Financial Statements', docs: ['Audited Financial Statements (2 Years)', 'GST Tax Returns (1 Year)', 'Business Bank Statements (12 Months)'] },
+    { category: 'Engineering QC', docs: ['Factory Acceptance Test (FAT)', 'Wiring / Circuit Schematics', 'BOM Compliance Certificate'] },
+    { category: 'Logistics & Crating', docs: ['Custom Crating Checklist', 'Freight Transit Insurance', 'Dispatch Manifest'] },
+    { category: 'Commissioning & Handover', docs: ['Commissioning Signoff', 'Warranty Agreement', 'Customer Handover Certificate'] },
   ],
 };
+const LOAN_DOC_REQUIREMENTS = PRODUCT_DOC_REQUIREMENTS;
 
 function PostSalesContent() {
   const router = useRouter();
@@ -102,7 +145,7 @@ function PostSalesContent() {
 
   // Loan Operation & Stage Processing Portal State
   const [selectedBookingForOperation, setSelectedBookingForOperation] = React.useState<IBooking | null>(null);
-  const [operationActiveStageTab, setOperationActiveStageTab] = React.useState<string>('documentation');
+  const [operationActiveStageTab, setOperationActiveStageTab] = React.useState<string>('confirmation');
   const [operationForm, setOperationForm] = React.useState<{
     loanType: 'home_loan' | 'personal_loan' | 'lap' | 'business_loan';
     selectedBank: string;
@@ -157,7 +200,7 @@ function PostSalesContent() {
 
   const openOperationPortal = (booking: IBooking, initialStageId?: string) => {
     setSelectedBookingForOperation(booking);
-    setOperationActiveStageTab(initialStageId || booking.status || 'documentation');
+    setOperationActiveStageTab(initialStageId || normalizeDeliveryStage(booking.status));
 
     const ld = booking.loanDetails || {};
     setOperationForm({
@@ -657,17 +700,17 @@ function PostSalesContent() {
     <div className="space-y-6 animate-fade-in pb-12">
       {/* Header */}
       <PageHeader
-        title={isOperator ? 'Loan Operations Dashboard' : 'Post-Sales, Project Handovers & Contract Renewals'}
+        title={isOperator ? 'Product Operations & Fulfillment' : 'Product Fulfillment, Deliveries & Order Operations'}
         subtitle={isOperator
-          ? 'Manage loan processing stages, document collection, bank applications & disbursement tracking'
-          : 'Automate contract milestones, compliance vault, contract expiration countdowns, and payment dunning reminders'
+          ? 'Manage order confirmation, quality checks, warehouse packaging, carrier dispatch & final delivery signoff'
+          : 'Track product delivery progress, quality inspection, batch/serial tracking, invoicing & warranty handovers'
         }
         action={
           <div className="flex items-center gap-2">
             {/* Role indicator pill */}
             <span className="px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-amber-50 text-amber-900 border border-amber-200/80 flex items-center gap-1.5 shadow-2xs">
               {isAdmin ? <ShieldAlert size={14} className="text-amber-600" /> : isManager ? <UserCheck size={14} className="text-indigo-600" /> : isOperator ? <CheckSquare size={14} className="text-blue-600" /> : <User size={14} className="text-emerald-600" />}
-              {isAdmin ? 'Org Admin View' : isManager ? 'Manager View' : isOperator ? 'Loan Operator View' : 'Sales Agent View'}
+              {isAdmin ? 'Org Admin View' : isManager ? 'Product Manager View' : isOperator ? 'Operations View' : 'Sales Agent View'}
             </span>
 
             {(isAdmin || isManager) && (
@@ -676,17 +719,17 @@ function PostSalesContent() {
                   onClick={handleRunDunningEngine}
                   disabled={dunningLoading}
                   className="px-3 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
-                  title="Run Dunning Engine (T-7 Emails, T-0 WhatsApp, T+1 Overdue Escalations)"
+                  title="Run Invoice Payment Reminders"
                 >
                   <RefreshCw size={14} className={dunningLoading ? 'animate-spin' : ''} />
-                  {dunningLoading ? 'Scanning...' : '⚡ Run Dunning Engine'}
+                  {dunningLoading ? 'Scanning...' : '⚡ Payment Reminders'}
                 </button>
 
                 <button
                   onClick={handleOpenNewContractModal}
                   className="btn-primary text-xs font-bold flex items-center gap-1.5 shadow-md"
                 >
-                  <Plus size={14} /> New Loan Record
+                  <Plus size={14} /> New Product Order
                 </button>
               </>
             )}
@@ -699,47 +742,47 @@ function PostSalesContent() {
         <div className="p-5 bg-white border border-slate-200/90 rounded-2xl shadow-xs space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              {isSalesAgent ? 'My Contracts' : 'Active Contracts'}
+              {isSalesAgent ? 'My Orders' : 'Active Product Orders'}
             </span>
             <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
               <Cpu size={18} />
             </div>
           </div>
           <p className="text-3xl font-black text-slate-900">{metrics.totalBookings}</p>
-          <p className="text-xs text-slate-500 font-medium">Enterprise solution deployments</p>
+          <p className="text-xs text-slate-500 font-medium">Customer orders in fulfillment</p>
         </div>
 
         <div className="p-5 bg-white border border-slate-200/90 shadow-xs space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">ARR Expiring (60 Days)</span>
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Warranties Expiring (60D)</span>
             <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
               <Clock size={18} />
             </div>
           </div>
-          <p className="text-3xl font-black text-amber-600">{metrics.arrAtRiskStr}</p>
-          <p className="text-xs text-amber-700 font-medium">{metrics.expiring30Days + metrics.expiring60Days} contracts due for renewal</p>
+          <p className="text-3xl font-black text-amber-600">{metrics.expiring60Days}</p>
+          <p className="text-xs text-amber-700 font-medium">{metrics.expiring30Days + metrics.expiring60Days} orders due for reorder/renewal</p>
         </div>
 
         <div className="p-5 bg-white border border-slate-200/90 shadow-xs space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Upgrade / Upsell Value</span>
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Reorder / Upsell Value</span>
             <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
               <TrendingUp size={18} />
             </div>
           </div>
           <p className="text-3xl font-black text-purple-600">{metrics.totalUpsellValueStr}</p>
-          <p className="text-xs text-slate-500 font-medium">Identified expansion opportunities</p>
+          <p className="text-xs text-slate-500 font-medium">Spare parts & accessory expansion</p>
         </div>
 
         <div className="p-5 bg-white border border-slate-200/90 shadow-xs space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Collected Revenue</span>
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Order Revenue Invoiced</span>
             <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
               <IndianRupee size={18} />
             </div>
           </div>
           <p className="text-3xl font-black text-emerald-600">{metrics.totalCollectedStr}</p>
-          <p className="text-xs text-slate-500 font-medium">Out of {metrics.totalRevenueStr} total value</p>
+          <p className="text-xs text-slate-500 font-medium">Out of {metrics.totalRevenueStr} total order value</p>
         </div>
       </div>
 
@@ -766,7 +809,7 @@ function PostSalesContent() {
                   : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60'
               }`}
             >
-              <IndianRupee size={14} /> Billing & Milestones
+              <IndianRupee size={14} /> Order Invoicing & Milestones
             </button>
             <button
               onClick={() => handleTabChange('renewals')}
@@ -776,7 +819,7 @@ function PostSalesContent() {
                   : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60'
               }`}
             >
-              <Calendar size={14} /> Renewals & Upsells
+              <Calendar size={14} /> Warranties & Reorders
               {(metrics.expiring30Days > 0 || metrics.expiring60Days > 0) && (
                 <span className="w-4 h-4 rounded-full bg-amber-400 text-slate-900 font-black text-[9px] flex items-center justify-center">
                   {metrics.expiring30Days + metrics.expiring60Days}
@@ -791,7 +834,7 @@ function PostSalesContent() {
                   : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60'
               }`}
             >
-              <FileCheck size={14} /> Compliance Vault
+              <FileCheck size={14} /> Product QC & Certifications
             </button>
             <button
               onClick={() => handleTabChange('handover')}
@@ -801,7 +844,7 @@ function PostSalesContent() {
                   : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60'
               }`}
             >
-              <Rocket size={14} /> Production Handover
+              <Rocket size={14} /> Dispatch & Handover
             </button>
           </div>
 
@@ -846,7 +889,8 @@ function PostSalesContent() {
               const leadPhone = (b.leadId as any)?.phone || '';
               const agentName = (b.salesPersonId as any)?.name || 'Assigned Rep';
 
-              const currentStageIdx = DELIVERY_STAGES.findIndex((s) => s.id === b.status);
+              const normalizedStatus = normalizeDeliveryStage(b.status);
+              const currentStageIdx = DELIVERY_STAGES.findIndex((s) => s.id === normalizedStatus);
               const activeStageIdx = currentStageIdx >= 0 ? currentStageIdx : 0;
               const currentStageObj = DELIVERY_STAGES[activeStageIdx];
               const progressPct = Math.round(((activeStageIdx + 1) / DELIVERY_STAGES.length) * 100);
@@ -874,7 +918,7 @@ function PostSalesContent() {
 
                     <div className="flex items-center gap-3">
                       <div className="text-right">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Implementation Stage</span>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Delivery Stage</span>
                         <span className="text-sm font-black text-indigo-600 font-mono flex items-center gap-1 justify-end">
                           <Truck size={14} /> Stage {activeStageIdx + 1} of {DELIVERY_STAGES.length} ({progressPct}%)
                         </span>
@@ -884,19 +928,19 @@ function PostSalesContent() {
                         <button
                           onClick={() => openOperationPortal(b)}
                           className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs shadow-md transition-all flex items-center gap-1.5 active:scale-95"
-                          title="Open Loan Operations & Document Portal"
+                          title="Open Order Fulfillment & QC Portal"
                         >
-                          <CheckSquare size={14} /> Manage Loan & Docs
+                          <CheckSquare size={14} /> Process Order & QC
                         </button>
                       )}
 
                       <button
                         onClick={() => {
-                          const msg = `Hi ${leadName}, update regarding your ${b.unitNumber} contract: We are currently at Stage ${activeStageIdx + 1} (${currentStageObj.label}). Status: ${currentStageObj.description}. Thank you!`;
+                          const msg = `Hi ${leadName}, update regarding your order ${b.unitNumber}: We are currently at Stage ${activeStageIdx + 1} (${currentStageObj.label}). Status: ${currentStageObj.description}. Thank you!`;
                           window.open(`https://wa.me/${leadPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
-                          toast('success', `WhatsApp progress update sent to ${leadName}`);
                         }}
-                        className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5"
+                        className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/80 rounded-xl font-bold text-xs transition-all flex items-center gap-1 shadow-2xs"
+                        title="Send Customer WhatsApp Notification"
                       >
                         <Send size={13} /> WhatsApp Update
                       </button>
@@ -905,9 +949,9 @@ function PostSalesContent() {
                         <button
                           onClick={() => setContractToDelete(b)}
                           className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/80 rounded-xl font-bold text-xs transition-all flex items-center gap-1 shadow-2xs"
-                          title="Delete SAP Contract Record"
+                          title="Delete Product Order Record"
                         >
-                          <Trash2 size={13} /> Delete Contract
+                          <Trash2 size={13} /> Delete Order
                         </button>
                       )}
                     </div>
@@ -1010,7 +1054,7 @@ function PostSalesContent() {
                             key={stg.id}
                             onClick={() => handleUpdateDeliveryStage(b._id as any, stg.id)}
                             className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all ${
-                              b.status === stg.id
+                              b.status === stg.id || normalizedStatus === stg.id
                                 ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
                                 : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                             }`}
@@ -1337,18 +1381,18 @@ function PostSalesContent() {
         </div>
       )}
 
-      {/* ── TAB 3: ENTERPRISE COMPLIANCE & LEGAL VAULT ── */}
+      {/* ── TAB 3: PRODUCT QC & COMPLIANCE VAULT ── */}
       {activeTab === 'documents' && (
         <div className="space-y-4">
           <div className="bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-xs">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 border-b border-slate-200 text-slate-400 uppercase tracking-wider font-bold">
                 <tr>
-                  <th className="py-3.5 px-4">Client & Solution Package</th>
-                  <th className="py-3.5 px-4">Master Services Agreement (MSA)</th>
-                  <th className="py-3.5 px-4">Service Level Agreement (SLA)</th>
-                  <th className="py-3.5 px-4">Data Protection & GDPR</th>
-                  <th className="py-3.5 px-4">License Entitlement Certificate</th>
+                  <th className="py-3.5 px-4">Customer & Product Package</th>
+                  <th className="py-3.5 px-4">Quality Inspection (QC Pass)</th>
+                  <th className="py-3.5 px-4">Product Safety & Compliance</th>
+                  <th className="py-3.5 px-4">Commercial Shipping Waybill</th>
+                  <th className="py-3.5 px-4">Warranty & Guarantee Card</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
@@ -1386,7 +1430,7 @@ function PostSalesContent() {
         </div>
       )}
 
-      {/* ── TAB 4: GO-LIVE & PRODUCTION HANDOVER ── */}
+      {/* ── TAB 4: DISPATCH & CUSTOMER DELIVERY HANDOVER ── */}
       {activeTab === 'handover' && (
         <div className="space-y-6">
           {filteredBookings.map((b) => {
@@ -1396,11 +1440,11 @@ function PostSalesContent() {
               <div key={b._id as any} className="p-6 bg-white rounded-2xl border border-slate-200/90 shadow-xs space-y-4">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <div>
-                    <h3 className="font-bold text-slate-900 text-base">{b.unitNumber} - Go-Live & Handover Checklist</h3>
-                    <p className="text-xs text-slate-500">Enterprise Client: <strong className="text-slate-800">{leadName}</strong></p>
+                    <h3 className="font-bold text-slate-900 text-base">{b.unitNumber} - Dispatch & Delivery Checklist</h3>
+                    <p className="text-xs text-slate-500">Customer: <strong className="text-slate-800">{leadName}</strong></p>
                   </div>
                   <span className="px-3 py-1 bg-sky-50 text-sky-700 font-bold rounded-full text-xs border border-sky-100 flex items-center gap-1.5">
-                    <Rocket size={14} /> Production Go-Live Ready
+                    <Truck size={14} /> Dispatch & Delivery Ready
                   </span>
                 </div>
 
@@ -1658,10 +1702,10 @@ function PostSalesContent() {
                   <div>
                     <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
                       <Cpu className="text-indigo-600" size={22} />
-                      Create New SAP Contract
+                      Create New Product Order
                     </h2>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      Execute a new post-sales enterprise agreement, solution package & payment milestones
+                      Register a new product delivery order, batch allocation & payment milestones
                     </p>
                   </div>
                   <button
@@ -1676,11 +1720,11 @@ function PostSalesContent() {
                   {/* Select Client / Lead */}
                   <div>
                     <label className="block font-bold text-slate-700 mb-1">
-                      Select Enterprise Client <span className="text-rose-500">*</span>
+                      Select Customer / Client <span className="text-rose-500">*</span>
                     </label>
                     {loadingLeads ? (
                       <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-400 italic">
-                        Loading clients list...
+                        Loading customer list...
                       </div>
                     ) : (
                       <select
@@ -1691,7 +1735,7 @@ function PostSalesContent() {
                           setNewContractForm((prev) => ({
                             ...prev,
                             leadId: selectedId,
-                            projectName: selectedLead ? `${selectedLead.company || selectedLead.name} SAP Implementation` : prev.projectName,
+                            projectName: selectedLead ? `${selectedLead.company || selectedLead.name} Product Order` : prev.projectName,
                             totalAmount: selectedLead?.value || prev.totalAmount,
                           }));
                         }}
@@ -1708,47 +1752,47 @@ function PostSalesContent() {
                     )}
                   </div>
 
-                  {/* SAP Solution Package */}
+                  {/* Company Product Line */}
                   <div>
                     <label className="block font-bold text-slate-700 mb-1">
-                      SAP Solution Package <span className="text-rose-500">*</span>
+                      Company Product Line / Package <span className="text-rose-500">*</span>
                     </label>
                     <select
                       value={newContractForm.unitNumber}
                       onChange={(e) => setNewContractForm({ ...newContractForm, unitNumber: e.target.value })}
                       className="w-full p-3 rounded-xl border border-slate-200 bg-white font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                     >
-                      <option value="SAP S/4HANA Cloud (Enterprise Edition)">SAP S/4HANA Cloud (Enterprise Edition)</option>
-                      <option value="SAP SuccessFactors HXM Cloud Suite">SAP SuccessFactors HXM Cloud Suite</option>
-                      <option value="SAP Analytics Cloud & Datasphere">SAP Analytics Cloud & Datasphere</option>
-                      <option value="SAP Ariba Digital Procurement Suite">SAP Ariba Digital Procurement Suite</option>
-                      <option value="SAP CX & Customer Data Platform">SAP CX & Customer Data Platform</option>
-                      <option value="custom">Other / Custom SAP Solution Package</option>
+                      <option value="Smart IoT Gateway Hub (Industrial v2)">Smart IoT Gateway Hub (Industrial v2)</option>
+                      <option value="Automated Robotic Controller Unit X1">Automated Robotic Controller Unit X1</option>
+                      <option value="Wireless Sensor Telemetry Node Kit">Wireless Sensor Telemetry Node Kit</option>
+                      <option value="Enterprise Hardware Terminal">Enterprise Hardware Terminal</option>
+                      <option value="Industrial Edge Server & AI Accelerator">Industrial Edge Server & AI Accelerator</option>
+                      <option value="custom">Other / Custom Manufactured Product Line</option>
                     </select>
                   </div>
 
                   {newContractForm.unitNumber === 'custom' && (
                     <div>
-                      <label className="block font-bold text-slate-700 mb-1">Specify Custom Solution Name</label>
+                      <label className="block font-bold text-slate-700 mb-1">Specify Custom Product Name</label>
                       <input
                         type="text"
                         value={newContractForm.customUnitNumber}
                         onChange={(e) => setNewContractForm({ ...newContractForm, customUnitNumber: e.target.value })}
-                        placeholder="e.g. SAP Business One Cloud Custom Tier"
+                        placeholder="e.g. Custom Automated Controller Batch"
                         className="w-full p-3 rounded-xl border border-slate-200 bg-white font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                         required
                       />
                     </div>
                   )}
 
-                  {/* Project Name */}
+                  {/* Project / Batch Name */}
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">Project / Implementation Name</label>
+                    <label className="block font-bold text-slate-700 mb-1">Order / Batch Name</label>
                     <input
                       type="text"
                       value={newContractForm.projectName}
                       onChange={(e) => setNewContractForm({ ...newContractForm, projectName: e.target.value })}
-                      placeholder="e.g. Acme Corp ERP Digital Transformation"
+                      placeholder="e.g. Acme Corp IoT Production Batch"
                       className="w-full p-3 rounded-xl border border-slate-200 bg-white font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                       required
                     />
@@ -1758,13 +1802,13 @@ function PostSalesContent() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block font-bold text-slate-700 mb-1">
-                        Total Contract Value (₹) <span className="text-rose-500">*</span>
+                        Total Order Value (₹) <span className="text-rose-500">*</span>
                       </label>
                       <input
                         type="number"
                         value={newContractForm.totalAmount}
                         onChange={(e) => setNewContractForm({ ...newContractForm, totalAmount: Number(e.target.value) })}
-                        placeholder="5000000"
+                        placeholder="500000"
                         className="w-full p-3 rounded-xl border border-slate-200 bg-white font-mono font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                         required
                       />
@@ -1772,16 +1816,16 @@ function PostSalesContent() {
                     </div>
 
                     <div>
-                      <label className="block font-bold text-slate-700 mb-1">Contract Duration</label>
+                      <label className="block font-bold text-slate-700 mb-1">Warranty & Support Period</label>
                       <select
                         value={newContractForm.durationMonths}
                         onChange={(e) => setNewContractForm({ ...newContractForm, durationMonths: Number(e.target.value) })}
                         className="w-full p-3 rounded-xl border border-slate-200 bg-white font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                       >
-                        <option value={12}>12 Months (1 Year)</option>
-                        <option value={24}>24 Months (2 Years)</option>
-                        <option value={36}>36 Months (3 Years)</option>
-                        <option value={60}>60 Months (5 Years)</option>
+                        <option value={12}>12 Months (1 Year Standard)</option>
+                        <option value={24}>24 Months (2 Years Extended)</option>
+                        <option value={36}>36 Months (3 Years Platinum)</option>
+                        <option value={60}>60 Months (5 Years Enterprise)</option>
                       </select>
                     </div>
                   </div>
@@ -1789,13 +1833,13 @@ function PostSalesContent() {
                   {/* Default Milestones Summary Box */}
                   <div className="p-4 bg-indigo-50/60 border border-indigo-100 rounded-2xl space-y-2">
                     <p className="text-[11px] font-bold text-indigo-900 flex items-center gap-1.5">
-                      <Sparkles size={14} className="text-indigo-600" /> Auto-Generated Milestones & Vault:
+                      <Sparkles size={14} className="text-indigo-600" /> Auto-Generated Delivery Milestones:
                     </p>
                     <ul className="text-[11px] text-indigo-800/90 space-y-1 list-disc list-inside">
-                      <li>20% Contract Signing Deposit (₹{(((newContractForm.totalAmount || 0) * 0.2) / 100000).toFixed(1)}L)</li>
-                      <li>40% Solution Blueprint & Configuration Signoff</li>
-                      <li>40% Go-Live Production Handover</li>
-                      <li>Standard Compliance Vault (MSA, SLA, Entitlement Certificate)</li>
+                      <li>20% Order Confirmation Deposit (₹{(((newContractForm.totalAmount || 0) * 0.2) / 100000).toFixed(1)}L)</li>
+                      <li>40% Factory Quality Inspection (QC Pass) Signoff</li>
+                      <li>40% Warehouse Dispatch & Final Delivery Handover</li>
+                      <li>Standard Product QC Vault (QC Pass, Tax Invoice, Warranty Card)</li>
                     </ul>
                   </div>
 
@@ -1812,7 +1856,7 @@ function PostSalesContent() {
                       disabled={submittingNewContract}
                       className="btn-primary text-xs font-bold px-5 py-2.5 shadow-md flex items-center gap-2"
                     >
-                      {submittingNewContract ? 'Creating Contract...' : '🚀 Create SAP Contract'}
+                      {submittingNewContract ? 'Creating Order...' : '📦 Create Product Order'}
                     </button>
                   </div>
                 </form>
@@ -1883,7 +1927,7 @@ function PostSalesContent() {
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h2 className="text-sm font-bold text-white">Loan Portal</h2>
+                        <h2 className="text-sm font-bold text-white">Order Fulfillment & Operations Portal</h2>
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/30 border border-indigo-400/30 text-indigo-200">
                           {(selectedBookingForOperation.leadId as any)?.name || 'Client'}
                         </span>
@@ -1905,7 +1949,7 @@ function PostSalesContent() {
                 <div className="bg-slate-50 border-b border-slate-200 px-3 py-2 overflow-x-auto flex items-center gap-1.5 shrink-0 custom-scrollbar">
                   {DELIVERY_STAGES.map((stg) => {
                     const isActiveTab = operationActiveStageTab === stg.id;
-                    const isCurrentActualStage = selectedBookingForOperation.status === stg.id;
+                    const isCurrentActualStage = selectedBookingForOperation.status === stg.id || normalizeDeliveryStage(selectedBookingForOperation.status) === stg.id;
                     const StgIcon = stg.icon;
                     return (
                       <button
@@ -1930,27 +1974,31 @@ function PostSalesContent() {
                 {/* Modal Content Body */}
                 <div className="p-5 overflow-y-auto space-y-4 flex-1 custom-scrollbar">
 
-                  {/* STAGE 1: DOCUMENTATION */}
-                  {operationActiveStageTab === 'documentation' && (
+                  {/* STAGE 1: CONFIRMATION */}
+                  {(operationActiveStageTab === 'confirmation' || operationActiveStageTab === 'documentation') && (
                     <div className="space-y-4">
-                      {/* Loan Type + Required Docs */}
+                      {/* Product Line + Required Docs */}
                       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                        <label className="text-xs font-semibold text-slate-600 shrink-0">Loan Type</label>
+                        <label className="text-xs font-semibold text-slate-600 shrink-0">Product Line</label>
                         <select
                           value={operationForm.loanType}
                           onChange={(e) => setOperationForm({ ...operationForm, loanType: e.target.value as any })}
                           className="h-9 px-3 text-xs font-semibold rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-indigo-500 outline-none text-indigo-900"
                         >
-                          <option value="home_loan">Home Loan</option>
-                          <option value="lap">Loan Against Property (LAP)</option>
-                          <option value="personal_loan">Personal Loan</option>
-                          <option value="business_loan">Business Loan</option>
+                          <option value="electronics">Electronics & Hardware</option>
+                          <option value="industrial_hardware">Industrial Automation & IoT</option>
+                          <option value="consumer_goods">Consumer Goods & Appliances</option>
+                          <option value="custom_machinery">Custom Machinery & Parts</option>
+                          <option value="home_loan">Home Loan (Legacy)</option>
+                          <option value="lap">Loan Against Property (Legacy)</option>
+                          <option value="personal_loan">Personal Loan (Legacy)</option>
+                          <option value="business_loan">Business Loan (Legacy)</option>
                         </select>
                       </div>
 
                       {/* Required Docs - compact */}
                       <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
-                        <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-2">Required Documents</p>
+                        <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-2">Required Fulfillment Documents</p>
                         <div className="space-y-2">
                           {(LOAN_DOC_REQUIREMENTS[operationForm.loanType] || []).map((grp, gIdx) => (
                             <div key={gIdx}>
@@ -1977,7 +2025,7 @@ function PostSalesContent() {
                             <label className="block text-[11px] text-slate-500 mb-1">Document name</label>
                             <input
                               type="text"
-                              placeholder="e.g. Salary Slips"
+                              placeholder="e.g. QC Inspection Certificate"
                               value={newDocForm.name}
                               onChange={(e) => setNewDocForm({ ...newDocForm, name: e.target.value })}
                               className="w-full h-9 px-3 text-xs rounded-lg border border-slate-200 focus:border-indigo-400 outline-none"
@@ -1990,15 +2038,15 @@ function PostSalesContent() {
                               onChange={(e) => setNewDocForm({ ...newDocForm, docType: e.target.value })}
                               className="w-full h-9 px-3 text-xs rounded-lg border border-slate-200 bg-white outline-none"
                             >
-                              <option value="KYC">Identity / KYC</option>
-                              <option value="Income Proof">Income & Tax</option>
-                              <option value="Property Document">Property</option>
-                              <option value="Financial Statement">Financial</option>
-                              <option value="Bank Form">Bank Form</option>
+                              <option value="KYC">Quality Inspection (QC Pass)</option>
+                              <option value="Income Proof">Commercial Invoice & Waybill</option>
+                              <option value="Property Document">Warranty Card & Manual</option>
+                              <option value="Financial Statement">Safety & Compliance Cert</option>
+                              <option value="Bank Form">Client Acceptance Form</option>
                             </select>
                           </div>
                           <div>
-                            <label className="block text-[11px] text-slate-500 mb-1">Bank</label>
+                            <label className="block text-[11px] text-slate-500 mb-1">Logistics / Inspection Partner</label>
                             <select
                               value={newDocForm.bankName}
                               onChange={(e) => setNewDocForm({ ...newDocForm, bankName: e.target.value })}
@@ -2057,7 +2105,7 @@ function PostSalesContent() {
                                 </div>
                                 <div>
                                   <p className="text-xs font-semibold text-slate-900">{doc.name}</p>
-                                  <p className="text-[10px] text-slate-400">{doc.bankName || 'No bank'} · {doc.docType || 'General'}</p>
+                                  <p className="text-[10px] text-slate-400">{doc.bankName || 'Direct'} · {doc.docType || 'General'}</p>
                                 </div>
                               </div>
                               <div className="flex items-center gap-2">
@@ -2078,12 +2126,12 @@ function PostSalesContent() {
                     </div>
                   )}
 
-                  {/* STAGE 2: VERIFICATION */}
-                  {operationActiveStageTab === 'verification' && (
+                  {/* STAGE 2: QUALITY CHECK */}
+                  {(operationActiveStageTab === 'quality_check' || operationActiveStageTab === 'verification') && (
                     <div className="space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-semibold text-slate-600 mb-1">Verification Status</label>
+                          <label className="block text-xs font-semibold text-slate-600 mb-1">Quality Inspection Status</label>
                           <select
                             value={operationForm.verificationStatus}
                             onChange={(e) => setOperationForm({ ...operationForm, verificationStatus: e.target.value as any })}
@@ -2096,7 +2144,7 @@ function PostSalesContent() {
                           </select>
                         </div>
                         <div>
-                          <label className="block text-xs font-semibold text-slate-600 mb-1">Target Bank</label>
+                          <label className="block text-xs font-semibold text-slate-600 mb-1">Inspection Partner / Agency</label>
                           <select
                             value={operationForm.selectedBank}
                             onChange={(e) => setOperationForm({ ...operationForm, selectedBank: e.target.value })}
@@ -2107,10 +2155,10 @@ function PostSalesContent() {
                         </div>
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1">Notes</label>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Quality & Verification Notes</label>
                         <textarea
                           rows={4}
-                          placeholder="Residence visit, office check, document observations..."
+                          placeholder="Inspection notes, quality checklist observations, specifications verification..."
                           value={operationForm.verificationNotes}
                           onChange={(e) => setOperationForm({ ...operationForm, verificationNotes: e.target.value })}
                           className="w-full p-3 text-xs rounded-xl border border-slate-200 outline-none focus:border-indigo-400 resize-none"
@@ -2119,11 +2167,11 @@ function PostSalesContent() {
                     </div>
                   )}
 
-                  {/* STAGE 3: LOAN APPLICATION SUBMITTED */}
-                  {operationActiveStageTab === 'loan_application_submitted' && (
+                  {/* STAGE 3: READY FOR DISPATCHED */}
+                  {(operationActiveStageTab === 'ready_for_dispatched' || operationActiveStageTab === 'loan_application_submitted' || operationActiveStageTab === 'bank_lender_processing') && (
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1">Bank / Lender</label>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Dispatch Carrier / Facility</label>
                         <select
                           value={operationForm.selectedBank}
                           onChange={(e) => setOperationForm({ ...operationForm, selectedBank: e.target.value })}
@@ -2133,15 +2181,15 @@ function PostSalesContent() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1">Application Ref No.</label>
-                        <input type="text" placeholder="e.g. HDFC-APP-88912"
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Warehouse Batch / Docket No.</label>
+                        <input type="text" placeholder="e.g. WH-BOM-88912"
                           value={operationForm.applicationRef}
                           onChange={(e) => setOperationForm({ ...operationForm, applicationRef: e.target.value })}
                           className="w-full h-10 px-3 text-xs rounded-xl border border-slate-200 outline-none focus:border-indigo-400 font-mono"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1">Submission Date</label>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Packaging & Dispatch Date</label>
                         <input type="date"
                           value={operationForm.submissionDate}
                           onChange={(e) => setOperationForm({ ...operationForm, submissionDate: e.target.value })}
@@ -2151,18 +2199,18 @@ function PostSalesContent() {
                     </div>
                   )}
 
-                  {/* STAGE 4: BANK / LENDER PROCESSING */}
+                  {/* STAGE 4: PROCESSING NOTES */}
                   {operationActiveStageTab === 'bank_lender_processing' && (
                     <div className="space-y-4">
                       <div className="flex items-center gap-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs">
-                        <span className="font-semibold text-amber-900">Bank: <strong>{operationForm.selectedBank}</strong></span>
-                        <span className="text-slate-500 font-mono">Ref: {operationForm.applicationRef || '—'}</span>
+                        <span className="font-semibold text-amber-900">Carrier / Depot: <strong>{operationForm.selectedBank}</strong></span>
+                        <span className="text-slate-500 font-mono">Docket: {operationForm.applicationRef || '—'}</span>
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1">Processing Notes</label>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Warehouse & Assembly Notes</label>
                         <textarea
                           rows={4}
-                          placeholder="Credit manager updates, CAM status, valuation progress..."
+                          placeholder="Packaging status, serial verification, palletizing, carrier pickup progress..."
                           value={operationForm.verificationNotes}
                           onChange={(e) => setOperationForm({ ...operationForm, verificationNotes: e.target.value })}
                           className="w-full p-3 text-xs rounded-xl border border-slate-200 outline-none focus:border-indigo-400 resize-none"
@@ -2171,12 +2219,12 @@ function PostSalesContent() {
                     </div>
                   )}
 
-                  {/* STAGE 5: LOAN SANCTIONED */}
-                  {operationActiveStageTab === 'loan_sanctioned' && (
+                  {/* STAGE 4: DISPATCHED */}
+                  {(operationActiveStageTab === 'dispatched' || operationActiveStageTab === 'loan_sanctioned') && (
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                         <div>
-                          <label className="block text-[11px] text-slate-500 mb-1">Sanctioning Bank</label>
+                          <label className="block text-[11px] text-slate-500 mb-1">Dispatch Carrier / Partner</label>
                           <select value={operationForm.sanctionedBank}
                             onChange={(e) => setOperationForm({ ...operationForm, sanctionedBank: e.target.value })}
                             className="w-full h-10 px-3 text-xs rounded-xl border border-slate-200 bg-white outline-none focus:border-indigo-400">
@@ -2184,27 +2232,27 @@ function PostSalesContent() {
                           </select>
                         </div>
                         <div>
-                          <label className="block text-[11px] text-slate-500 mb-1">Sanctioned Amount (₹)</label>
+                          <label className="block text-[11px] text-slate-500 mb-1">Declared Value (₹)</label>
                           <input type="number" value={operationForm.sanctionAmount}
                             onChange={(e) => setOperationForm({ ...operationForm, sanctionAmount: Number(e.target.value) })}
                             className="w-full h-10 px-3 text-xs font-mono rounded-xl border border-slate-200 outline-none focus:border-indigo-400" />
                         </div>
                         <div>
-                          <label className="block text-[11px] text-slate-500 mb-1">Interest Rate (%)</label>
+                          <label className="block text-[11px] text-slate-500 mb-1">Weight / Packages</label>
                           <input type="number" step="0.1" value={operationForm.interestRate}
                             onChange={(e) => setOperationForm({ ...operationForm, interestRate: Number(e.target.value) })}
                             className="w-full h-10 px-3 text-xs font-mono rounded-xl border border-slate-200 outline-none focus:border-indigo-400" />
                         </div>
                         <div>
-                          <label className="block text-[11px] text-slate-500 mb-1">Tenure (months)</label>
+                          <label className="block text-[11px] text-slate-500 mb-1">Estimated Days</label>
                           <input type="number" value={operationForm.tenureMonths}
                             onChange={(e) => setOperationForm({ ...operationForm, tenureMonths: Number(e.target.value) })}
                             className="w-full h-10 px-3 text-xs font-mono rounded-xl border border-slate-200 outline-none focus:border-indigo-400" />
                         </div>
                       </div>
                       <div>
-                        <label className="block text-[11px] text-slate-500 mb-1">Sanction Letter Link</label>
-                        <input type="text" placeholder="Paste document URL..."
+                        <label className="block text-[11px] text-slate-500 mb-1">Tracking / Consignment Link (AWB)</label>
+                        <input type="text" placeholder="Paste tracking or consignment URL..."
                           value={operationForm.sanctionLetterUrl}
                           onChange={(e) => setOperationForm({ ...operationForm, sanctionLetterUrl: e.target.value })}
                           className="w-full h-10 px-3 text-xs rounded-xl border border-slate-200 outline-none focus:border-indigo-400" />
@@ -2212,31 +2260,31 @@ function PostSalesContent() {
                     </div>
                   )}
 
-                  {/* STAGE 6: DISBURSEMENT */}
-                  {operationActiveStageTab === 'disbursement' && (
+                  {/* STAGE 5: DELIVERED */}
+                  {(operationActiveStageTab === 'delivered' || operationActiveStageTab === 'disbursement') && (
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                       <div>
-                        <label className="block text-[11px] text-slate-500 mb-1">Disbursed Amount (₹)</label>
+                        <label className="block text-[11px] text-slate-500 mb-1">Delivered Value (₹)</label>
                         <input type="number" value={operationForm.disbursedAmount}
                           onChange={(e) => setOperationForm({ ...operationForm, disbursedAmount: Number(e.target.value) })}
                           className="w-full h-10 px-3 text-xs font-mono text-emerald-700 rounded-xl border border-slate-200 outline-none focus:border-indigo-400" />
                       </div>
                       <div>
-                        <label className="block text-[11px] text-slate-500 mb-1">Disbursement Date</label>
+                        <label className="block text-[11px] text-slate-500 mb-1">Delivery Date</label>
                         <input type="date" value={operationForm.disbursementDate}
                           onChange={(e) => setOperationForm({ ...operationForm, disbursementDate: e.target.value })}
                           className="w-full h-10 px-3 text-xs rounded-xl border border-slate-200 outline-none focus:border-indigo-400" />
                       </div>
                       <div>
-                        <label className="block text-[11px] text-slate-500 mb-1">Bank Account No.</label>
-                        <input type="text" placeholder="e.g. 5010029384918"
+                        <label className="block text-[11px] text-slate-500 mb-1">Recipient / Gate Pass No.</label>
+                        <input type="text" placeholder="e.g. REC-5010029384"
                           value={operationForm.bankAccountNumber}
                           onChange={(e) => setOperationForm({ ...operationForm, bankAccountNumber: e.target.value })}
                           className="w-full h-10 px-3 text-xs font-mono rounded-xl border border-slate-200 outline-none focus:border-indigo-400" />
                       </div>
                       <div>
-                        <label className="block text-[11px] text-slate-500 mb-1">UTR / Ref No.</label>
-                        <input type="text" placeholder="e.g. UTR-HDFC-9912"
+                        <label className="block text-[11px] text-slate-500 mb-1">Proof of Delivery Ref / Waybill</label>
+                        <input type="text" placeholder="e.g. POD-BLUEDART-9912"
                           value={operationForm.utrNumber}
                           onChange={(e) => setOperationForm({ ...operationForm, utrNumber: e.target.value })}
                           className="w-full h-10 px-3 text-xs font-mono rounded-xl border border-slate-200 outline-none focus:border-indigo-400" />
@@ -2244,27 +2292,27 @@ function PostSalesContent() {
                     </div>
                   )}
 
-                  {/* STAGE 7: LOAN COMPLETED */}
-                  {operationActiveStageTab === 'loan_completed' && (
+                  {/* STAGE 6: COMPLETE */}
+                  {(operationActiveStageTab === 'complete' || operationActiveStageTab === 'loan_completed') && (
                     <div className="space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-semibold text-slate-600 mb-1">Loan Account Number</label>
-                          <input type="text" placeholder="e.g. LA-HDFC-2026-90412"
+                          <label className="block text-xs font-semibold text-slate-600 mb-1">Product Batch / Serial Number</label>
+                          <input type="text" placeholder="e.g. SN-PRD-2026-90412"
                             value={operationForm.loanAccountNumber}
                             onChange={(e) => setOperationForm({ ...operationForm, loanAccountNumber: e.target.value })}
                             className="w-full h-10 px-3 text-xs font-mono rounded-xl border border-slate-200 outline-none focus:border-indigo-400" />
                         </div>
                         <div>
-                          <label className="block text-xs font-semibold text-slate-600 mb-1">Lender</label>
+                          <label className="block text-xs font-semibold text-slate-600 mb-1">Fulfillment Carrier / Depot</label>
                           <input type="text" disabled value={operationForm.sanctionedBank || operationForm.selectedBank}
                             className="w-full h-10 px-3 text-xs text-slate-600 bg-slate-100 rounded-xl border border-slate-200" />
                         </div>
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1">Closure Notes</label>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Completion & Warranty Notes</label>
                         <textarea rows={3}
-                          placeholder="Welcome kit sent, documents stored, loan active..."
+                          placeholder="Customer acceptance confirmed, warranty card registered, product operational..."
                           value={operationForm.closureNotes}
                           onChange={(e) => setOperationForm({ ...operationForm, closureNotes: e.target.value })}
                           className="w-full p-3 text-xs rounded-xl border border-slate-200 outline-none focus:border-indigo-400 resize-none" />

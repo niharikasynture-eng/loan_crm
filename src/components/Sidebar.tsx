@@ -26,7 +26,7 @@ const CRM_NAV = [
   { href: '/calls', label: 'Call History', icon: Phone },
   { href: '/tasks', label: 'Tasks', icon: CheckSquare },
   { href: '/deals', label: 'Pipeline', icon: TrendingUp },
-  { href: '/post-sales', label: 'Post Sales', icon: KeyRound },
+  { href: '/post-sales', label: 'Fulfillment & Orders', icon: KeyRound },
   { href: '/reports', label: 'Reports', icon: BarChart2 },
 ];
 
@@ -38,8 +38,8 @@ const ADMIN_NAV = [
 const ROLE_META: Record<string, { label: string; icon: React.ElementType; color: string; bg: string }> = {
   super_admin: { label: 'Super Admin', icon: ShieldCheck, color: '#7c3aed', bg: '#f3f0ff' },
   org_admin: { label: 'Org Admin', icon: Briefcase, color: '#1a73e8', bg: '#e8f0fe' },
-  manager: { label: 'Manager', icon: UserCog, color: '#0f9d58', bg: '#e6f4ea' },
-  operator: { label: 'Loan Operator', icon: CheckSquare, color: '#2563eb', bg: '#eff6ff' },
+  manager: { label: 'Product Manager', icon: UserCog, color: '#0f9d58', bg: '#e6f4ea' },
+  operator: { label: 'Product Operations', icon: CheckSquare, color: '#2563eb', bg: '#eff6ff' },
   sales_agent: { label: 'Sales Person', icon: UserCircle, color: '#f29900', bg: '#fef7e0' },
   onsite_visitor: { label: 'Onsite Visitor', icon: UserCircle, color: '#0ea5e9', bg: '#f0f9ff' },
 };
@@ -148,14 +148,14 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
               {CRM_NAV.filter(item => {
                 if (isOnsiteVisitor) return item.href === '/leads' || item.href === '/dashboard';
                 if (isSalesAgent) {
-                  const salesExcluded = ['/projects', '/inventory'];
+                  const salesExcluded = ['/projects'];
                   if (salesExcluded.includes(item.href)) return false;
                   if (item.href === '/leads') item.label = 'My Leads';
                 }
                 if (isOperator) {
-                  const operatorExcluded = ['/projects', '/inventory', '/site-visits', '/bookings'];
+                  const operatorExcluded = ['/projects', '/site-visits', '/bookings'];
                   if (operatorExcluded.includes(item.href)) return false;
-                  if (item.href === '/post-sales') item.label = 'Loan Operations';
+                  if (item.href === '/post-sales') item.label = 'Product Operations';
                 }
                 return true;
               }).map(({ href, label, icon: Icon }) => {

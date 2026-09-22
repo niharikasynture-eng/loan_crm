@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use } from 'react';
 import { api } from '@/lib/api-client';
-import { Mail, Phone, Building, Briefcase, Calendar, CheckSquare, MessageSquare, X, Clock, ClipboardList, Send, CheckCircle2, Pencil, Settings, Plus, Bell, MessageCircle, FileText, MapPin, HeartPulse, GraduationCap, Users, Shield, Trash2, User, TrendingUp, UserCog, UserCheck } from 'lucide-react';
+import { Mail, Phone, Building, Briefcase, Calendar, CheckSquare, MessageSquare, X, Clock, ClipboardList, Send, CheckCircle2, Pencil, Settings, Plus, Bell, MessageCircle, FileText, MapPin, HeartPulse, GraduationCap, Users, Shield, Trash2, User, TrendingUp, UserCog, UserCheck, Package, AlertTriangle, ExternalLink, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import CallButton from '@/components/CallButton';
@@ -27,6 +27,9 @@ interface Lead {
   status: string;
   source: string;
   value?: number;
+  productId?: string;
+  productName?: string;
+  productQuantity?: number;
   createdBy?: { _id: string; name: string; email?: string; role?: string; avatar?: string };
   createdAt: string;
   lostReason?: string;
@@ -71,6 +74,19 @@ interface Lead {
   visitDate?: string;
 }
 
+interface InventoryProduct {
+  _id: string;
+  name: string;
+  sku?: string;
+  category?: string;
+  stockQuantity: number;
+  availableQuantity: number;
+  minStockAlert?: number;
+  unit?: string;
+  price?: number;
+  status: 'Available' | 'Low Stock' | 'Out of Stock' | 'Discontinued';
+}
+
 interface Activity {
   _id: string;
   type: string;
@@ -98,6 +114,12 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
   const [isDialing, setIsDialing] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // ── Product & Inventory Checker State ──
+  const [products, setProducts] = useState<InventoryProduct[]>([]);
+  const [selectedProductId, setSelectedProductId] = useState<string>('');
+  const [productQuantity, setProductQuantity] = useState<number>(1);
+  const [isUpdatingProduct, setIsUpdatingProduct] = useState(false);
 
   // ── Smart Call & 1-Click Outcome Modal ──
   const [isBrowserCallActive, setIsBrowserCallActive] = useState(false);
@@ -171,12 +193,66 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
         api.get<{ users: { _id: string; name: string }[] }>('/users?limit=100'),
       ]);
       setLead(leadRes.lead);
+      if (leadRes.lead.productId) {
+        setSelectedProductId(leadRes.lead.productId);
+      }
+      if (leadRes.lead.productQuantity) {
+        setProductQuantity(leadRes.lead.productQuantity);
+      }
       setActivities(actsRes.activities);
       setUsers(usersRes.users);
+
+      try {
+        const invRes = await api.get<{ inventory?: InventoryProduct[]; products?: InventoryProduct[] }>('/inventory');
+        const list = invRes?.products || invRes?.inventory || [];
+        if (list.length > 0) {
+          setProducts(list);
+          if (!leadRes.lead.productId && leadRes.lead.productName) {
+            const matched = list.find(p => p.name.toLowerCase() === leadRes.lead.productName?.toLowerCase());
+            if (matched) setSelectedProductId(matched._id);
+          }
+        }
+      } catch (err) {
+        // Non-blocking
+      }
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleSaveProductSelection(chosenProdId?: string, chosenQty?: number) {
+    const prodIdToSave = chosenProdId !== undefined ? chosenProdId : selectedProductId;
+    const qtyToSave = chosenQty !== undefined ? chosenQty : productQuantity;
+    const chosenProduct = products.find(p => p._id === prodIdToSave);
+
+    setIsUpdatingProduct(true);
+    try {
+      await api.patch(`/leads/${leadId}`, {
+        productId: prodIdToSave || null,
+        productName: chosenProduct ? chosenProduct.name : '',
+        productQuantity: Number(qtyToSave) || 1,
+      });
+      showToast('Product and order quantity updated', 'success', 'Saved');
+      loadData();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update product details', 'error', 'Error');
+    } finally {
+      setIsUpdatingProduct(false);
+    }
+  }
+
+  async function handleQuickStatusChange(newStatus: string) {
+    setSubmitting(true);
+    try {
+      await api.patch(`/leads/${leadId}`, { status: newStatus });
+      showToast(`Status updated to ${newStatus.replace('_', ' ').toUpperCase()}`, 'success', 'Status Changed');
+      loadData();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update status', 'error', 'Error');
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -506,7 +582,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                       <DetailItem label="Landmark" value={lead.landmark || '—'} icon={Building} />
                       <DetailItem label="Area & Pincode" value={`${lead.area || ''} ${lead.pincode ? `- ${lead.pincode}` : ''}`.trim() || '—'} icon={Building} />
                       <DetailItem label="Pune Region Zone" value={lead.region || '—'} icon={MapPin} />
-                      <DetailItem label="Loan Category / Type" value={lead.industry || '—'} icon={Building} />
+                      <DetailItem label="Product Category / Type" value={lead.industry || '—'} icon={Building} />
                     </div>
                     {lead.mapLink && (
                       <div className="pt-4">
@@ -674,10 +750,24 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                   {lead.company || 'Private Individual'}
                 </p>
 
-                <div className="mt-6 flex flex-wrap justify-center gap-2">
+                <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
                   <span className={`badge badge-${lead.status.replace('_', '-')} shadow-sm px-4 py-1.5 text-[11px]`}>
                     {lead.status.replace('_', ' ').toUpperCase()}
                   </span>
+                  <select
+                    value={lead.status}
+                    onChange={(e) => handleQuickStatusChange(e.target.value)}
+                    disabled={submitting}
+                    title="Change Lead Stage"
+                    className="text-[11px] font-bold px-2.5 py-1 rounded-lg border border-gray-200 bg-white text-gray-700 hover:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer transition-all shadow-sm"
+                  >
+                    <option value="new">New</option>
+                    <option value="contacted">Contacted</option>
+                    <option value="qualified">Qualified</option>
+                    <option value="proposal">Proposal</option>
+                    <option value="won">✓ Won (Check Inventory)</option>
+                    <option value="lost">Lost</option>
+                  </select>
                 </div>
 
                 {(lead as any).lastStageChangedBy && (
@@ -749,7 +839,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                       {lead.createdBy?.name || 'Inbound Customer'}
                       {lead.createdBy?.role && (
                         <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded uppercase tracking-wider">
-                          {lead.createdBy.role === 'operator' ? 'Loan Operator' : lead.createdBy.role.replace('_', ' ')}
+                          {lead.createdBy.role === 'operator' ? 'Operations' : lead.createdBy.role === 'manager' ? 'Product Manager' : lead.createdBy.role.replace('_', ' ')}
                         </span>
                       )}
                     </span>
@@ -762,11 +852,196 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                       <TrendingUp className="w-4 h-4 text-emerald-600" />
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400">Loan Amount Requested</span>
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400">Order Value / Budget</span>
                       <span className="text-sm font-bold text-emerald-700">₹{lead.value.toLocaleString('en-IN')}</span>
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+
+            {/* ── Product & Inventory Stock Verification Card ── */}
+            <div className="card overflow-hidden" style={{ padding: '20px' }}>
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                    <Package size={16} />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider">Product & Inventory</h3>
+                    <p className="text-[10px] text-gray-400">Warehouse stock checker</p>
+                  </div>
+                </div>
+                <Link
+                  href="/inventory"
+                  className="flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100/70 px-2.5 py-1 rounded-lg transition-colors"
+                >
+                  Inventory <ExternalLink size={11} />
+                </Link>
+              </div>
+
+              {/* Lead Won Fulfillment Readiness Banner */}
+              {(lead.status === 'won' || lead.status === 'closed_won') && (
+                <div className="mb-4">
+                  {(() => {
+                    const activeProd = products.find(p => p._id === selectedProductId) || (lead.productId ? products.find(p => p._id === lead.productId) : null);
+                    if (!activeProd) {
+                      return (
+                        <div className="p-3 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-800 text-xs flex items-start gap-2">
+                          <AlertTriangle size={15} className="text-amber-600 shrink-0 mt-0.5" />
+                          <div>
+                            <p className="font-bold text-[11px] uppercase tracking-wide">Deal Won — No Product Assigned</p>
+                            <p className="text-[11px] text-amber-700 mt-0.5">Please assign a manufactured product below to verify warehouse stock.</p>
+                          </div>
+                        </div>
+                      );
+                    }
+                    const isAvailable = activeProd.availableQuantity >= productQuantity;
+                    return isAvailable ? (
+                      <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-start gap-2.5 shadow-sm">
+                        <CheckCircle size={16} className="text-emerald-600 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-bold text-[11px] uppercase tracking-wider text-emerald-900">Fulfillment Ready</p>
+                          <p className="text-[11px] text-emerald-700 mt-0.5">
+                            Stock is available in warehouse! <strong>{activeProd.availableQuantity} {activeProd.unit || 'units'}</strong> available for this order of <strong>{productQuantity} {activeProd.unit || 'units'}</strong>.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2.5 shadow-sm">
+                        <AlertTriangle size={16} className="text-rose-600 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-bold text-[11px] uppercase tracking-wider text-rose-900">Stock Shortage Alert</p>
+                          <p className="text-[11px] text-rose-700 mt-0.5">
+                            Insufficient inventory! Order needs <strong>{productQuantity}</strong>, but only <strong>{activeProd.availableQuantity}</strong> {activeProd.unit || 'units'} are available.
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* Product Selector & Quantity */}
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">
+                    Select Product
+                  </label>
+                  <select
+                    value={selectedProductId}
+                    onChange={(e) => {
+                      setSelectedProductId(e.target.value);
+                      handleSaveProductSelection(e.target.value, productQuantity);
+                    }}
+                    className="w-full text-xs font-semibold px-3 py-2 rounded-xl border border-gray-200 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  >
+                    <option value="">-- No product linked --</option>
+                    {products.map(p => (
+                      <option key={p._id} value={p._id}>
+                        {p.name} ({p.availableQuantity} {p.unit || 'units'} in stock{p.price ? ` · ₹${p.price.toLocaleString('en-IN')}` : ''})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {selectedProductId && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                        Order Quantity
+                      </label>
+                      <span className="text-[10px] text-gray-400">
+                        Units required
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="1"
+                        value={productQuantity}
+                        onChange={(e) => setProductQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                        className="w-24 text-xs font-bold px-3 py-2 rounded-xl border border-gray-200 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleSaveProductSelection(selectedProductId, productQuantity)}
+                        disabled={isUpdatingProduct}
+                        className="flex-1 py-2 px-3 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white transition-all shadow-sm active:scale-95 disabled:opacity-50"
+                      >
+                        {isUpdatingProduct ? 'Updating...' : 'Save Quantity'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Selected Product Stock Card Details */}
+                {(() => {
+                  const activeProd = products.find(p => p._id === selectedProductId);
+                  if (!activeProd) return null;
+
+                  const isEnough = activeProd.availableQuantity >= productQuantity;
+                  return (
+                    <div className="mt-3 pt-3 border-t border-gray-100 space-y-2.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-[11px] text-gray-500">Warehouse Stock:</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black ${
+                            activeProd.availableQuantity <= 0
+                              ? 'bg-rose-100 text-rose-700'
+                              : activeProd.availableQuantity <= (activeProd.minStockAlert || 5)
+                              ? 'bg-amber-100 text-amber-700'
+                              : 'bg-emerald-100 text-emerald-700'
+                          }`}>
+                            {activeProd.availableQuantity} {activeProd.unit || 'units'}
+                          </span>
+                          <span className="text-[10px] font-bold text-gray-400">
+                            ({activeProd.status})
+                          </span>
+                        </div>
+                      </div>
+
+                      {activeProd.price ? (
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-[11px] text-gray-500">Unit Price:</span>
+                          <span className="font-semibold text-gray-800">₹{activeProd.price.toLocaleString('en-IN')}</span>
+                        </div>
+                      ) : null}
+
+                      {activeProd.price && productQuantity > 1 ? (
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-[11px] text-gray-500">Estimated Total:</span>
+                          <span className="font-bold text-indigo-600">₹{(activeProd.price * productQuantity).toLocaleString('en-IN')}</span>
+                        </div>
+                      ) : null}
+
+                      {activeProd.sku && (
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-[11px] text-gray-500">SKU / Code:</span>
+                          <span className="font-mono text-[11px] text-gray-600">{activeProd.sku}</span>
+                        </div>
+                      )}
+
+                      <div className={`p-2.5 rounded-xl border text-[11px] flex items-center gap-2 ${
+                        isEnough 
+                          ? 'bg-emerald-50/70 border-emerald-200 text-emerald-800' 
+                          : 'bg-rose-50/70 border-rose-200 text-rose-800'
+                      }`}>
+                        {isEnough ? (
+                          <>
+                            <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                            <span>In Stock — ready for customer delivery</span>
+                          </>
+                        ) : (
+                          <>
+                            <div className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
+                            <span>Short by {productQuantity - activeProd.availableQuantity} units. Restock needed.</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 
@@ -1920,27 +2195,21 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
               </div>
 
               <div>
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Loan Category / Type</label>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Product Category / Type</label>
                 <select
                   className="input-field !bg-gray-50 !border-gray-100 !text-gray-900 focus:!bg-white focus:!border-indigo-500"
-                  value={editForm.industry || 'Home Loan / Housing Loan'}
+                  value={editForm.industry || 'Electronics & Hardware'}
                   onChange={(e) => setEditForm({ ...editForm, industry: e.target.value })}
                 >
+                  <option value="Electronics & Hardware">Electronics & Hardware</option>
+                  <option value="Industrial Automation & IoT">Industrial Automation & IoT</option>
+                  <option value="Custom Equipment & Machinery">Custom Equipment & Machinery</option>
+                  <option value="Smart Devices & Sensors">Smart Devices & Sensors</option>
+                  <option value="Spare Parts & Accessories">Spare Parts & Accessories</option>
+                  <option value="Commercial Systems">Commercial Systems</option>
                   <option value="Home Loan / Housing Loan">Home Loan / Housing Loan</option>
-                  <option value="Personal Loan">Personal Loan</option>
-                  <option value="Education Loan / Student Loan">Education Loan / Student Loan</option>
-                  <option value="Car Loan / Auto Loan">Car Loan / Auto Loan</option>
-                  <option value="Two-Wheeler Loan">Two-Wheeler Loan</option>
                   <option value="Business Loan / Commercial Loan">Business Loan / Commercial Loan</option>
-                  <option value="Loan Against Property (LAP)">Loan Against Property (LAP)</option>
-                  <option value="Gold Loan">Gold Loan</option>
-                  <option value="Commercial Vehicle Loan">Commercial Vehicle Loan</option>
-                  <option value="Agriculture / Farm Loan">Agriculture / Farm Loan</option>
-                  <option value="Mortgage / Refinance Loan">Mortgage / Refinance Loan</option>
-                  <option value="Medical / Emergency Loan">Medical / Emergency Loan</option>
-                  <option value="MSME / SME Loan">MSME / SME Loan</option>
-                  <option value="Project / Construction Loan">Project / Construction Loan</option>
-                  <option value="Other Loan Category">Other Loan Category</option>
+                  <option value="Other Product Category">Other Product Category</option>
                 </select>
               </div>
 

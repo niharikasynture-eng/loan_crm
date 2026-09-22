@@ -255,7 +255,7 @@ export default function DashboardPage() {
                 </span>
               </div>
               <p className="text-xs font-medium text-slate-500 mt-0.5 max-w-xl">
-                Share this link in your Instagram bio, ad campaigns, or WhatsApp. Leads are instantly saved in Sales CRM and queued in the Loan Operator workflow.
+                Share this link in your Instagram bio, ad campaigns, or WhatsApp. Leads are instantly saved in Sales CRM and queued in the Product Operations workflow.
               </p>
             </div>
           </div>

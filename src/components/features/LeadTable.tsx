@@ -115,9 +115,9 @@ export function LeadTable({
     },
     {
       key: 'industry',
-      header: 'Loan Category',
+      header: 'Product Category',
       render: (lead) => {
-        const catVal = lead.industry || 'Home Loan / Housing Loan';
+        const catVal = lead.industry || 'Electronics & Hardware';
         return (
           <div className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-100/80 px-2.5 py-1 rounded-lg">
             <Briefcase size={12} className="text-indigo-500 shrink-0" />
@@ -128,7 +128,7 @@ export function LeadTable({
     },
     {
       key: 'value',
-      header: 'Loan Amount',
+      header: 'Order Value',
       render: (lead) => {
         const val = lead.value;
         return (
@@ -146,11 +146,11 @@ export function LeadTable({
         const creatorName = creator?.name || 'Inbound Enquiry';
         const roleStr = creator?.role;
         const roleBadge = roleStr === 'operator' 
-          ? 'Loan Operator' 
+          ? 'Operations' 
           : roleStr === 'sales_agent' 
           ? 'Sales Person' 
           : roleStr === 'manager' 
-          ? 'Manager' 
+          ? 'Product Manager' 
           : roleStr === 'org_admin' 
           ? 'Admin' 
           : roleStr 

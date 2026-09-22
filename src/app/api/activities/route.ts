@@ -91,6 +91,7 @@ export async function GET(req: NextRequest) {
 
     return apiSuccess({ activities, total, page, limit, pages: Math.ceil(total / limit) });
   } catch (err: unknown) {
+    console.error('[ACTIVITIES_GET_ERROR]', err);
     if (err instanceof Error && err.message === 'UNAUTHORIZED') return apiError('Unauthorized', 401);
     return apiError('Failed to fetch activities', 500);
   }

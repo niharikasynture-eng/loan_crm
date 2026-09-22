@@ -66,11 +66,14 @@ export function ReminderChecker() {
     try {
       const res = await api.get<{ activities: any[] }>('/activities?remindersOnly=true');
       activities = res.activities || [];
-    } catch (err) {
+    } catch (err: any) {
       if (api.isNetworkError(err)) {
         console.warn('[ReminderChecker] Skipped: network unreachable');
+      } else if (err?.status === 401 || err?.status === 403) {
+        return;
       } else {
-        console.error('[ReminderChecker] Failed to fetch reminders:', err);
+        // Use console.warn for background polling so transient DB/network errors do not trigger Next.js dev overlay
+        console.warn('[ReminderChecker] Failed to fetch reminders:', err?.message || err);
       }
       return;
     }

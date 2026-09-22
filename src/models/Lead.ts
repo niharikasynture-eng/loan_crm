@@ -16,6 +16,9 @@ export interface ILead extends Document {
   pipelineStage: LeadStatus;
   assignedTo?: mongoose.Types.ObjectId;
   value?: number;
+  productId?: mongoose.Types.ObjectId;
+  productName?: string;
+  productQuantity?: number;
   notes?: string;
   customFields?: Record<string, string | number | boolean>;
   tags: string[];
@@ -121,6 +124,9 @@ const LeadSchema = new Schema<ILead>(
     lastGhostAlertSentAt: { type: Date },
     isGhost: { type: Boolean, default: false },
     value: { type: Number },
+    productId: { type: Schema.Types.ObjectId, ref: 'InventoryUnit' },
+    productName: { type: String, trim: true },
+    productQuantity: { type: Number, default: 1 },
     notes: { type: String },
     customFields: { type: Schema.Types.Mixed, default: {} },
     tags: { type: [String], default: [] },
@@ -194,6 +200,10 @@ LeadSchema.index({ organizationId: 1, createdAt: -1 });
 LeadSchema.index(
   { name: 'text', email: 'text', phone: 'text', company: 'text' }
 );
+
+if (process.env.NODE_ENV === 'development' && mongoose.models.Lead) {
+  delete (mongoose.models as any).Lead;
+}
 
 const Lead: Model<ILead> =
   mongoose.models.Lead || mongoose.model<ILead>('Lead', LeadSchema);

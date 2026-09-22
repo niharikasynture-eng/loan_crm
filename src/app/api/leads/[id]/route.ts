@@ -55,7 +55,8 @@ export async function PATCH(
     const newFields = [
       'secondaryPhone', 'address', 'flatNo', 'landmark', 'area', 'pincode', 'region', 'industry', 'income', 'occupation', 'education',
       'dateOfVisit', 'timeOfVisit', 'mapLink', 'hasMedeclaim', 'sumAssured', 'insuranceCompany', 'healthStatus',
-      'familyAges', 'tseName', 'tlName', 'visitDate'
+      'familyAges', 'tseName', 'tlName', 'visitDate',
+      'productId', 'productName', 'productQuantity'
     ];
 
     const saleAgentAllowed = ['name', 'phone', 'email', 'company', 'status', 'pipelineStage', 'notes', 'lastContactedAt', 'customFields', 'tags', 'lostReason', 'isGhost', ...newFields];
@@ -114,33 +115,36 @@ export async function PATCH(
         const totalVal = (lead as any).value || 1000000;
         const leadCompany = (lead as any).company || (lead as any).name || 'Client';
 
+        const prodName = (lead as any).productName || 'Manufactured Product';
+        const orderQty = (lead as any).productQuantity || 1;
+
         let existingBooking = await Booking.findOne({ organizationId: auth.organizationId, leadId: lead._id });
         if (!existingBooking) {
           existingBooking = await Booking.create({
             organizationId: auth.organizationId,
             leadId: (lead as any)._id,
             salesPersonId,
-            unitNumber: `${(lead as any).name}'s SAP Contract`,
-            projectName: `${leadCompany} Implementation Project`,
+            unitNumber: `${(lead as any).name}'s Order (${orderQty}x ${prodName})`,
+            projectName: `${leadCompany} Fulfillment Order`,
             totalAmount: totalVal,
             bookingDate: new Date(),
             contractEndDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
             renewalStatus: 'active',
-            status: 'contract_signed',
+            status: 'confirmation',
             paymentMilestones: [
-              { name: '20% Execution Deposit & Contract Signing', amount: totalVal * 0.2, dueDate: new Date(Date.now() + 7 * 86400000), status: 'pending', paidAmount: 0 },
-              { name: '40% System Blueprint & Configuration', amount: totalVal * 0.4, dueDate: new Date(Date.now() + 45 * 86400000), status: 'pending', paidAmount: 0 },
-              { name: '40% Go-Live Production Handover', amount: totalVal * 0.4, dueDate: new Date(Date.now() + 90 * 86400000), status: 'pending', paidAmount: 0 },
+              { name: '20% Order Confirmation Deposit', amount: totalVal * 0.2, dueDate: new Date(Date.now() + 7 * 86400000), status: 'pending', paidAmount: 0 },
+              { name: '40% Manufacturing & Factory QC Pass', amount: totalVal * 0.4, dueDate: new Date(Date.now() + 20 * 86400000), status: 'pending', paidAmount: 0 },
+              { name: '40% Warehouse Dispatch & Final Delivery', amount: totalVal * 0.4, dueDate: new Date(Date.now() + 45 * 86400000), status: 'pending', paidAmount: 0 },
             ],
             documents: [
-              { name: 'Master Services Agreement (MSA)', status: 'pending' },
-              { name: 'Service Level Agreement (SLA)', status: 'pending' },
-              { name: 'Software License Entitlement Certificate', status: 'pending' },
+              { name: 'Quality Inspection Certificate (QC Pass)', status: 'pending' },
+              { name: 'Commercial Shipping Invoice & Waybill', status: 'pending' },
+              { name: 'Product Warranty & Guarantee Card', status: 'pending' },
             ],
             handoverChecklist: [
-              { item: 'Tenant Provisioning & Admin Credentials Activation', completed: false },
-              { item: 'Single Sign-On (SSO) & Security Audit Pass', completed: false },
-              { item: 'Official Production Go-Live Certificate & Handover', completed: false },
+              { item: 'Factory Quality Control & Specification Signoff', completed: false },
+              { item: 'Protective Packaging & Barcode Labeling', completed: false },
+              { item: 'Warehouse Dispatch & Customer Delivery Signoff', completed: false },
             ],
           });
 
@@ -148,8 +152,8 @@ export async function PATCH(
             organizationId: auth.organizationId,
             leadId: (lead as any)._id,
             category: 'handover',
-            title: `🚀 Initiate Post-Sales Onboarding: ${(lead as any).name}`,
-            description: `Client "${(lead as any).name}" moved to Won! Post-Sales delivery contract created.`,
+            title: `📦 Initiate Product Fulfillment: ${(lead as any).name}`,
+            description: `Order for "${(lead as any).name}" moved to Won! Fulfillment & delivery tracker initiated.`,
             status: 'pending',
             priority: 'high',
             dueDate: new Date(Date.now() + 2 * 86400000),

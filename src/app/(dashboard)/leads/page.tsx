@@ -16,7 +16,7 @@ import { AgentSelector } from '@/components/features/AgentSelector';
 import { Button } from '@/components/ui/Button';
 import { ILead } from '@/models/Lead';
 import { IUser } from '@/models/User';
-import { ExternalLink, Share2, Copy, Sparkles } from 'lucide-react';
+import { ExternalLink, Share2, Copy, Sparkles, Plus } from 'lucide-react';
 
 function LeadsContent() {
   const router = useRouter();
@@ -341,7 +341,7 @@ function LeadsContent() {
       content: (
         <div className="space-y-4 pt-1">
           <p className="text-xs font-medium text-slate-500 leading-relaxed">
-            Share these links in your Instagram bio, ad campaigns, or WhatsApp broadcasts. When a user submits an inquiry, it automatically syncs with <strong>Sales CRM</strong> and is queued in the <strong>Loan Operator</strong> workflow.
+            Share these links in your Instagram bio, ad campaigns, or WhatsApp broadcasts. When a user submits an inquiry, it automatically syncs with <strong>Sales CRM</strong> and is queued in the <strong>Product Operations</strong> workflow.
           </p>
 
           {/* Instagram Link Card */}
@@ -414,8 +414,17 @@ function LeadsContent() {
   return (
     <div className="space-y-6 animate-fade-in">
       <PageHeader
-        title="Lead Intelligence"
-        subtitle="Global view of all inbound and qualified opportunities"
+        title={user?.role === 'sales_agent' ? 'My Leads' : 'Lead Intelligence'}
+        subtitle={user?.role === 'sales_agent' ? 'Manage and track your assigned leads and customer opportunities' : 'Global view of all inbound and qualified opportunities'}
+        action={
+          <Button
+            onClick={() => router.push('/leads/new')}
+            className="h-10 px-5 shadow-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-2"
+          >
+            <Plus size={16} strokeWidth={2.5} />
+            <span>New Lead</span>
+          </Button>
+        }
       />
 
       {/* Filters Card */}

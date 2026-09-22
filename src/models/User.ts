@@ -17,6 +17,7 @@ export interface IUser extends Document {
   passwordSetToken?: string;
   passwordSetExpiry?: Date;
   callSyncToken?: string;
+  accountExpiry?: Date;
   lastLogin?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -47,6 +48,7 @@ const UserSchema = new Schema<IUser>(
     passwordSetToken: { type: String, index: true },
     passwordSetExpiry: { type: Date },
     callSyncToken: { type: String, index: true },
+    accountExpiry: { type: Date },
     lastLogin: { type: Date },
   },
   { timestamps: true }

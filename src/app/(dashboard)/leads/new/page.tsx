@@ -5,30 +5,26 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api-client';
 import {
-  ChevronLeft, User, Phone, MapPin, Landmark,
+  ChevronLeft, User, Phone, MapPin, Package,
   IndianRupee, CheckCircle2, Briefcase, FileText
 } from 'lucide-react';
 import Link from 'next/link';
 import { AgentSelector } from '@/components/features/AgentSelector';
 import { IUser } from '@/models/User';
 
-const LOAN_TYPES = [
+const PRODUCT_CATEGORIES = [
+  'Electronics & Hardware',
+  'Industrial Automation & IoT',
+  'Custom Equipment & Machinery',
+  'Smart Devices & Sensors',
+  'Spare Parts & Accessories',
+  'Commercial Systems',
   'Home Loan / Housing Loan',
-  'Personal Loan',
   'Business Loan / Commercial Loan',
-  'Loan Against Property (LAP)',
-  'Car Loan / Auto Loan',
-  'Education Loan / Student Loan',
-  'MSME / SME Loan',
-  'Gold Loan',
-  'Commercial Vehicle Loan',
-  'Mortgage Balance Transfer / Refinance',
-  'Project / Construction Loan',
-  'Two-Wheeler Loan',
-  'Other Loan Category',
+  'Other Product Category',
 ];
 
-export default function BasicLoanInquiryPage() {
+export default function NewProductLeadPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
@@ -41,16 +37,21 @@ export default function BasicLoanInquiryPage() {
     name: '',
     phone: '',
     address: '',
-    industry: 'Home Loan / Housing Loan', // What loan they want
-    value: '', // Loan amount desired
+    industry: 'Electronics & Hardware', // What product they want
+    value: '', // Order value / budget
     notes: '',
     assignedTo: '',
   });
 
   useEffect(() => {
-    if (user && user.role === 'super_admin') {
-      router.push('/leads');
-      return;
+    if (user) {
+      if (user.role === 'super_admin') {
+        router.push('/leads');
+        return;
+      }
+      if (user.role === 'sales_agent') {
+        setForm(prev => ({ ...prev, assignedTo: prev.assignedTo || user.id }));
+      }
     }
     api.get<{ users: IUser[] }>('/users?role=sales_agent,onsite_visitor,operator,manager')
       .then(d => setOrgUsers(d.users || []))
@@ -79,18 +80,18 @@ export default function BasicLoanInquiryPage() {
         name: form.name.trim(),
         phone: form.phone.trim(),
         address: form.address.trim() || undefined,
-        industry: form.industry, // What loan they want
+        industry: form.industry,
         value: form.value ? parseFloat(form.value) : 0,
         notes: form.notes.trim() || undefined,
         assignedTo: form.assignedTo || (user?.role === 'sales_agent' ? user.id : undefined),
-        source: 'Loan Inquiry',
+        source: 'Product Inquiry',
       };
 
       const data = await api.post<{ lead: { _id: string } }>('/leads', payload);
       setSaved(true);
       setTimeout(() => router.push(`/leads/${data.lead._id}`), 600);
     } catch (err: any) {
-      setError(err.message || 'Failed to submit loan inquiry.');
+      setError(err.message || 'Failed to submit product inquiry.');
     } finally {
       setSaving(false);
     }
@@ -114,14 +115,14 @@ export default function BasicLoanInquiryPage() {
         <div className="bg-white border border-slate-200 rounded-3xl shadow-sm p-6 sm:p-8 mb-6">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200">
-              <Landmark size={20} strokeWidth={2.2} />
+              <Package size={20} strokeWidth={2.2} />
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                Loan Inquiry Form
+                New Product Lead & Order Form
               </h1>
               <p className="text-xs font-medium text-slate-500">
-                Quick entry for customer loan inquiries
+                Quick entry for customer product inquiries, wholesale orders & leads
               </p>
             </div>
           </div>
@@ -167,13 +168,13 @@ export default function BasicLoanInquiryPage() {
             {/* 3. Address */}
             <div>
               <label className={labelClass}>
-                Customer Address / Area
+                Customer Delivery Address / Area
               </label>
               <div className="relative">
                 <MapPin size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 z-10" />
                 <input
                   type="text"
-                  placeholder="e.g. Flat 302, Baner, Pune"
+                  placeholder="e.g. Unit 302, Phase II, Pune"
                   value={form.address}
                   onChange={e => setField('address', e.target.value)}
                   className={inputClass}
@@ -182,10 +183,10 @@ export default function BasicLoanInquiryPage() {
               </div>
             </div>
 
-            {/* 4. What Loan They Want */}
+            {/* 4. What Product They Want */}
             <div>
               <label className={labelClass}>
-                What Loan Do They Want? <span className="text-rose-500 font-bold">*</span>
+                Product Category / Requirements <span className="text-rose-500 font-bold">*</span>
               </label>
               <div className="relative">
                 <Briefcase size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-500 z-10" />
@@ -195,24 +196,24 @@ export default function BasicLoanInquiryPage() {
                   className={`${inputClass} appearance-none pr-10 cursor-pointer font-bold text-indigo-900 bg-indigo-50/20 border-indigo-200`}
                   style={{ paddingLeft: '44px' }}
                 >
-                  {LOAN_TYPES.map(type => (
+                  {PRODUCT_CATEGORIES.map(type => (
                     <option key={type} value={type}>{type}</option>
                   ))}
                 </select>
               </div>
             </div>
 
-            {/* 5. Loan Amount (Optional / Helpful) */}
+            {/* 5. Order Value */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className={labelClass}>
-                  Loan Amount Needed (₹)
+                  Order Value / Budget (₹)
                 </label>
                 <div className="relative">
                   <IndianRupee size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 z-10" />
                   <input
                     type="number"
-                    placeholder="e.g. 2500000"
+                    placeholder="e.g. 250000"
                     value={form.value}
                     onChange={e => setField('value', e.target.value)}
                     className={inputClass}
@@ -224,7 +225,7 @@ export default function BasicLoanInquiryPage() {
               {/* Assigned Agent */}
               <div>
                 <label className={labelClass}>
-                  Assign To Loan Officer
+                  Assign To Operations / Sales Rep
                 </label>
                 <AgentSelector
                   agents={orgUsers}
@@ -237,13 +238,13 @@ export default function BasicLoanInquiryPage() {
             {/* 6. Remarks / Note */}
             <div>
               <label className={labelClass}>
-                Notes / Discussion (Optional)
+                Order Notes / Specifications (Optional)
               </label>
               <div className="relative">
                 <FileText size={18} className="absolute left-4 top-3 text-slate-400 z-10" />
                 <textarea
                   rows={2}
-                  placeholder="Any specific requirement or customer notes..."
+                  placeholder="Any product SKU, quantity, or delivery requirements..."
                   value={form.notes}
                   onChange={e => setField('notes', e.target.value)}
                   className={`${inputClass} !h-auto py-3 resize-none font-normal`}
@@ -280,13 +281,13 @@ export default function BasicLoanInquiryPage() {
               >
                 {saved ? (
                   <>
-                    <CheckCircle2 size={16} /> Inquiry Saved!
+                    <CheckCircle2 size={16} /> Lead Saved!
                   </>
                 ) : saving ? (
-                  'Saving Inquiry...'
+                  'Saving...'
                 ) : (
                   <>
-                    <Landmark size={16} /> Submit Loan Inquiry
+                    <Package size={16} /> Save Product Lead
                   </>
                 )}
               </button>

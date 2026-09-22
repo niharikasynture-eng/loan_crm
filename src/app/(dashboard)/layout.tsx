@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Users, Activity, Phone,
   CheckSquare, TrendingUp, BarChart2, Settings, UserCog, Menu, X,
-  Clock, CheckCircle, Building2, KeyRound
+  Clock, CheckCircle, Building2, KeyRound, Package
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Sidebar, NavItem } from '@/components/layout/Sidebar';
@@ -43,6 +43,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isOnsiteVisitor = user.role === 'onsite_visitor';
   const isOperator = user.role === 'operator';
   const isAdmin = ['org_admin', 'manager'].includes(user.role);
+  const canAccessInventory = ['org_admin', 'manager', 'sales_agent', 'operator'].includes(user.role);
   const canAccessPostSales = ['super_admin', 'org_admin', 'manager', 'sales_agent', 'operator'].includes(user.role);
 
   const navItems: NavItem[] = isSuperAdmin
@@ -60,7 +61,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? [
           { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
           { label: 'Leads', href: '/leads', icon: Users },
-          { label: 'Loan Operations', href: '/post-sales', icon: KeyRound },
+          { label: 'Product Operations', href: '/post-sales', icon: KeyRound },
+          { label: 'Inventory', href: '/inventory', icon: Package },
           { label: 'Tasks', href: '/tasks', icon: CheckSquare },
           { label: 'Settings', href: '/settings', icon: Settings },
         ]
@@ -71,7 +73,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           { label: 'Calls', href: '/calls', icon: Phone },
           { label: 'Tasks', href: '/tasks', icon: CheckSquare },
           { label: 'Pipeline', href: '/deals', icon: TrendingUp },
-          ...(canAccessPostSales ? [{ label: 'Post Sales', href: '/post-sales', icon: KeyRound }] : []),
+          ...(canAccessInventory ? [{ label: 'Inventory', href: '/inventory', icon: Package }] : []),
+          ...(canAccessPostSales ? [{ label: 'Fulfillment & Orders', href: '/post-sales', icon: KeyRound }] : []),
           { label: 'Reports', href: '/reports', icon: BarChart2 },
           ...(isAdmin ? [{ label: 'Team', href: '/users', icon: UserCog }] : []),
           { label: 'Settings', href: '/settings', icon: Settings },

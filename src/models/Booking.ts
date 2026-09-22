@@ -67,7 +67,7 @@ export interface IBooking extends Document {
   bookingDate: Date;
   contractEndDate?: Date;
   renewalStatus?: 'active' | 'expiring_soon' | 'renewed' | 'churned';
-  status: 'loan_lead_approved' | 'documentation' | 'verification' | 'loan_application_submitted' | 'bank_lender_processing' | 'loan_sanctioned' | 'disbursement' | 'loan_completed' | 'contract_signed' | 'advance_paid' | 'implementation_in_progress' | 'user_training' | 'ready_for_golive' | 'active_ams';
+  status: 'confirmation' | 'quality_check' | 'ready_for_dispatched' | 'dispatched' | 'delivered' | 'complete' | 'loan_lead_approved' | 'documentation' | 'verification' | 'loan_application_submitted' | 'bank_lender_processing' | 'loan_sanctioned' | 'disbursement' | 'loan_completed' | 'contract_signed' | 'advance_paid' | 'implementation_in_progress' | 'user_training' | 'ready_for_golive' | 'active_ams';
   paymentMilestones: IPaymentMilestone[];
   documents: IBuyerDocument[];
   loanDetails?: ILoanProcessingDetails;
@@ -101,8 +101,11 @@ const BookingSchema = new Schema<IBooking>(
     },
     status: {
       type: String,
-      enum: ['loan_lead_approved', 'documentation', 'verification', 'loan_application_submitted', 'bank_lender_processing', 'loan_sanctioned', 'disbursement', 'loan_completed', 'contract_signed', 'advance_paid', 'implementation_in_progress', 'user_training', 'ready_for_golive', 'active_ams'],
-      default: 'documentation',
+      enum: [
+        'confirmation', 'quality_check', 'ready_for_dispatched', 'dispatched', 'delivered', 'complete',
+        'loan_lead_approved', 'documentation', 'verification', 'loan_application_submitted', 'bank_lender_processing', 'loan_sanctioned', 'disbursement', 'loan_completed', 'contract_signed', 'advance_paid', 'implementation_in_progress', 'user_training', 'ready_for_golive', 'active_ams'
+      ],
+      default: 'confirmation',
     },
     paymentMilestones: [
       {

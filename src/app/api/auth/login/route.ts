@@ -18,6 +18,10 @@ export async function POST(req: NextRequest) {
     const user = await User.findOne({ email: cleanEmail }).select('+password');
     if (!user) return apiError('Invalid credentials', 401);
 
+    if (user.accountExpiry && new Date() > user.accountExpiry) {
+      return apiError('Your account has expired. Please contact support.', 403);
+    }
+
     // User role is strictly enforced from database (user.role) for all permissions and tokens
 
     // Super admin: skip org status check

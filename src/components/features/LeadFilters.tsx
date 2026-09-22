@@ -33,22 +33,16 @@ interface LeadFiltersProps {
 }
 
 const DOMAINS = [
-  { label: 'All Loan Categories', value: 'all' },
+  { label: 'All Product Categories', value: 'all' },
+  { label: 'Electronics & Hardware', value: 'Electronics & Hardware' },
+  { label: 'Industrial Automation & IoT', value: 'Industrial Automation' },
+  { label: 'Custom Equipment & Machinery', value: 'Machinery' },
+  { label: 'Smart Devices & Sensors', value: 'Smart Devices' },
+  { label: 'Spare Parts & Accessories', value: 'Spare Parts' },
+  { label: 'Commercial Systems', value: 'Commercial Systems' },
   { label: 'Home Loan / Housing Loan', value: 'Home Loan' },
-  { label: 'Personal Loan', value: 'Personal Loan' },
-  { label: 'Education Loan / Student Loan', value: 'Education Loan' },
-  { label: 'Car Loan / Auto Loan', value: 'Car Loan' },
-  { label: 'Two-Wheeler Loan', value: 'Two-Wheeler Loan' },
   { label: 'Business Loan / Commercial Loan', value: 'Business Loan' },
-  { label: 'Loan Against Property (LAP)', value: 'Loan Against Property' },
-  { label: 'Gold Loan', value: 'Gold Loan' },
-  { label: 'Commercial Vehicle Loan', value: 'Commercial Vehicle Loan' },
-  { label: 'Agriculture / Farm Loan', value: 'Agriculture Loan' },
-  { label: 'Mortgage / Refinance Loan', value: 'Mortgage Loan' },
-  { label: 'Medical / Emergency Loan', value: 'Medical Loan' },
-  { label: 'MSME / SME Loan', value: 'MSME Loan' },
-  { label: 'Project / Construction Loan', value: 'Project Loan' },
-  { label: 'Other Loan Category', value: 'Other' },
+  { label: 'Other Product / Category', value: 'Other' },
 ];
 
 const REGIONS = [
@@ -203,7 +197,7 @@ export function LeadFilters({
           {canAddLead && (
             <Button onClick={onAddLead} className="h-11 px-6 shadow-md shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-2">
               <Plus size={16} strokeWidth={2.5} />
-              <span>New Loan Inquiry</span>
+              <span>New Product Lead</span>
             </Button>
           )}
         </div>
@@ -227,10 +221,10 @@ export function LeadFilters({
             </div>
           )}
 
-          {/* Loan Category Filter */}
+          {/* Product Category Filter */}
           <div className="space-y-1.5">
             <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5 ml-0.5">
-              <Building2 size={13} className="text-indigo-500" /> Loan Category
+              <Building2 size={13} className="text-indigo-500" /> Product Category
             </label>
             <Select
               value={industry}
