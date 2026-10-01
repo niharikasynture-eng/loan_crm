@@ -1975,13 +1975,20 @@ function PostSalesContent() {
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <div>
                             <label className="block text-[11px] text-slate-500 mb-1">Document name</label>
-                            <input
-                              type="text"
-                              placeholder="e.g. Salary Slips"
+                            <select
                               value={newDocForm.name}
                               onChange={(e) => setNewDocForm({ ...newDocForm, name: e.target.value })}
-                              className="w-full h-9 px-3 text-xs rounded-lg border border-slate-200 focus:border-indigo-400 outline-none"
-                            />
+                              className="w-full h-9 px-3 text-xs rounded-lg border border-slate-200 bg-white focus:border-indigo-400 outline-none"
+                            >
+                              <option value="">Select Document...</option>
+                              {(LOAN_DOC_REQUIREMENTS[operationForm.loanType] || []).map((grp, gIdx) => (
+                                <optgroup key={gIdx} label={grp.category}>
+                                  {grp.docs.map((docItem, dIdx) => (
+                                    <option key={dIdx} value={docItem}>{docItem}</option>
+                                  ))}
+                                </optgroup>
+                              ))}
+                            </select>
                           </div>
                           <div>
                             <label className="block text-[11px] text-slate-500 mb-1">Category</label>
@@ -2028,9 +2035,30 @@ function PostSalesContent() {
                             dragOver ? 'border-indigo-400 bg-indigo-50' : 'border-slate-200 hover:border-indigo-300 bg-slate-50/50'
                           }`}
                         >
-                          <Upload size={22} className="mx-auto text-indigo-400 mb-1.5" />
-                          <p className="text-xs text-slate-600 font-medium">Drag & drop or <label htmlFor="file-upload-input" className="text-indigo-600 font-bold cursor-pointer underline-offset-2 hover:underline">browse files</label></p>
-                          <p className="text-[10px] text-slate-400 mt-0.5">PDF, DOCX, JPG, PNG · max 25MB</p>
+                          {newDocForm.fileUrl ? (
+                            <div className="flex flex-col items-center justify-center py-2">
+                              <FileCheck size={28} className="text-emerald-500 mb-2" />
+                              <p className="text-xs font-bold text-slate-700">File Selected</p>
+                              <p className="text-[10px] text-slate-500 truncate max-w-xs">{decodeURIComponent(newDocForm.fileUrl.split('/').pop() || '')}</p>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  setNewDocForm({ ...newDocForm, fileUrl: undefined });
+                                }}
+                                className="mt-2 px-3 py-1 bg-white border border-slate-200 rounded-md text-[10px] text-slate-600 hover:text-red-600 hover:border-red-200 transition-colors font-semibold shadow-sm"
+                              >
+                                Remove File
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <Upload size={22} className="mx-auto text-indigo-400 mb-1.5" />
+                              <p className="text-xs text-slate-600 font-medium">Drag & drop or <label htmlFor="file-upload-input" className="text-indigo-600 font-bold cursor-pointer underline-offset-2 hover:underline">browse files</label></p>
+                              <p className="text-[10px] text-slate-400 mt-0.5">PDF, DOCX, JPG, PNG · max 25MB</p>
+                            </>
+                          )}
                           <input type="file" onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) { setNewDocForm({ ...newDocForm, name: newDocForm.name || file.name, fileUrl: `https://example.com/docs/${encodeURIComponent(file.name)}` }); toast('success', `"${file.name}" selected!`); }
